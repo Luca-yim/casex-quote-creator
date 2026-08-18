@@ -18,6 +18,8 @@ export interface IntakePageProps {
   /** Role context for this route; defaults to the signed-in user's role. */
   roleOverride?: AppRole;
   mode?: "edit" | "readonly";
+  /** Force pricing visibility (estimator review route). */
+  forceShowPricing?: boolean;
   title?: string;
   description?: string;
 }
@@ -27,6 +29,7 @@ export function IntakePage({
   quoteId,
   roleOverride,
   mode = "edit",
+  forceShowPricing = false,
   title = "Quote intake",
   description = "",
 }: IntakePageProps) {
@@ -53,7 +56,7 @@ export function IntakePage({
       quote,
       role,
       mode: (editable ? "edit" : "readonly") as "edit" | "readonly",
-      showPricing: computeShowPricing(role, quote.state),
+      showPricing: forceShowPricing || computeShowPricing(role, quote.state),
       updateField: (_path: string, _value: unknown) => {
         /* Auto-save wiring lands in Prompt G. */
       },
@@ -61,7 +64,7 @@ export function IntakePage({
       lastSavedAt,
       validationErrors: {} as Record<string, string>,
     };
-  }, [quote, quoteId, role, mode, isSaving, lastSavedAt]);
+  }, [quote, quoteId, role, mode, forceShowPricing, isSaving, lastSavedAt]);
 
 
   // Only the quote blocks the first paint; catalog/verticals stream in behind it.
