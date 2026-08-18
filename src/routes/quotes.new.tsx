@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,9 +22,19 @@ export const Route = createFileRoute("/quotes/new")({
 });
 
 function NewQuotePage() {
+  return (
+    <ProtectedRoute allow={["sales_rep"]}>
+      <AppLayout title="New quote" description="Creating a draft">
+        <NewQuoteRunner />
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}
+
+/** Rendered only once AuthGate has confirmed both session and profile. */
+function NewQuoteRunner() {
   const navigate = useNavigate();
-  const { loading, user, profile, role } = useAuth();
-  const [readinessError, setReadinessError] = useState<string | null>(null);
+  const { user, role } = useAuth();
   const createDraft = useCreateDraftQuote({
     userId: user?.id,
     role,
@@ -35,53 +44,30 @@ function NewQuotePage() {
   });
   const { mutate } = createDraft;
   const started = useRef(false);
-  // Warm catalog data while the draft insert is in flight.
   usePricingCatalog();
   useVerticalSolutions();
 
   useEffect(() => {
-    if (loading || !user || !profile || !role || started.current) return;
-    console.log("[quote-create] auth user:", user);
-    console.log("[quote-create] profile:", profile);
+    if (started.current) return;
     started.current = true;
     mutate();
-  }, [loading, user, profile, role, mutate]);
+  }, [mutate]);
 
-  useEffect(() => {
-    if (!loading && (!user || !profile)) {
-      const message = !user ? "You must be signed in to create a quote." : "Your profile could not be loaded.";
-      setReadinessError(message);
-      toast.error("Could not create the quote", { description: message });
-      return;
-    }
-    const timeoutId = window.setTimeout(() => {
-      if (started.current) return;
-      const message = "Your account took too long to load. Please refresh and try again.";
-      setReadinessError(message);
-      toast.error("Could not create the quote", { description: message });
-    }, 5_000);
-    return () => window.clearTimeout(timeoutId);
-  }, [loading, user, profile]);
+  if (createDraft.isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Could not create the quote</AlertTitle>
+        <AlertDescription>
+          {createDraft.error instanceof Error ? createDraft.error.message : "Please try again."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <ProtectedRoute allow={["sales_rep"]}>
-      <AppLayout title="New quote" description="Creating a draft">
-        {createDraft.isError || readinessError ? (
-          <Alert variant="destructive">
-            <AlertTitle>Could not create the quote</AlertTitle>
-            <AlertDescription>
-              {readinessError ?? (createDraft.error instanceof Error
-                ? createDraft.error.message
-                : "Please try again.")}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm font-medium text-foreground">Creating your quote...</p>
-          </div>
-        )}
-      </AppLayout>
-    </ProtectedRoute>
+    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+      <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+      <p className="text-sm font-medium text-foreground">Creating your quote...</p>
+    </div>
   );
 }
