@@ -24,23 +24,23 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
         .single();
       if (error) throw Object.assign(new Error(error.message), { code: error.code });
 
-      const { count } = await supabase
-        .from("quote_versions")
-        .select("id", { count: "exact", head: true })
-        .eq("quote_id", quoteId);
-
-      const { error: versionError } = await supabase
-        .from("quote_versions")
-        .insert({
-          quote_id: quoteId,
-          version_number: (count ?? 0) + 1,
-          snapshot: { ...quote, state: "submitted_for_review", submittedAt: now },
-          change_reason: "Submitted for estimator review",
-          changed_by: userId ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
-      // A snapshot failure must not lose the submission itself.
-      if (versionError) console.warn("[quote-submit] snapshot failed:", versionError.message);
+      try {
+        await writeVersionSnapshot({
+          quoteId,
+          quoteData: { ...quote, state: "submitted_for_review", submittedAt: now },
+          changeReason: "Submitted for estimator review",
+          changedBy: userId,
+          changeType: "submit",
+        });
+      } catch (snapshotError) {
+        // The submission itself already succeeded; warn rather than lose it.
+        toast.warning("Audit trail incomplete", {
+          description:
+            snapshotError instanceof Error
+              ? snapshotError.message
+              : "The version snapshot failed to save.",
+        });
+      }
 
       return rowToQuote(data);
     },
