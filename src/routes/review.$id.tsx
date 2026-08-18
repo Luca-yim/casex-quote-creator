@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IntakePage } from "@/features/intake/IntakePage";
 
 export const Route = createFileRoute("/review/$id")({
   head: () => ({
@@ -19,19 +18,12 @@ function ReviewDetailPage() {
   const { id } = Route.useParams();
   return (
     <ProtectedRoute allow={["estimator", "admin"]}>
-      <AppLayout title="Review quote" description={`Reference ${id}`}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Estimator review</CardTitle>
-            <CardDescription>
-              Pricing adjustments, margin controls and approval actions go here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Review interface coming soon.
-          </CardContent>
-        </Card>
-      </AppLayout>
+      <IntakePage
+        quoteId={id}
+        roleOverride="estimator"
+        title="Estimator review"
+        description="Full pricing detail and margin controls"
+      />
     </ProtectedRoute>
   );
 }
