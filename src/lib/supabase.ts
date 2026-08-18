@@ -21,16 +21,17 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     "Missing Supabase env vars: VITE_SUPABASE_URL and/or VITE_SUPABASE_PUBLISHABLE_KEY",
   );
 }
-
+const supabaseUrl: string = SUPABASE_URL;
+const supabaseKey: string = SUPABASE_PUBLISHABLE_KEY;
 
 export type TypedSupabaseClient = SupabaseClient<Database>;
 
 let _client: TypedSupabaseClient | undefined;
 
 function createTypedClient(): TypedSupabaseClient {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createClient<Database>(supabaseUrl, supabaseKey, {
     auth: {
-      storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      ...(typeof window !== "undefined" ? { storage: window.localStorage } : {}),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
