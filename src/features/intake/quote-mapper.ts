@@ -1,49 +1,51 @@
 import type { Quote } from "@/types/quote";
 
-type QuoteRow = Record<string, unknown>;
+import type { Database } from "@/lib/database.types";
+
+type QuoteRow = Database["public"]["Tables"]["quotes"]["Row"];
 
 /** Maps a snake_case `quotes` row from the database into the `Quote` domain shape. */
 export function rowToQuote(row: QuoteRow): Quote {
-  const r = row as Record<string, any>;
+  const r = row as QuoteRow & Record<string, any>;
   return {
-    id: r.id,
-    ownerId: r.owner_id ?? null,
-    requestedBy: r.requested_by,
-    reviewedBy: r.reviewed_by ?? null,
-    approvedBy: r.approved_by ?? null,
-    name: r.name ?? "Untitled quote",
-    customerName: r.customer_name ?? null,
-    customerEmail: r.customer_email ?? null,
-    customerType: r.customer_type ?? null,
-    compliance: (r.compliance ?? []) as Quote["compliance"],
-    vertical: r.vertical ?? null,
-    solution: r.solution ?? null,
-    repeatableActivation: (r.repeatable_activation ??
+    id: r["id"],
+    ownerId: r["owner_id"] ?? null,
+    requestedBy: r["requested_by"],
+    reviewedBy: r["reviewed_by"] ?? null,
+    approvedBy: r["approved_by"] ?? null,
+    name: r["name"] ?? "Untitled quote",
+    customerName: r["customer_name"] ?? null,
+    customerEmail: r["customer_email"] ?? null,
+    customerType: r["customer_type"] ?? null,
+    compliance: (r["compliance"] ?? []) as Quote["compliance"],
+    vertical: r["vertical"] ?? null,
+    solution: r["solution"] ?? null,
+    repeatableActivation: (r["repeatable_activation"] ??
       "novel") as Quote["repeatableActivation"],
-    moduleTier: r.module_tier ?? null,
-    contractYears: Number(r.contract_years ?? 1),
-    targetGoLiveDate: r.target_go_live_date ?? null,
-    caseWorkerCount: r.case_worker_count ?? null,
-    includeB2c: Boolean(r.include_b2c),
-    b2cMau: r.b2c_mau ?? null,
-    includeB2bPortal: Boolean(r.include_b2b_portal),
-    b2bUserCount: r.b2b_user_count ?? null,
-    hostingModel: r.hosting_model ?? null,
-    environmentCount: Number(r.environment_count ?? 1),
-    hasIntegrations: Boolean(r.has_integrations),
-    integrationCount: Number(r.integration_count ?? 0),
-    integrationDifficulty: r.integration_difficulty ?? null,
-    supportTier: r.support_tier ?? null,
-    marginPercent: Number(r.margin_percent ?? 20),
-    marginJustification: r.margin_justification ?? null,
-    repConfidence: r.rep_confidence ?? null,
-    tier: (r.tier ?? "ballpark") as Quote["tier"],
-    state: (r.state ?? "draft") as Quote["state"],
-    submittedAt: r.submitted_at ?? null,
-    approvedAt: r.approved_at ?? null,
-    sentAt: r.sent_at ?? null,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
+    moduleTier: r["module_tier"] ?? null,
+    contractYears: Number(r["contract_years"] ?? 1),
+    targetGoLiveDate: r["target_go_live_date"] ?? null,
+    caseWorkerCount: r["case_worker_count"] ?? null,
+    includeB2c: Boolean(r["include_b2c"]),
+    b2cMau: r["b2c_mau"] ?? null,
+    includeB2bPortal: Boolean(r["include_b2b_portal"]),
+    b2bUserCount: r["b2b_user_count"] ?? null,
+    hostingModel: r["hosting_model"] ?? null,
+    environmentCount: Number(r["environment_count"] ?? 1),
+    hasIntegrations: Boolean(r["has_integrations"]),
+    integrationCount: Number(r["integration_count"] ?? 0),
+    integrationDifficulty: r["integration_difficulty"] ?? null,
+    supportTier: r["support_tier"] ?? null,
+    marginPercent: Number(r["margin_percent"] ?? 20),
+    marginJustification: r["margin_justification"] ?? null,
+    repConfidence: r["rep_confidence"] ?? null,
+    tier: (r["tier"] ?? "ballpark") as Quote["tier"],
+    state: (r["state"] ?? "draft") as Quote["state"],
+    submittedAt: r["submitted_at"] ?? null,
+    approvedAt: r["approved_at"] ?? null,
+    sentAt: r["sent_at"] ?? null,
+    createdAt: r["created_at"],
+    updatedAt: r["updated_at"],
   };
 }
 
