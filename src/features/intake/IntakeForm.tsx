@@ -78,6 +78,7 @@ export function IntakeForm() {
         onSubmit={(event) => event.preventDefault()}
         aria-disabled={mode === "readonly"}
       >
+        <ReturnedNoteCallout />
         <CustomerInfoSection />
         <TargetGoLiveSection />
         <VerticalSolutionSection />
