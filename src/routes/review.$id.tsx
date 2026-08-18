@@ -21,6 +21,7 @@ function ReviewDetailPage() {
       <IntakePage
         quoteId={id}
         roleOverride="estimator"
+        forceShowPricing
         title="Estimator review"
         description="Full pricing detail and margin controls"
       />
