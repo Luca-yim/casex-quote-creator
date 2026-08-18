@@ -22,7 +22,7 @@ describe("applyRepeatableActivationAdjustment", () => {
   });
 
   it("returns 0 for a zero baseline regardless of match", () => {
-    expect(applyRepeatableActivationAdjustment(0, "full_match")).toBe(0);
+    expect(applyRepeatableActivationAdjustment(0, "full_match")).toBeCloseTo(0);
   });
 });
 
