@@ -15,7 +15,8 @@ function relativeDays(iso: string | null) {
 }
 
 export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
-  const { role, user } = useAuth();
+  const { role, user, profile } = useAuth();
+  const actorName = profile?.full_name || profile?.email || "a sales rep";
   const transition = useQuoteTransition(quote.id, user?.id);
 
   const actions = role ? availableActions(role, quote.state) : [];
@@ -39,7 +40,14 @@ export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
         {sendAction ? (
           <Button
             size="sm"
-            onClick={() => transition.mutate(sendAction)}
+            onClick={() =>
+              transition.mutate({
+                action: sendAction,
+                quote,
+                actorName,
+                actorRole: role,
+              })
+            }
             disabled={transition.isPending}
           >
             <Send className="mr-1 size-4" />
