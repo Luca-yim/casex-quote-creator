@@ -44,10 +44,21 @@ export function IntakePage({
   usePricingCatalog();
   useVerticalSolutions();
 
-  const [isSaving] = useState(false);
-  const [lastSavedAt] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
+  const { save, flush, isSaving, lastSavedAt } = useDebouncedSave(quoteId);
 
   const quote = quoteQuery.data as Quote | undefined;
+
+  // Optimistic local echo so the sidebar reacts before the save round-trips.
+  const updateField = useCallback(
+    (path: string, value: unknown) => {
+      queryClient.setQueryData(["quote", quoteId], (current: Quote | undefined) =>
+        current ? { ...current, [path]: value } : current,
+      );
+      save(path, value);
+    },
+    [queryClient, quoteId, save],
+  );
 
   const contextValue = useMemo(() => {
     if (!quote) return null;
@@ -58,14 +69,13 @@ export function IntakePage({
       role,
       mode: (editable ? "edit" : "readonly") as "edit" | "readonly",
       showPricing: forceShowPricing || computeShowPricing(role, quote.state),
-      updateField: (_path: string, _value: unknown) => {
-        /* Auto-save wiring lands in Prompt G. */
-      },
+      updateField,
+      flushSave: flush,
       isSaving,
       lastSavedAt,
       validationErrors: {} as Record<string, string>,
     };
-  }, [quote, quoteId, role, mode, forceShowPricing, isSaving, lastSavedAt]);
+  }, [quote, quoteId, role, mode, forceShowPricing, updateField, flush, isSaving, lastSavedAt]);
 
 
   // Only the quote blocks the first paint; catalog/verticals stream in behind it.
