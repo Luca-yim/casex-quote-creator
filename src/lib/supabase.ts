@@ -2,29 +2,25 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
 /**
- * Typed Supabase client for the project's own Supabase instance.
+ * Typed Supabase client for the project's backend.
  *
- * URL and publishable key can be overridden with
- * VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (or the
- * non-prefixed SUPABASE_PUBLISHABLE_KEY on the server). The URL and key
- * are only taken from the environment as a matching pair, so a stale
- * value from another project can't be mixed in.
+ * URL and publishable key come from VITE_SUPABASE_URL /
+ * VITE_SUPABASE_PUBLISHABLE_KEY (falling back to the non-prefixed
+ * SUPABASE_* names on the server). There are deliberately no hardcoded
+ * fallbacks, so a stale key can never be baked into the bundle.
  */
-const DEFAULT_SUPABASE_URL = "https://hjflyjxhnsgiizbzsouz.supabase.co";
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_QbRYhhRGRmzgjGvpX1I_Qg_4SYcNoIv";
-
-const envUrl = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
-const envKey =
+const SUPABASE_URL =
+  (import.meta.env['VITE_SUPABASE_URL'] as string | undefined) ??
+  (import.meta.env['SUPABASE_URL'] as string | undefined);
+const SUPABASE_PUBLISHABLE_KEY =
   (import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as string | undefined) ??
   (import.meta.env['SUPABASE_PUBLISHABLE_KEY'] as string | undefined);
 
-const usePair = Boolean(envUrl && envKey && envUrl === DEFAULT_SUPABASE_URL);
-
-const SUPABASE_URL = usePair ? (envUrl as string) : DEFAULT_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = usePair
-  ? (envKey as string)
-  : DEFAULT_SUPABASE_PUBLISHABLE_KEY;
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    "Missing Supabase env vars: VITE_SUPABASE_URL and/or VITE_SUPABASE_PUBLISHABLE_KEY",
+  );
+}
 
 
 export type TypedSupabaseClient = SupabaseClient<Database>;
