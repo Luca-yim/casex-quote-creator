@@ -57,6 +57,18 @@ export function IntakeForm() {
     } as Partial<QuoteFormData> as QuoteFormData,
   });
 
+  // Every field change auto-saves; invalid drafts still persist.
+  const readonly = mode === "readonly";
+  const { watch } = form;
+  useEffect(() => {
+    if (readonly) return;
+    const subscription = watch((_values, { name, type }) => {
+      if (!name || type !== "change") return;
+      updateField(name, form.getValues(name as never));
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, form, updateField, readonly]);
+
   return (
     <FormProvider {...form}>
       <form
