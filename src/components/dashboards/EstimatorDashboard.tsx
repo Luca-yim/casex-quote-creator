@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { useReviewQueue } from "@/features/review/useReviewQueue";
+import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
 import { STATE_LABELS } from "@/lib/quote-workflow";
 
 function relativeDays(iso: string | null) {
