@@ -32,7 +32,7 @@ export type TypedSupabaseClient = SupabaseClient<Database>;
 let _client: TypedSupabaseClient | undefined;
 
 function createTypedClient(): TypedSupabaseClient {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
       persistSession: true,
