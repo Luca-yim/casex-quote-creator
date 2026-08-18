@@ -21,21 +21,23 @@ export const Route = createFileRoute("/request-quote/")({
 function RequestQuotePage() {
   const navigate = useNavigate();
   const createDraft = useCreateDraftQuote();
+  const { mutateAsync, data: createdQuote } = createDraft;
   const started = useRef(false);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    createDraft.mutate(undefined, {
-      onSuccess: (quote) => {
-        void navigate({
-          to: "/request-quote/$id",
-          params: { id: quote.id },
-          replace: true,
-        });
-      },
+    void mutateAsync(undefined);
+  }, [mutateAsync]);
+
+  useEffect(() => {
+    if (!createdQuote) return;
+    void navigate({
+      to: "/request-quote/$id",
+      params: { id: createdQuote.id },
+      replace: true,
     });
-  }, [createDraft, navigate]);
+  }, [createdQuote, navigate]);
 
   return (
     <ProtectedRoute allow={["external", "sales_rep", "estimator", "admin"]}>
