@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useCreateDraftQuote } from "@/features/intake/useQuote";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 
 export const Route = createFileRoute("/request-quote/")({
   head: () => ({
@@ -23,6 +25,9 @@ function RequestQuotePage() {
   const createDraft = useCreateDraftQuote();
   const { mutateAsync, data: createdQuote } = createDraft;
   const started = useRef(false);
+  // Warm catalog data while the draft insert is in flight.
+  usePricingCatalog();
+  useVerticalSolutions();
 
   useEffect(() => {
     if (started.current) return;

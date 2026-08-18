@@ -32,8 +32,9 @@ export function IntakePage({
   const role: AppRole = roleOverride ?? authRole ?? "external";
 
   const quoteQuery = useQuoteById(quoteId);
-  const catalogQuery = usePricingCatalog();
-  const verticalsQuery = useVerticalSolutions();
+  // Warmed in the background; the form renders without waiting on them.
+  usePricingCatalog();
+  useVerticalSolutions();
 
   const [isSaving] = useState(false);
   const [lastSavedAt] = useState<Date | null>(null);
@@ -57,8 +58,8 @@ export function IntakePage({
     };
   }, [quote, quoteId, role, mode, isSaving, lastSavedAt]);
 
-  const loading =
-    quoteQuery.isLoading || catalogQuery.isLoading || verticalsQuery.isLoading;
+  // Only the quote blocks the first paint; catalog/verticals stream in behind it.
+  const loading = quoteQuery.isLoading;
 
   if (loading) {
     return (
