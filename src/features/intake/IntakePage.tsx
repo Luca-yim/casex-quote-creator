@@ -32,8 +32,9 @@ export function IntakePage({
   const role: AppRole = roleOverride ?? authRole ?? "external";
 
   const quoteQuery = useQuoteById(quoteId);
-  const catalogQuery = usePricingCatalog();
-  const verticalsQuery = useVerticalSolutions();
+  // Warmed in the background; the form renders without waiting on them.
+  usePricingCatalog();
+  useVerticalSolutions();
 
   const [isSaving] = useState(false);
   const [lastSavedAt] = useState<Date | null>(null);
