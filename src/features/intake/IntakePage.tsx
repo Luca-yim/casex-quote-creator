@@ -6,6 +6,8 @@ import { useAuth, type AppRole } from "@/lib/auth";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { IntakeProvider, computeShowPricing } from "./IntakeContext";
+import { canEditIntake } from "@/lib/quote-workflow";
+import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
 import { IntakeForm } from "./IntakeForm";
 import { useQuoteById } from "./useQuote";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
@@ -29,7 +31,9 @@ export function IntakePage({
   description = "",
 }: IntakePageProps) {
   const { role: authRole } = useAuth();
-  const role: AppRole = roleOverride ?? authRole ?? "external";
+  // The signed-in role always wins; the route override is only a fallback
+  // while the profile is still hydrating.
+  const role: AppRole = authRole ?? roleOverride ?? "external";
 
   const quoteQuery = useQuoteById(quoteId);
   // Warmed in the background; the form renders without waiting on them.
@@ -43,11 +47,12 @@ export function IntakePage({
 
   const contextValue = useMemo(() => {
     if (!quote) return null;
+    const editable = mode === "edit" && canEditIntake(role, quote.state);
     return {
       quoteId,
       quote,
       role,
-      mode,
+      mode: (editable ? "edit" : "readonly") as "edit" | "readonly",
       showPricing: computeShowPricing(role, quote.state),
       updateField: (_path: string, _value: unknown) => {
         /* Auto-save wiring lands in Prompt G. */
@@ -57,6 +62,7 @@ export function IntakePage({
       validationErrors: {} as Record<string, string>,
     };
   }, [quote, quoteId, role, mode, isSaving, lastSavedAt]);
+
 
   // Only the quote blocks the first paint; catalog/verticals stream in behind it.
   const loading = quoteQuery.isLoading;
@@ -90,7 +96,8 @@ export function IntakePage({
     <AppLayout title={title} description={description || contextValue.quote.name}>
       <IntakeProvider value={contextValue}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-3">
+          <div className="space-y-6 lg:col-span-3">
+            <QuoteWorkflowBar />
             <IntakeForm />
           </div>
           <aside className="lg:col-span-2">
