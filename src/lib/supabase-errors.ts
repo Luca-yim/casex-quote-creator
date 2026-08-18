@@ -4,6 +4,9 @@ import type { QuoteState } from "@/types/quote";
 /** Postgres error code raised when a row-level security policy rejects a write. */
 export const RLS_VIOLATION = "42501";
 
+/** Postgres error code raised when a CHECK constraint / state-machine guard rejects a write. */
+export const CHECK_VIOLATION = "23514";
+
 type MaybePostgrestError = {
   code?: string;
   message?: string;
