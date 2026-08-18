@@ -20,7 +20,13 @@ const TABS: { id: string; label: string; states: QuoteState[] }[] = [
 ];
 
 export function SalesRepDashboard() {
+  const { user } = useAuth();
   const { data: quotes, isPending, isError, error } = useSalesRepQuotes();
+
+  useQuoteRealtimeSync({
+    scope: { kind: "sales_rep", userId: user?.id },
+    queryKey: ["quotes", "sales-rep", user?.id],
+  });
 
   const list = quotes ?? [];
   const counts = TABS.map((tab) => ({
