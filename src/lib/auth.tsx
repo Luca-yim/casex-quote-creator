@@ -1,22 +1,26 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useProfile, profileQueryKey } from "@/hooks/useProfile";
+import type { AppRole, Profile } from "@/lib/auth-types";
 
-export type AppRole = "external" | "sales_rep" | "estimator" | "admin";
-
-export type Profile = {
-  id: string;
-  email: string | null;
-  full_name: string | null;
-  role: AppRole | null;
-};
+export type { AppRole, Profile };
 
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   role: AppRole | null;
+  /** True while the auth session is being restored. */
   loading: boolean;
+  /** True while the profile row for the signed-in user is being fetched. */
+  profileLoading: boolean;
+  profileError: Error | null;
+  /** True when the session exists but no profile row was found. */
+  profileMissing: boolean;
+  /** True only when session AND profile are both settled and present. */
+  ready: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -26,66 +30,71 @@ const AuthContext = createContext<AuthContextValue>({
   profile: null,
   role: null,
   loading: true,
+  profileLoading: true,
+  profileError: null,
+  profileMissing: false,
+  ready: false,
   signOut: async () => {},
 });
 
-const ROLE_PRIORITY: AppRole[] = ["admin", "estimator", "sales_rep", "external"];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let active = true;
 
-    async function hydrate(nextSession: Session | null) {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      if (!nextSession?.user) {
-        setProfile(null);
-        setRole(null);
-        setLoading(false);
-        return;
-      }
-      const userId = nextSession.user.id;
-      const { data: profileRow } = await supabase
-        .from("profiles")
-        .select("id, email, full_name, role")
-        .eq("id", userId)
-        .maybeSingle();
-      if (!active) return;
-      const nextProfile = (profileRow as Profile | null) ?? null;
-      setProfile(nextProfile);
-      const claimed = nextProfile?.role as AppRole | null | undefined;
-      setRole(claimed && ROLE_PRIORITY.includes(claimed) ? claimed : "external");
       setLoading(false);
-    }
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setTimeout(() => void hydrate(nextSession), 0);
+      if (event === "SIGNED_OUT") {
+        queryClient.removeQueries({ queryKey: ["profile"] });
+      }
     });
 
-    void supabase.auth.getSession().then(({ data }) => hydrate(data.session));
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
+      setLoading(false);
+    });
 
     return () => {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
+
+  const user = session?.user ?? null;
+  const { profile, isLoading: profileLoading, isError, error } = useProfile(user?.id);
+
+  console.debug("[auth] user:", user?.id);
+  console.debug("[auth] profile loading:", loading || profileLoading);
+  console.debug("[auth] profile:", profile);
+
+  const profileMissing = Boolean(user) && !loading && !profileLoading && !isError && !profile;
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setProfile(null);
-    setRole(null);
+    queryClient.removeQueries({ queryKey: ["profile"] });
     setSession(null);
   };
 
   return (
     <AuthContext.Provider
-      value={{ user: session?.user ?? null, session, profile, role, loading, signOut }}
+      value={{
+        user,
+        session,
+        profile,
+        role: profile?.role ?? null,
+        loading,
+        profileLoading: Boolean(user) && profileLoading,
+        profileError: isError ? ((error as Error | null) ?? new Error("Profile failed to load")) : null,
+        profileMissing,
+        ready: Boolean(user) && !loading && !profileLoading && Boolean(profile),
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -108,3 +117,5 @@ export function homeRouteForRole(role: AppRole | null) {
       return "/request-quote";
   }
 }
+
+export { profileQueryKey };
