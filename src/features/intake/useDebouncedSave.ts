@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { QUOTE_FIELD_COLUMNS, rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
+import { describeQuoteWriteError } from "@/lib/supabase-errors";
 
 /** Debounce window, in ms, between the last change and the save request. */
 export const AUTOSAVE_DEBOUNCE_MS = 500;
@@ -51,7 +52,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
         .eq("id", quoteId)
         .select("*")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw Object.assign(new Error(error.message), { code: error.code });
       return rowToQuote(data);
     },
     onSuccess: (quote) => {
@@ -60,7 +61,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
     },
     onError: (error) => {
       toast.error("Could not save your changes", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: describeQuoteWriteError(error),
       });
     },
   });
