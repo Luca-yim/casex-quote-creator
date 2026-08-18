@@ -1,25 +1,44 @@
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSalesRepQuotes } from "@/features/quotes/useSalesRepQuotes";
+import { SalesRepQuoteRow } from "./SalesRepQuoteRow";
+import type { QuoteState } from "@/types/quote";
 
-const STAGES = [
-  { label: "Draft", count: 0, hint: "Intake started, not submitted" },
-  { label: "In review", count: 0, hint: "With the estimator queue" },
-  { label: "Approved", count: 0, hint: "Ready to send to the customer" },
+const TABS: { id: string; label: string; states: QuoteState[] }[] = [
+  { id: "drafts", label: "Drafts", states: ["draft", "estimator_adjusted"] },
+  { id: "under-review", label: "Under Review", states: ["submitted_for_review", "under_review"] },
+  { id: "approved", label: "Approved", states: ["approved"] },
+  { id: "sent", label: "Sent", states: ["sent_to_customer"] },
+  { id: "closed", label: "Closed", states: ["accepted", "declined", "archived"] },
 ];
 
 export function SalesRepDashboard() {
+  const { data: quotes, isPending, isError, error } = useSalesRepQuotes();
+
+  const list = quotes ?? [];
+  const counts = TABS.map((tab) => ({
+    ...tab,
+    count: list.filter((q) => tab.states.includes(q.state)).length,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
-        {STAGES.map((stage) => (
-          <Card key={stage.label}>
+        {[
+          { label: "Total quotes", value: isPending ? "…" : String(list.length) },
+          { label: "Approved & ready", value: isPending ? "…" : String(counts.find((c) => c.id === "approved")?.count ?? 0) },
+          { label: "Awaiting review", value: isPending ? "…" : String(counts.find((c) => c.id === "under-review")?.count ?? 0) },
+        ].map((stat) => (
+          <Card key={stat.label}>
             <CardHeader className="pb-2">
-              <CardDescription>{stage.label}</CardDescription>
-              <CardTitle className="font-mono text-3xl">{stage.count}</CardTitle>
+              <CardDescription>{stat.label}</CardDescription>
+              <CardTitle className="font-mono text-3xl">{stat.value}</CardTitle>
             </CardHeader>
-            <CardContent className="text-xs text-muted-foreground">{stage.hint}</CardContent>
           </Card>
         ))}
       </div>
@@ -36,8 +55,48 @@ export function SalesRepDashboard() {
             </Link>
           </Button>
         </CardHeader>
-        <CardContent className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-          No quotes yet — the intake questionnaire lands here next.
+        <CardContent>
+          {isPending ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : isError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+              Could not load quotes: {error instanceof Error ? error.message : "Unknown error"}
+            </div>
+          ) : (
+            <Tabs defaultValue="approved" className="w-full">
+              <TabsList className="flex flex-wrap h-auto gap-1">
+                {counts.map((tab) => (
+                  <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
+                    {tab.label}
+                    <Badge variant="secondary" className="px-1.5 py-0 text-xs">
+                      {tab.count}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {counts.map((tab) => {
+                const tabQuotes = list.filter((q) => tab.states.includes(q.state));
+                return (
+                  <TabsContent key={tab.id} value={tab.id}>
+                    {tabQuotes.length === 0 ? (
+                      <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
+                        No {tab.label.toLowerCase()} quotes.
+                      </div>
+                    ) : (
+                      <ul className="divide-y rounded-md border">
+                        {tabQuotes.map((quote) => (
+                          <SalesRepQuoteRow key={quote.id} quote={quote} />
+                        ))}
+                      </ul>
+                    )}
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>
