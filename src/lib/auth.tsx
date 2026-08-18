@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export type AppRole = "external" | "sales_rep" | "estimator" | "admin";
 
@@ -8,7 +8,7 @@ export type Profile = {
   id: string;
   email: string | null;
   full_name: string | null;
-  company: string | null;
+  role: AppRole | null;
 };
 
 type AuthContextValue = {
@@ -50,14 +50,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const userId = nextSession.user.id;
-      const [{ data: profileRow }, { data: roleRows }] = await Promise.all([
-        supabase.from("profiles").select("id, email, full_name, company").eq("id", userId).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-      ]);
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, role")
+        .eq("id", userId)
+        .maybeSingle();
       if (!active) return;
-      setProfile((profileRow as Profile | null) ?? null);
-      const roles = (roleRows ?? []).map((r) => r.role as AppRole);
-      setRole(ROLE_PRIORITY.find((candidate) => roles.includes(candidate)) ?? "external");
+      const nextProfile = (profileRow as Profile | null) ?? null;
+      setProfile(nextProfile);
+      const claimed = nextProfile?.role as AppRole | null | undefined;
+      setRole(claimed && ROLE_PRIORITY.includes(claimed) ? claimed : "external");
       setLoading(false);
     }
 
