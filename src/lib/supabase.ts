@@ -2,34 +2,36 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
 /**
- * Typed Supabase client for the project's backend.
+ * Typed Supabase client for the external project `lsmrxbpvmvrzpbtjqygh`.
  *
- * URL and publishable key come from VITE_SUPABASE_URL /
- * VITE_SUPABASE_PUBLISHABLE_KEY (falling back to the non-prefixed
- * SUPABASE_* names on the server). There are deliberately no hardcoded
- * fallbacks, so a stale key can never be baked into the bundle.
+ * The publishable key is read from VITE_APP_SUPABASE_PUBLISHABLE_KEY
+ * (or APP_SUPABASE_PUBLISHABLE_KEY on the server).
+ *
+ * These deliberately do NOT use the plain VITE_SUPABASE_* names: those are
+ * auto-generated for the built-in Lovable Cloud backend and get rewritten,
+ * which would silently repoint this client at the wrong project.
  */
 const SUPABASE_URL =
-  (import.meta.env['VITE_SUPABASE_URL'] as string | undefined) ??
-  (import.meta.env['SUPABASE_URL'] as string | undefined);
-const SUPABASE_PUBLISHABLE_KEY =
-  (import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] as string | undefined) ??
-  (import.meta.env['SUPABASE_PUBLISHABLE_KEY'] as string | undefined);
+  (import.meta.env['VITE_APP_SUPABASE_URL'] as string | undefined) ??
+  "https://lsmrxbpvmvrzpbtjqygh.supabase.co";
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error(
-    "Missing Supabase env vars: VITE_SUPABASE_URL and/or VITE_SUPABASE_PUBLISHABLE_KEY",
-  );
-}
-const supabaseUrl: string = SUPABASE_URL;
-const supabaseKey: string = SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_PUBLISHABLE_KEY =
+  (import.meta.env['VITE_APP_SUPABASE_PUBLISHABLE_KEY'] as string | undefined) ??
+  (import.meta.env['APP_SUPABASE_PUBLISHABLE_KEY'] as string | undefined);
 
 export type TypedSupabaseClient = SupabaseClient<Database>;
 
 let _client: TypedSupabaseClient | undefined;
 
 function createTypedClient(): TypedSupabaseClient {
-  return createClient<Database>(supabaseUrl, supabaseKey, {
+  if (!SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error(
+      "Missing VITE_APP_SUPABASE_PUBLISHABLE_KEY. Add your Supabase publishable " +
+        "key (sb_publishable_...) in the project environment settings.",
+    );
+  }
+
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       ...(typeof window !== "undefined" ? { storage: window.localStorage } : {}),
       persistSession: true,
@@ -39,9 +41,13 @@ function createTypedClient(): TypedSupabaseClient {
   });
 }
 
+/** Lazily instantiated so a missing key surfaces at call time, not import time. */
 export const supabase = new Proxy({} as TypedSupabaseClient, {
   get(_target, prop, receiver) {
     if (!_client) _client = createTypedClient();
     return Reflect.get(_client, prop, receiver);
   },
 });
+
+export const isSupabaseConfigured = Boolean(SUPABASE_PUBLISHABLE_KEY);
+export const supabaseUrl = SUPABASE_URL;
