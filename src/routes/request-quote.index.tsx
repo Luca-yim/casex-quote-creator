@@ -27,7 +27,7 @@ function RequestQuotePage() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    void mutateAsync(undefined);
+    mutateAsync(undefined).catch(() => {});
   }, [mutateAsync]);
 
   useEffect(() => {
