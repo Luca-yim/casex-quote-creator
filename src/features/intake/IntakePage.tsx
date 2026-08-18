@@ -26,7 +26,7 @@ export function IntakePage({
   roleOverride,
   mode = "edit",
   title = "Quote intake",
-  description,
+  description = "",
 }: IntakePageProps) {
   const { role: authRole } = useAuth();
   const role: AppRole = roleOverride ?? authRole ?? "external";
@@ -86,7 +86,7 @@ export function IntakePage({
   }
 
   return (
-    <AppLayout title={title} description={description ?? contextValue.quote.name}>
+    <AppLayout title={title} description={description || contextValue.quote.name}>
       <IntakeProvider value={contextValue}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="lg:col-span-3">
