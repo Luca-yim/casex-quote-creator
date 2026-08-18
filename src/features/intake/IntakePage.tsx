@@ -29,7 +29,9 @@ export function IntakePage({
   description = "",
 }: IntakePageProps) {
   const { role: authRole } = useAuth();
-  const role: AppRole = roleOverride ?? authRole ?? "external";
+  // The signed-in role always wins; the route override is only a fallback
+  // while the profile is still hydrating.
+  const role: AppRole = authRole ?? roleOverride ?? "external";
 
   const quoteQuery = useQuoteById(quoteId);
   // Warmed in the background; the form renders without waiting on them.
@@ -43,11 +45,12 @@ export function IntakePage({
 
   const contextValue = useMemo(() => {
     if (!quote) return null;
+    const editable = mode === "edit" && canEditIntake(role, quote.state);
     return {
       quoteId,
       quote,
       role,
-      mode,
+      mode: (editable ? "edit" : "readonly") as "edit" | "readonly",
       showPricing: computeShowPricing(role, quote.state),
       updateField: (_path: string, _value: unknown) => {
         /* Auto-save wiring lands in Prompt G. */
@@ -57,6 +60,7 @@ export function IntakePage({
       validationErrors: {} as Record<string, string>,
     };
   }, [quote, quoteId, role, mode, isSaving, lastSavedAt]);
+
 
   // Only the quote blocks the first paint; catalog/verticals stream in behind it.
   const loading = quoteQuery.isLoading;
