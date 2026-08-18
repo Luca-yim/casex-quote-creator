@@ -10,7 +10,7 @@ import type { Database } from "./database.types";
  * are only taken from the environment as a matching pair, so a stale
  * value from another project can't be mixed in.
  */
-const DEFAULT_SUPABASE_URL = "https://lsmrxbpvmvrzpbtjqygh.supabase.co";
+const DEFAULT_SUPABASE_URL = "https://hjflyjxhnsgiizbzsouz.supabase.co";
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_QbRYhhRGRmzgjGvpX1I_Qg_4SYcNoIv";
 
