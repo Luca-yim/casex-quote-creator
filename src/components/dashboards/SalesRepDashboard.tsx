@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSalesRepQuotes } from "@/features/quotes/useSalesRepQuotes";
+import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
+import { useAuth } from "@/lib/auth";
 import { SalesRepQuoteRow } from "./SalesRepQuoteRow";
 import type { QuoteState } from "@/types/quote";
 
