@@ -100,6 +100,7 @@ export function makeEmptyQuote(overrides: Partial<Quote> = {}): Quote {
     hostingModel: null,
     supportTier: null,
     caseWorkerCount: null,
+    contractYears: Number.NaN,
     repConfidence: null,
     ...overrides,
   });
