@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export type AppRole = "external" | "sales_rep" | "estimator" | "admin";
 
@@ -8,7 +8,7 @@ export type Profile = {
   id: string;
   email: string | null;
   full_name: string | null;
-  company: string | null;
+  role: AppRole | null;
 };
 
 type AuthContextValue = {
