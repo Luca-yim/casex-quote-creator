@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { quoteSchema, type QuoteFormData } from "@/types/quote";
@@ -15,17 +16,18 @@ import { HostingSection } from "./sections/HostingSection";
 import { IntegrationsSection } from "./sections/IntegrationsSection";
 import { SupportTierSection } from "./sections/SupportTierSection";
 import { RepConfidenceSection } from "./sections/RepConfidenceSection";
+import { SubmitBar } from "./SubmitBar";
 
 /**
  * Shared intake form used by every role. Each of the 13 sections reads and
  * writes through the shared react-hook-form context.
  */
 export function IntakeForm() {
-  const { quote, mode } = useIntake();
+  const { quote, mode, updateField } = useIntake();
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema) as never,
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       name: quote.name,
       customerName: quote.customerName ?? "",
@@ -56,6 +58,18 @@ export function IntakeForm() {
     } as Partial<QuoteFormData> as QuoteFormData,
   });
 
+  // Every field change auto-saves; invalid drafts still persist.
+  const readonly = mode === "readonly";
+  const { watch } = form;
+  useEffect(() => {
+    if (readonly) return;
+    const subscription = watch((_values, { name, type }) => {
+      if (!name || type !== "change") return;
+      updateField(name, form.getValues(name as never));
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, form, updateField, readonly]);
+
   return (
     <FormProvider {...form}>
       <form
@@ -76,6 +90,7 @@ export function IntakeForm() {
         <IntegrationsSection />
         <SupportTierSection />
         <RepConfidenceSection />
+        <SubmitBar />
       </form>
     </FormProvider>
   );
