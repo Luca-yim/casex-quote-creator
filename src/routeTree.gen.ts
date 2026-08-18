@@ -18,6 +18,7 @@ import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as QuotesIdRouteImport } from './routes/quotes.$id'
 import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as RequestQuoteIndexRouteImport } from './routes/request-quote.index'
+import { Route as RequestQuoteIdRouteImport } from './routes/request-quote.$id'
 import { Route as ReviewIndexRouteImport } from './routes/review.index'
 import { Route as ReviewIdRouteImport } from './routes/review.$id'
 import { Route as AuthenticatedDebugCatalogRouteImport } from './routes/_authenticated/debug/catalog'
@@ -67,6 +68,11 @@ const RequestQuoteIndexRoute = RequestQuoteIndexRouteImport.update({
   path: '/request-quote/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RequestQuoteIdRoute = RequestQuoteIdRouteImport.update({
+  id: '/request-quote/$id',
+  path: '/request-quote/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReviewIndexRoute = ReviewIndexRouteImport.update({
   id: '/review/',
   path: '/review/',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request-quote/$id': typeof RequestQuoteIdRoute
   '/review/$id': typeof ReviewIdRoute
   '/quotes/': typeof QuotesIndexRoute
   '/request-quote/': typeof RequestQuoteIndexRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request-quote/$id': typeof RequestQuoteIdRoute
   '/review/$id': typeof ReviewIdRoute
   '/quotes': typeof QuotesIndexRoute
   '/request-quote': typeof RequestQuoteIndexRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
+  '/request-quote/$id': typeof RequestQuoteIdRoute
   '/review/$id': typeof ReviewIdRoute
   '/quotes/': typeof QuotesIndexRoute
   '/request-quote/': typeof RequestQuoteIndexRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
+    | '/request-quote/$id'
     | '/review/$id'
     | '/quotes/'
     | '/request-quote/'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
+    | '/request-quote/$id'
     | '/review/$id'
     | '/quotes'
     | '/request-quote'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
+    | '/request-quote/$id'
     | '/review/$id'
     | '/quotes/'
     | '/request-quote/'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   QuotesIdRoute: typeof QuotesIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
+  RequestQuoteIdRoute: typeof RequestQuoteIdRoute
   ReviewIdRoute: typeof ReviewIdRoute
   QuotesIndexRoute: typeof QuotesIndexRoute
   RequestQuoteIndexRoute: typeof RequestQuoteIndexRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestQuoteIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/request-quote/$id': {
+      id: '/request-quote/$id'
+      path: '/request-quote/$id'
+      fullPath: '/request-quote/$id'
+      preLoaderRoute: typeof RequestQuoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/review/': {
       id: '/review/'
       path: '/review'
@@ -310,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   QuotesIdRoute: QuotesIdRoute,
   QuotesNewRoute: QuotesNewRoute,
+  RequestQuoteIdRoute: RequestQuoteIdRoute,
   ReviewIdRoute: ReviewIdRoute,
   QuotesIndexRoute: QuotesIndexRoute,
   RequestQuoteIndexRoute: RequestQuoteIndexRoute,

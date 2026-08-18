@@ -29,8 +29,8 @@ function RequestQuotePage() {
     createDraft.mutate(undefined, {
       onSuccess: (quote) => {
         void navigate({
-          to: "/request-quote/$quoteId",
-          params: { quoteId: quote.id },
+          to: "/request-quote/$id",
+          params: { id: quote.id },
           replace: true,
         });
       },
