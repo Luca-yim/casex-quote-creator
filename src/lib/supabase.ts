@@ -4,7 +4,7 @@ import type { Database } from "./database.types";
 /**
  * Typed Supabase client for the project's own Supabase instance.
  *
- * URL and publishable (anon) key can be overridden with
+ * URL and publishable key can be overridden with
  * VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (or the
  * non-prefixed SUPABASE_PUBLISHABLE_KEY on the server). The URL and key
  * are only taken from the environment as a matching pair, so a stale
