@@ -32,7 +32,7 @@ const schema = z.object({
 
 function SignupPage() {
   const navigate = useNavigate();
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, profileLoading, ready } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -40,8 +40,9 @@ function SignupPage() {
   });
 
   useEffect(() => {
-    if (!loading && user) void navigate({ to: homeRouteForRole(role), replace: true });
-  }, [loading, user, role, navigate]);
+    if (loading || profileLoading) return;
+    if (user && ready) void navigate({ to: homeRouteForRole(role), replace: true });
+  }, [loading, profileLoading, ready, user, role, navigate]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true);
