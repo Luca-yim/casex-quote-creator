@@ -20,6 +20,11 @@ export function EstimatorDashboard() {
   const { role } = useAuth();
   const { data: quotes, isPending, isError, error } = useReviewQueue(role);
 
+  useQuoteRealtimeSync({
+    scope: { kind: "estimator" },
+    queryKey: ["quotes", "review-queue"],
+  });
+
   const list = quotes ?? [];
   const awaiting = list.filter((q) => q.state === "submitted_for_review").length;
   const inProgress = list.filter(
