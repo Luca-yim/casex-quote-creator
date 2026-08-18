@@ -27,7 +27,10 @@ export interface IntakeContextValue {
   mode: "edit" | "readonly";
   /** True when pricing detail may be rendered for this role/state. */
   showPricing: boolean;
+  /** Persist a single field change (debounced + batched auto-save). */
   updateField: (path: string, value: unknown) => void;
+  /** Flush any queued auto-save writes immediately. */
+  flushSave: () => Promise<void>;
   isSaving: boolean;
   lastSavedAt: Date | null;
   validationErrors: Record<string, string>;
