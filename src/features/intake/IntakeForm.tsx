@@ -89,6 +89,7 @@ export function IntakeForm() {
         <IntegrationsSection />
         <SupportTierSection />
         <RepConfidenceSection />
+        <SubmitBar />
       </form>
     </FormProvider>
   );
