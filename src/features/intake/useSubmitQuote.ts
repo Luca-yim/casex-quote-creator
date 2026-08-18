@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
+import { describeQuoteWriteError } from "@/lib/supabase-errors";
 
 /**
  * Submits a draft quote for estimator review and records a version snapshot
@@ -21,7 +22,7 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
         .eq("id", quoteId)
         .select("*")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw Object.assign(new Error(error.message), { code: error.code });
 
       const { count } = await supabase
         .from("quote_versions")
@@ -52,7 +53,7 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
     },
     onError: (error) => {
       toast.error("Could not submit this quote", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: describeQuoteWriteError(error, "submitted_for_review"),
       });
     },
   });
