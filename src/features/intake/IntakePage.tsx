@@ -6,6 +6,8 @@ import { useAuth, type AppRole } from "@/lib/auth";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { IntakeProvider, computeShowPricing } from "./IntakeContext";
+import { canEditIntake } from "@/lib/quote-workflow";
+import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
 import { IntakeForm } from "./IntakeForm";
 import { useQuoteById } from "./useQuote";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
@@ -94,7 +96,8 @@ export function IntakePage({
     <AppLayout title={title} description={description || contextValue.quote.name}>
       <IntakeProvider value={contextValue}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-3">
+          <div className="space-y-6 lg:col-span-3">
+            <QuoteWorkflowBar />
             <IntakeForm />
           </div>
           <aside className="lg:col-span-2">
