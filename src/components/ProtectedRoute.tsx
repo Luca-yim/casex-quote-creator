@@ -1,32 +1,19 @@
 import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
+import { AuthGate } from "@/components/AuthGate";
 import { useAuth, homeRouteForRole, type AppRole } from "@/lib/auth";
 
-export function ProtectedRoute({
-  allow,
-  children,
-}: {
-  allow: AppRole[];
-  children: ReactNode;
-}) {
-  const { loading, user, role } = useAuth();
+function RoleGate({ allow, children }: { allow: AppRole[]; children: ReactNode }) {
+  const { role } = useAuth();
   const navigate = useNavigate();
-
   const allowed = role !== null && allow.includes(role);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      void navigate({ to: "/login", replace: true });
-      return;
-    }
-    if (!allowed) {
-      void navigate({ to: homeRouteForRole(role), replace: true });
-    }
-  }, [loading, user, allowed, role, navigate]);
+    if (!allowed) void navigate({ to: homeRouteForRole(role), replace: true });
+  }, [allowed, role, navigate]);
 
-  if (loading || !user || !allowed) {
+  if (!allowed) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -35,4 +22,12 @@ export function ProtectedRoute({
   }
 
   return <>{children}</>;
+}
+
+export function ProtectedRoute({ allow, children }: { allow: AppRole[]; children: ReactNode }) {
+  return (
+    <AuthGate>
+      <RoleGate allow={allow}>{children}</RoleGate>
+    </AuthGate>
+  );
 }
