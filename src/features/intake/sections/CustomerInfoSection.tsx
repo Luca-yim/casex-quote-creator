@@ -77,7 +77,7 @@ export function CustomerInfoSection() {
           name="customerType"
           render={({ field }) => (
             <Select
-              value={field.value ?? undefined}
+              value={field.value ?? ""}
               onValueChange={field.onChange}
               disabled={disabled}
             >

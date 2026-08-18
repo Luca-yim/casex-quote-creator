@@ -16,7 +16,7 @@ export function SectionCard({
 }: {
   icon: string;
   title: string;
-  description?: string;
+  description?: string | undefined;
   children: ReactNode;
 }) {
   return (

@@ -62,7 +62,7 @@ export function VerticalSolutionSection() {
           name="solution"
           render={({ field }) => (
             <Select
-              value={field.value || undefined}
+              value={field.value ?? ""}
               onValueChange={field.onChange}
               disabled={disabled || !vertical || isLoading}
             >

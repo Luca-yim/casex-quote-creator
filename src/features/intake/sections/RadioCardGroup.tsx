@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 export interface RadioCardOption {
   value: string;
   label: string;
-  description?: string;
-  disabled?: boolean;
+  description?: string | undefined;
+  disabled?: boolean | undefined;
 }
 
 /** Selectable card-style radio group used across intake sections. */
@@ -22,14 +22,14 @@ export function RadioCardGroup({
   value: string | null | undefined;
   onChange: (value: string) => void;
   options: RadioCardOption[];
-  disabled?: boolean;
-  className?: string;
+  disabled?: boolean | undefined;
+  className?: string | undefined;
 }) {
   return (
     <RadioGroup
-      value={value ?? undefined}
+      value={value ?? ""}
       onValueChange={onChange}
-      disabled={disabled}
+      disabled={disabled ?? false}
       className={cn("grid gap-3", className)}
     >
       {options.map((option) => {
