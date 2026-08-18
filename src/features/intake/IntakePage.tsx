@@ -57,8 +57,8 @@ export function IntakePage({
     };
   }, [quote, quoteId, role, mode, isSaving, lastSavedAt]);
 
-  const loading =
-    quoteQuery.isLoading || catalogQuery.isLoading || verticalsQuery.isLoading;
+  // Only the quote blocks the first paint; catalog/verticals stream in behind it.
+  const loading = quoteQuery.isLoading;
 
   if (loading) {
     return (

@@ -26,9 +26,10 @@ export function useCreateDraftQuote() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input?: { name?: string }): Promise<Quote> => {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) throw new Error("Not signed in");
-      const userId = userData.user.id;
+      // Local session read (no network round-trip) keeps draft creation fast.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) throw new Error("Not signed in");
 
       const { data, error } = await supabase
         .from("quotes")
