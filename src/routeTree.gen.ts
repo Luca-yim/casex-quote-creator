@@ -10,33 +10,168 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
+import { Route as QuotesIdRouteImport } from './routes/quotes.$id'
+import { Route as QuotesNewRouteImport } from './routes/quotes.new'
+import { Route as RequestQuoteIndexRouteImport } from './routes/request-quote.index'
+import { Route as ReviewIndexRouteImport } from './routes/review.index'
+import { Route as ReviewIdRouteImport } from './routes/review.$id'
+import { Route as RequestQuoteConfirmationIdRouteImport } from './routes/request-quote.confirmation.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesIndexRoute = QuotesIndexRouteImport.update({
+  id: '/quotes/',
+  path: '/quotes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesIdRoute = QuotesIdRouteImport.update({
+  id: '/quotes/$id',
+  path: '/quotes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesNewRoute = QuotesNewRouteImport.update({
+  id: '/quotes/new',
+  path: '/quotes/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestQuoteIndexRoute = RequestQuoteIndexRouteImport.update({
+  id: '/request-quote/',
+  path: '/request-quote/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewIndexRoute = ReviewIndexRouteImport.update({
+  id: '/review/',
+  path: '/review/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewIdRoute = ReviewIdRouteImport.update({
+  id: '/review/$id',
+  path: '/review/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestQuoteConfirmationIdRoute =
+  RequestQuoteConfirmationIdRouteImport.update({
+    id: '/request-quote/confirmation/$id',
+    path: '/request-quote/confirmation/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/quotes/$id': typeof QuotesIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/review/$id': typeof ReviewIdRoute
+  '/quotes/': typeof QuotesIndexRoute
+  '/request-quote/': typeof RequestQuoteIndexRoute
+  '/review/': typeof ReviewIndexRoute
+  '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/quotes/$id': typeof QuotesIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/review/$id': typeof ReviewIdRoute
+  '/quotes': typeof QuotesIndexRoute
+  '/request-quote': typeof RequestQuoteIndexRoute
+  '/review': typeof ReviewIndexRoute
+  '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/quotes/$id': typeof QuotesIdRoute
+  '/quotes/new': typeof QuotesNewRoute
+  '/review/$id': typeof ReviewIdRoute
+  '/quotes/': typeof QuotesIndexRoute
+  '/request-quote/': typeof RequestQuoteIndexRoute
+  '/review/': typeof ReviewIndexRoute
+  '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/signup'
+    | '/quotes/$id'
+    | '/quotes/new'
+    | '/review/$id'
+    | '/quotes/'
+    | '/request-quote/'
+    | '/review/'
+    | '/request-quote/confirmation/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/signup'
+    | '/quotes/$id'
+    | '/quotes/new'
+    | '/review/$id'
+    | '/quotes'
+    | '/request-quote'
+    | '/review'
+    | '/request-quote/confirmation/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/signup'
+    | '/quotes/$id'
+    | '/quotes/new'
+    | '/review/$id'
+    | '/quotes/'
+    | '/request-quote/'
+    | '/review/'
+    | '/request-quote/confirmation/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
+  QuotesIdRoute: typeof QuotesIdRoute
+  QuotesNewRoute: typeof QuotesNewRoute
+  ReviewIdRoute: typeof ReviewIdRoute
+  QuotesIndexRoute: typeof QuotesIndexRoute
+  RequestQuoteIndexRoute: typeof RequestQuoteIndexRoute
+  ReviewIndexRoute: typeof ReviewIndexRoute
+  RequestQuoteConfirmationIdRoute: typeof RequestQuoteConfirmationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +183,91 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes/': {
+      id: '/quotes/'
+      path: '/quotes'
+      fullPath: '/quotes/'
+      preLoaderRoute: typeof QuotesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes/$id': {
+      id: '/quotes/$id'
+      path: '/quotes/$id'
+      fullPath: '/quotes/$id'
+      preLoaderRoute: typeof QuotesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes/new': {
+      id: '/quotes/new'
+      path: '/quotes/new'
+      fullPath: '/quotes/new'
+      preLoaderRoute: typeof QuotesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request-quote/': {
+      id: '/request-quote/'
+      path: '/request-quote'
+      fullPath: '/request-quote/'
+      preLoaderRoute: typeof RequestQuoteIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review/': {
+      id: '/review/'
+      path: '/review'
+      fullPath: '/review/'
+      preLoaderRoute: typeof ReviewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review/$id': {
+      id: '/review/$id'
+      path: '/review/$id'
+      fullPath: '/review/$id'
+      preLoaderRoute: typeof ReviewIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request-quote/confirmation/$id': {
+      id: '/request-quote/confirmation/$id'
+      path: '/request-quote/confirmation/$id'
+      fullPath: '/request-quote/confirmation/$id'
+      preLoaderRoute: typeof RequestQuoteConfirmationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
+  QuotesIdRoute: QuotesIdRoute,
+  QuotesNewRoute: QuotesNewRoute,
+  ReviewIdRoute: ReviewIdRoute,
+  QuotesIndexRoute: QuotesIndexRoute,
+  RequestQuoteIndexRoute: RequestQuoteIndexRoute,
+  ReviewIndexRoute: ReviewIndexRoute,
+  RequestQuoteConfirmationIdRoute: RequestQuoteConfirmationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
