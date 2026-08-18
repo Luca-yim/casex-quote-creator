@@ -1,7 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useCreateDraftQuote } from "@/features/intake/useQuote";
 
 export const Route = createFileRoute("/quotes/new")({
   head: () => ({
@@ -16,20 +19,41 @@ export const Route = createFileRoute("/quotes/new")({
 });
 
 function NewQuotePage() {
+  const navigate = useNavigate();
+  const createDraft = useCreateDraftQuote();
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    createDraft.mutate(undefined, {
+      onSuccess: (quote) => {
+        void navigate({
+          to: "/quotes/$id",
+          params: { id: quote.id },
+          replace: true,
+        });
+      },
+    });
+  }, [createDraft, navigate]);
+
   return (
     <ProtectedRoute allow={["sales_rep", "estimator", "admin"]}>
-      <AppLayout title="New quote" description="Sales rep intake">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Intake questionnaire</CardTitle>
-            <CardDescription>
-              The 16-question Ballpark questionnaire plugs in here next.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-            Questionnaire coming soon.
-          </CardContent>
-        </Card>
+      <AppLayout title="New quote" description="Creating a draft">
+        {createDraft.isError ? (
+          <Alert variant="destructive">
+            <AlertTitle>Could not create the quote</AlertTitle>
+            <AlertDescription>
+              {createDraft.error instanceof Error
+                ? createDraft.error.message
+                : "Please try again."}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="flex min-h-[40vh] items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </AppLayout>
     </ProtectedRoute>
   );
