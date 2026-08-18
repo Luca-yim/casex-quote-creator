@@ -1,32 +1,20 @@
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { quoteSchema, type QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
-
-type Section = { icon: string; title: string };
-
-/** Ordered intake sections. Fields land in the next prompt. */
-const SECTIONS: Section[] = [
-  { icon: "🏢", title: "Customer Info" },
-  { icon: "📅", title: "Target Go-Live Date" },
-  { icon: "🧭", title: "Vertical & Solution" },
-  { icon: "♻️", title: "Repeatable Activation" },
-  { icon: "🛡️", title: "Compliance Requirements" },
-  { icon: "🧱", title: "Module Tier" },
-  { icon: "👥", title: "Case Workers" },
-  { icon: "🌐", title: "B2C Portal" },
-  { icon: "🏬", title: "B2B Portal" },
-  { icon: "☁️", title: "Hosting" },
-  { icon: "🔌", title: "Integrations" },
-  { icon: "🛠️", title: "Support Tier" },
-  { icon: "📈", title: "Rep Confidence" },
-];
+import { CustomerInfoSection } from "./sections/CustomerInfoSection";
+import { TargetGoLiveSection } from "./sections/TargetGoLiveSection";
+import { VerticalSolutionSection } from "./sections/VerticalSolutionSection";
+import { RepeatableActivationSection } from "./sections/RepeatableActivationSection";
+import { ComplianceSection } from "./sections/ComplianceSection";
+import { ModuleTierSection } from "./sections/ModuleTierSection";
+import { CaseWorkerSection } from "./sections/CaseWorkerSection";
+import { B2cPortalSection } from "./sections/B2cPortalSection";
+import { B2bPortalSection } from "./sections/B2bPortalSection";
+import { HostingSection } from "./sections/HostingSection";
+import { IntegrationsSection } from "./sections/IntegrationsSection";
+import { SupportTierSection } from "./sections/SupportTierSection";
+import { RepConfidenceSection } from "./sections/RepConfidenceSection";
 
 /**
  * Shared intake form used by every role. Section bodies are placeholders
@@ -76,21 +64,19 @@ export function IntakeForm() {
         onSubmit={(event) => event.preventDefault()}
         aria-disabled={mode === "readonly"}
       >
-        {SECTIONS.map((section) => (
-          /* Section: {section.title} */
-          <Card key={section.title}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <span aria-hidden>{section.icon}</span> {section.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Fields coming in next prompt
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+                <CustomerInfoSection />
+        <TargetGoLiveSection />
+        <VerticalSolutionSection />
+        <RepeatableActivationSection />
+        <ComplianceSection />
+        <ModuleTierSection />
+        <CaseWorkerSection />
+        <B2cPortalSection />
+        <B2bPortalSection />
+        <HostingSection />
+        <IntegrationsSection />
+        <SupportTierSection />
+        <RepConfidenceSection />
       </form>
     </FormProvider>
   );
