@@ -25,12 +25,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, profileLoading, ready } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) void navigate({ to: homeRouteForRole(role), replace: true });
-  }, [loading, user, role, navigate]);
+    if (loading || profileLoading) return;
+    if (user && ready) void navigate({ to: homeRouteForRole(role), replace: true });
+  }, [loading, profileLoading, ready, user, role, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
