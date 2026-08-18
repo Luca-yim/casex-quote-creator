@@ -21,11 +21,11 @@ import { RepConfidenceSection } from "./sections/RepConfidenceSection";
  * writes through the shared react-hook-form context.
  */
 export function IntakeForm() {
-  const { quote, mode } = useIntake();
+  const { quote, mode, updateField } = useIntake();
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema) as never,
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       name: quote.name,
       customerName: quote.customerName ?? "",
