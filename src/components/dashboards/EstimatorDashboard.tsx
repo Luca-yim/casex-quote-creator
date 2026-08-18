@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { useReviewQueue } from "@/features/review/useReviewQueue";
+import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
 import { STATE_LABELS } from "@/lib/quote-workflow";
 
 function relativeDays(iso: string | null) {
@@ -18,6 +19,11 @@ function relativeDays(iso: string | null) {
 export function EstimatorDashboard() {
   const { role } = useAuth();
   const { data: quotes, isPending, isError, error } = useReviewQueue(role);
+
+  useQuoteRealtimeSync({
+    scope: { kind: "estimator" },
+    queryKey: ["quotes", "review-queue"],
+  });
 
   const list = quotes ?? [];
   const awaiting = list.filter((q) => q.state === "submitted_for_review").length;

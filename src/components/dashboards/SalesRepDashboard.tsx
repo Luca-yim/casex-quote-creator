@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSalesRepQuotes } from "@/features/quotes/useSalesRepQuotes";
+import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
+import { useAuth } from "@/lib/auth";
 import { SalesRepQuoteRow } from "./SalesRepQuoteRow";
 import type { QuoteState } from "@/types/quote";
 
@@ -18,7 +20,13 @@ const TABS: { id: string; label: string; states: QuoteState[] }[] = [
 ];
 
 export function SalesRepDashboard() {
+  const { user } = useAuth();
   const { data: quotes, isPending, isError, error } = useSalesRepQuotes();
+
+  useQuoteRealtimeSync({
+    scope: { kind: "sales_rep", userId: user?.id },
+    queryKey: ["quotes", "sales-rep", user?.id],
+  });
 
   const list = quotes ?? [];
   const counts = TABS.map((tab) => ({
