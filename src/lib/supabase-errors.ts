@@ -33,6 +33,14 @@ export function describeQuoteWriteError(error: unknown, nextState?: QuoteState):
       "The workspace security policy needs to permit this step — ask an administrator to update it."
     );
   }
+  const guard = error as MaybePostgrestError | null;
+  if (guard?.code === CHECK_VIOLATION || /invalid state transition/i.test(guard?.message ?? "")) {
+    const target = nextState ? ` to “${STATE_LABELS[nextState]}”` : "";
+    return (
+      `The backend's quote state-machine guard doesn't allow this step${target} yet. ` +
+      "An administrator needs to add it to the allowed-transition list."
+    );
+  }
   if (error instanceof Error) return error.message;
   const err = error as MaybePostgrestError | null;
   return err?.message ?? "Please try again.";
