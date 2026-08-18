@@ -17,9 +17,8 @@ import { SupportTierSection } from "./sections/SupportTierSection";
 import { RepConfidenceSection } from "./sections/RepConfidenceSection";
 
 /**
- * Shared intake form used by every role. Section bodies are placeholders
- * for now; the form context is already wired so section components can
- * register fields in the next iteration.
+ * Shared intake form used by every role. Each of the 13 sections reads and
+ * writes through the shared react-hook-form context.
  */
 export function IntakeForm() {
   const { quote, mode } = useIntake();
