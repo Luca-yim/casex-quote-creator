@@ -94,7 +94,7 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export function homeRouteForRole(role: AppRole | null): string {
+export function homeRouteForRole(role: AppRole | null) {
   switch (role) {
     case "admin":
       return "/admin";
