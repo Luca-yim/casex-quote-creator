@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
 import { describeQuoteWriteError } from "@/lib/supabase-errors";
+import { writeVersionSnapshot } from "@/lib/version-snapshot";
 
 /**
  * Submits a draft quote for estimator review and records a version snapshot
