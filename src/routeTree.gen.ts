@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -19,11 +20,16 @@ import { Route as QuotesNewRouteImport } from './routes/quotes.new'
 import { Route as RequestQuoteIndexRouteImport } from './routes/request-quote.index'
 import { Route as ReviewIndexRouteImport } from './routes/review.index'
 import { Route as ReviewIdRouteImport } from './routes/review.$id'
+import { Route as AuthenticatedDebugCatalogRouteImport } from './routes/_authenticated/debug/catalog'
 import { Route as RequestQuoteConfirmationIdRouteImport } from './routes/request-quote.confirmation.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -71,6 +77,12 @@ const ReviewIdRoute = ReviewIdRouteImport.update({
   path: '/review/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDebugCatalogRoute =
+  AuthenticatedDebugCatalogRouteImport.update({
+    id: '/debug/catalog',
+    path: '/debug/catalog',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const RequestQuoteConfirmationIdRoute =
   RequestQuoteConfirmationIdRouteImport.update({
     id: '/request-quote/confirmation/$id',
@@ -89,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/quotes/': typeof QuotesIndexRoute
   '/request-quote/': typeof RequestQuoteIndexRoute
   '/review/': typeof ReviewIndexRoute
+  '/debug/catalog': typeof AuthenticatedDebugCatalogRoute
   '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRoutesByTo {
@@ -102,11 +115,13 @@ export interface FileRoutesByTo {
   '/quotes': typeof QuotesIndexRoute
   '/request-quote': typeof RequestQuoteIndexRoute
   '/review': typeof ReviewIndexRoute
+  '/debug/catalog': typeof AuthenticatedDebugCatalogRoute
   '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -116,6 +131,7 @@ export interface FileRoutesById {
   '/quotes/': typeof QuotesIndexRoute
   '/request-quote/': typeof RequestQuoteIndexRoute
   '/review/': typeof ReviewIndexRoute
+  '/_authenticated/debug/catalog': typeof AuthenticatedDebugCatalogRoute
   '/request-quote/confirmation/$id': typeof RequestQuoteConfirmationIdRoute
 }
 export interface FileRouteTypes {
@@ -131,6 +147,7 @@ export interface FileRouteTypes {
     | '/quotes/'
     | '/request-quote/'
     | '/review/'
+    | '/debug/catalog'
     | '/request-quote/confirmation/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -144,10 +161,12 @@ export interface FileRouteTypes {
     | '/quotes'
     | '/request-quote'
     | '/review'
+    | '/debug/catalog'
     | '/request-quote/confirmation/$id'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/admin'
     | '/login'
     | '/signup'
@@ -157,11 +176,13 @@ export interface FileRouteTypes {
     | '/quotes/'
     | '/request-quote/'
     | '/review/'
+    | '/_authenticated/debug/catalog'
     | '/request-quote/confirmation/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
@@ -181,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -246,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/debug/catalog': {
+      id: '/_authenticated/debug/catalog'
+      path: '/debug/catalog'
+      fullPath: '/debug/catalog'
+      preLoaderRoute: typeof AuthenticatedDebugCatalogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/request-quote/confirmation/$id': {
       id: '/request-quote/confirmation/$id'
       path: '/request-quote/confirmation/$id'
@@ -256,8 +291,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDebugCatalogRoute: typeof AuthenticatedDebugCatalogRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDebugCatalogRoute: AuthenticatedDebugCatalogRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
