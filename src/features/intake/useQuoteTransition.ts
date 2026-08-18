@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
+import type { Database } from "@/lib/database.types";
 import type { WorkflowAction } from "@/lib/quote-workflow";
 
 /** Applies a pipeline transition (submit, review, approve, send, close). */
@@ -12,22 +13,23 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
   return useMutation({
     mutationFn: async (action: WorkflowAction): Promise<Quote> => {
       const now = new Date().toISOString();
-      const patch: Record<string, unknown> = { state: action.next };
+      const patch: Database["public"]["Tables"]["quotes"]["Update"] =
+        { state: action.next } as Database["public"]["Tables"]["quotes"]["Update"];
 
       switch (action.action) {
         case "submit_for_review":
-          patch["submitted_at"] = now;
+          (patch as Record<string, unknown>)["submitted_at"] = now;
           break;
         case "start_review":
         case "mark_adjusted":
-          if (userId) patch["reviewed_by"] = userId;
+          if (userId) (patch as Record<string, unknown>)["reviewed_by"] = userId;
           break;
         case "approve":
-          patch["approved_at"] = now;
-          if (userId) patch["approved_by"] = userId;
+          (patch as Record<string, unknown>)["approved_at"] = now;
+          if (userId) (patch as Record<string, unknown>)["approved_by"] = userId;
           break;
         case "send_to_customer":
-          patch["sent_at"] = now;
+          (patch as Record<string, unknown>)["sent_at"] = now;
           break;
         default:
           break;
