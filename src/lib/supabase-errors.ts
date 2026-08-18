@@ -4,6 +4,9 @@ import type { QuoteState } from "@/types/quote";
 /** Postgres error code raised when a row-level security policy rejects a write. */
 export const RLS_VIOLATION = "42501";
 
+/** Postgres error code raised when a CHECK constraint / state-machine guard rejects a write. */
+export const CHECK_VIOLATION = "23514";
+
 type MaybePostgrestError = {
   code?: string;
   message?: string;
@@ -28,6 +31,14 @@ export function describeQuoteWriteError(error: unknown, nextState?: QuoteState):
     return (
       `Your account isn't allowed to move this quote${target}. ` +
       "The workspace security policy needs to permit this step — ask an administrator to update it."
+    );
+  }
+  const guard = error as MaybePostgrestError | null;
+  if (guard?.code === CHECK_VIOLATION || /invalid state transition/i.test(guard?.message ?? "")) {
+    const target = nextState ? ` to “${STATE_LABELS[nextState]}”` : "";
+    return (
+      `The backend's quote state-machine guard doesn't allow this step${target} yet. ` +
+      "An administrator needs to add it to the allowed-transition list."
     );
   }
   if (error instanceof Error) return error.message;
