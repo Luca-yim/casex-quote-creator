@@ -78,8 +78,32 @@ export function PricingSidebar() {
   // Margin controls are estimator-only, and never available in read-only mode.
   const canEditMargin =
     (role === "estimator" || role === "admin") && mode === "edit";
-  const margin = quote.marginPercent ?? 20;
+  const savedMargin = quote.marginPercent ?? 20;
+  // The slider tracks locally while dragging; the write happens on release so
+  // a single adjustment is one save, not twenty.
+  const [draftMargin, setDraftMargin] = useState<number | null>(null);
+  const margin = draftMargin ?? savedMargin;
   const marginJustificationRequired = margin < 15 || margin > 25;
+  const justification = (quote.marginJustification ?? "").trim();
+  // A margin outside 15–25 without a justification violates the database
+  // check constraint, so hold the write back instead of letting it fail.
+  const marginBlocked = marginJustificationRequired && !justification;
+
+  const commitMargin = (value: number) => {
+    setDraftMargin(value);
+    if (value < 15 || value > 25) {
+      if (!justification) return; // held until a justification is entered
+    }
+    updateField("marginPercent", value);
+  };
+
+  const handleJustificationChange = (text: string) => {
+    updateField("marginJustification", text || null);
+    // Releases a margin change that was held back for this justification.
+    if (text.trim() && draftMargin !== null && draftMargin !== savedMargin) {
+      updateField("marginPercent", draftMargin);
+    }
+  };
 
   const oneTimeItems = breakdown?.lineItems.filter((i) => i.category === "one_time") ?? [];
   const monthlyItems = breakdown?.lineItems.filter((i) => i.category === "monthly") ?? [];
