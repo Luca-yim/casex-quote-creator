@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
 import type { AppRole } from "@/lib/auth";
+import { devLog } from "@/lib/debug-log";
 
 /** Fetches a single quote by id and maps it to the domain shape. */
 export function useQuoteById(quoteId: string | undefined) {
@@ -50,7 +51,7 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         contract_years: 3,
       };
 
-      console.log("[quote-create] insert payload:", insertPayload);
+      devLog("[quote-create] insert payload:", insertPayload);
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 5_000);
 
@@ -61,7 +62,7 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
           .select("*")
           .abortSignal(controller.signal)
           .single();
-        console.log("[quote-create] Supabase response:", result);
+        devLog("[quote-create] Supabase response:", result);
 
         if (result.error) throw new Error(result.error.message);
         return rowToQuote(result.data);
