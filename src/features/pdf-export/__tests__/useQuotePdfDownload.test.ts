@@ -13,8 +13,8 @@ const profileResponse = {
 const uploadResponse = { error: null as { message: string } | null };
 const pdfInsertResponse = { error: null as { message: string } | null };
 
-const upload = vi.fn(async () => uploadResponse);
-const pdfInsert = vi.fn(async () => pdfInsertResponse);
+const upload = vi.fn(async (_path: string, _blob: Blob, _opts?: unknown) => uploadResponse);
+const pdfInsert = vi.fn(async (_row: Record<string, unknown>) => pdfInsertResponse);
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -34,7 +34,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-const writeVersionSnapshot = vi.fn(async () => undefined);
+const writeVersionSnapshot = vi.fn(async (..._args: unknown[]) => undefined);
 vi.mock("@/lib/version-snapshot", () => ({
   writeVersionSnapshot: (...a: unknown[]) => writeVersionSnapshot(...a),
 }));
@@ -65,11 +65,11 @@ const QUOTE = makeQuote({
 
 function setup(queryClient: QueryClient = createTestQueryClient()) {
   const wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(TestProviders, { queryClient }, children);
+    createElement(TestProviders, { queryClient, children });
   return { queryClient, ...renderHook(() => useQuotePdfDownload(), { wrapper }) };
 }
 
-let anchorClick: ReturnType<typeof vi.fn>;
+let anchorClick: () => void;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -77,7 +77,7 @@ beforeEach(() => {
   catalogResponse.data = TEST_CATALOG;
   uploadResponse.error = null;
   pdfInsertResponse.error = null;
-  anchorClick = vi.fn();
+  anchorClick = vi.fn() as unknown as () => void;
   URL.createObjectURL = vi.fn(() => "blob:mock");
   URL.revokeObjectURL = vi.fn();
   const realCreate = document.createElement.bind(document);
@@ -145,7 +145,7 @@ describe("archiving", () => {
     await act(async () => {
       await result.current.generatePdf(QUOTE, "customer");
     });
-    const path = upload.mock.calls[0]?.[0] as unknown as string;
+    const path = String(upload.mock.calls[0]?.[0]);
     expect(path.startsWith(`${QUOTE.id}/`)).toBe(true);
     expect(path).toMatch(/\/customer-\d{4}-\d{2}-\d{2}T[\d-]+Z\.pdf$/);
     expect(path).not.toContain(":");
@@ -156,7 +156,7 @@ describe("archiving", () => {
     await act(async () => {
       await result.current.generatePdf(QUOTE, "internal");
     });
-    expect(upload.mock.calls[0]?.[0]).toContain("/internal-");
+    expect(String(upload.mock.calls[0]?.[0])).toContain("/internal-");
   });
 
   it("records the archive row with size and generator", async () => {
