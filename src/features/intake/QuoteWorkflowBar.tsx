@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
+import { useSalesReps } from "@/hooks/useSalesReps";
 import {
   STATE_LABELS,
   availableActions,
@@ -36,16 +45,51 @@ export function QuoteWorkflowBar() {
   const actions = availableActions(role, quote.state);
   const [returnOpen, setReturnOpen] = useState(false);
 
+  // Estimator-side sales rep assignment (required for external-submitted quotes).
+  const canAssign =
+    (role === "estimator" || role === "admin") &&
+    actions.some((a) => a.action === "approve");
+  const { data: reps = [], isLoading: repsLoading } = useSalesReps(canAssign);
+  const [assignedRepId, setAssignedRepId] = useState<string>(quote.ownerId ?? "");
+  useEffect(() => {
+    setAssignedRepId(quote.ownerId ?? "");
+  }, [quote.ownerId]);
+
+  const currentOwnerName = reps.find((r) => r.id === quote.ownerId)?.name ?? null;
+  const assignedRepName = reps.find((r) => r.id === assignedRepId)?.name ?? null;
+  const needsAssignment = canAssign && !quote.ownerId && !assignedRepId;
+
   const actorName = profile?.full_name || profile?.email || "a teammate";
   const returnAction = actions.find((a) => a.action === "return_to_sales");
   const marginError = checkMarginJustification(quote);
   const isBlocked = (action: WorkflowAction) =>
-    Boolean(marginError) && MARGIN_GATED_ACTIONS.has(action.action);
+    (Boolean(marginError) && MARGIN_GATED_ACTIONS.has(action.action)) ||
+    (action.action === "approve" && needsAssignment);
+
+  const blockReason = (action: WorkflowAction) => {
+    if (action.action === "approve" && needsAssignment)
+      return "Assign a sales rep before approving";
+    if (marginError && MARGIN_GATED_ACTIONS.has(action.action)) return marginError;
+    return null;
+  };
 
   const run = (action: WorkflowAction, note?: string) => {
     if (isBlocked(action)) return;
     transition.mutate(
-      { action, quote, actorName, actorRole: role, ...(note ? { note } : {}) },
+      {
+        action,
+        quote,
+        actorName,
+        actorRole: role,
+        ...(note ? { note } : {}),
+        ...(action.action === "approve" && assignedRepId
+          ? {
+              assignRepId: assignedRepId,
+              assignRepName: assignedRepName,
+              previousRepName: currentOwnerName,
+            }
+          : {}),
+      },
       {
         onSuccess: () => {
           if (action.action === "return_to_sales") {
@@ -71,14 +115,40 @@ export function QuoteWorkflowBar() {
         <CardDescription>{stageOwner(quote.state)}</CardDescription>
       </CardHeader>
       {actions.length > 0 ? (
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
+          {canAssign ? (
+            <div className="space-y-1.5 rounded-md border p-3">
+              <Label htmlFor="assign-rep">Assign to sales rep</Label>
+              <Select
+                value={assignedRepId}
+                onValueChange={setAssignedRepId}
+                disabled={repsLoading}
+              >
+                <SelectTrigger id="assign-rep" className="w-full sm:w-80">
+                  <SelectValue placeholder="Select a rep..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {reps.map((rep) => (
+                    <SelectItem key={rep.id} value={rep.id}>
+                      {rep.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {quote.ownerId
+                  ? `Currently owned by ${currentOwnerName ?? "a sales rep"} — reassign if needed`
+                  : "Submitted by an external requester — assign a rep before approving."}
+              </p>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {actions.map((action) => (
               <Button
                 key={action.action}
                 variant={action.variant}
                 disabled={transition.isPending || isBlocked(action)}
-                title={isBlocked(action) ? marginError! : action.description}
+                title={blockReason(action) ?? action.description}
                 aria-describedby={
                   isBlocked(action) ? "margin-justification-error" : undefined
                 }
