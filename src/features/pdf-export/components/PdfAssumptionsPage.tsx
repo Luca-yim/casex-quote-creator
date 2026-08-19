@@ -89,7 +89,7 @@ export function PdfAssumptionsPage({ context }: PdfSectionProps) {
           label="Compliance"
           value={
             quote.compliance.length > 0
-              ? quote.compliance.map(titleCase).join(", ")
+              ? quote.compliance.map((c) => COMPLIANCE_LABELS[c] ?? titleCase(c)).join(", ")
               : "None specified"
           }
         />
