@@ -17,10 +17,14 @@ import {
   stageOwner,
   type WorkflowAction,
 } from "@/lib/quote-workflow";
+import { checkMarginJustification } from "@/lib/quote-validation";
 import { useIntake } from "./IntakeContext";
 import { useQuoteTransition } from "./useQuoteTransition";
 import { ReturnQuoteDialog } from "./ReturnQuoteDialog";
 import { VersionHistorySheet } from "./VersionHistorySheet";
+
+/** Transitions that persist pricing and therefore must satisfy the margin rule. */
+const MARGIN_GATED_ACTIONS = new Set(["mark_adjusted", "approve", "submit_for_review"]);
 
 /** Stage indicator plus the pipeline actions available to the current role. */
 export function QuoteWorkflowBar() {
@@ -33,8 +37,12 @@ export function QuoteWorkflowBar() {
 
   const actorName = profile?.full_name || profile?.email || "a teammate";
   const returnAction = actions.find((a) => a.action === "return_to_sales");
+  const marginError = checkMarginJustification(quote);
+  const isBlocked = (action: WorkflowAction) =>
+    Boolean(marginError) && MARGIN_GATED_ACTIONS.has(action.action);
 
-  const run = (action: WorkflowAction, note?: string) =>
+  const run = (action: WorkflowAction, note?: string) => {
+    if (isBlocked(action)) return;
     transition.mutate(
       { action, quote, actorName, actorRole: role, ...(note ? { note } : {}) },
       {
@@ -46,6 +54,7 @@ export function QuoteWorkflowBar() {
         },
       },
     );
+  };
 
   return (
     <Card>
