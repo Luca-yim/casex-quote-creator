@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuotesIndexRouteImport } from './routes/quotes.index'
 import { Route as QuotesIdRouteImport } from './routes/quotes.$id'
@@ -41,6 +42,11 @@ const AdminRoute = AdminRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/signup': typeof SignupRoute
   '/quotes/$id': typeof QuotesIdRoute
   '/quotes/new': typeof QuotesNewRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/notifications'
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/notifications'
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin'
     | '/login'
+    | '/notifications'
     | '/signup'
     | '/quotes/$id'
     | '/quotes/new'
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   SignupRoute: typeof SignupRoute
   QuotesIdRoute: typeof QuotesIdRoute
   QuotesNewRoute: typeof QuotesNewRoute
@@ -236,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   SignupRoute: SignupRoute,
   QuotesIdRoute: QuotesIdRoute,
   QuotesNewRoute: QuotesNewRoute,

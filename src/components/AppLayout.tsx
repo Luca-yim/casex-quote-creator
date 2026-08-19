@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 
 const ROLE_LABEL: Record<string, string> = {
   external: "External",
@@ -55,6 +56,7 @@ export function AppLayout({
           </div>
           {actions}
           {role ? <Badge variant="secondary">{ROLE_LABEL[role] ?? role}</Badge> : null}
+          <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User menu">
