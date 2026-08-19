@@ -1,27 +1,12 @@
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User2, Calculator, Briefcase } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
+import { NavBar } from "@/components/nav/NavBar";
 import { useAuth } from "@/lib/auth";
-import { NotificationBell } from "@/features/notifications/NotificationBell";
-import { DEFAULT_PIPELINE_SEARCH } from "@/features/pipeline/search";
 
-const ROLE_LABEL: Record<string, string> = {
-  external: "External",
-  sales_rep: "Sales Rep",
-  estimator: "Estimator",
-  admin: "Admin",
-};
-
+/**
+ * Shared shell for every authenticated page: canonical <NavBar /> on top,
+ * route-specific page header and content below. Login/signup use AuthShell.
+ */
 export function AppLayout({
   title,
   description,
@@ -33,66 +18,48 @@ export function AppLayout({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { profile, user, role, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { profile } = useAuth();
+  // `deactivated_at` is optional in the profile row; treat its presence as a lockout.
+  const deactivated = Boolean(
+    (profile as { deactivated_at?: string | null } | null)?.deactivated_at,
+  );
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-brand text-brand-foreground">
-              <Calculator className="size-4" />
-            </span>
-            <span className="font-brand text-sm font-semibold tracking-tight text-brand-navy">
-              Speridian · CaseX
-            </span>
-          </Link>
-          <div className="hidden h-6 w-px bg-border sm:block" />
-          {role === "estimator" || role === "admin" ? (
-            <Link
-              to="/pipeline"
-              search={DEFAULT_PIPELINE_SEARCH}
-              className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground sm:flex"
-              activeProps={{ className: "font-semibold text-foreground underline" }}
-            >
-              <Briefcase className="size-4" /> Pipeline
-            </Link>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-semibold text-foreground">{title}</h1>
-            {description ? (
-              <p className="truncate text-xs text-muted-foreground">{description}</p>
-            ) : null}
-          </div>
-          {actions}
-          {role ? <Badge variant="secondary">{ROLE_LABEL[role] ?? role}</Badge> : null}
-
-          <NotificationBell />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="User menu">
-                <User2 className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="truncate">
-                {profile?.full_name ?? user?.email ?? "Guest"}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={async () => {
-                  await signOut();
-                  void navigate({ to: "/login", replace: true });
-                }}
-              >
-                <LogOut className="mr-2 size-4" /> Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="min-h-dvh bg-muted/40">
+      {deactivated ? (
+        <div
+          role="alert"
+          className="flex items-center justify-center gap-2 bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground"
+        >
+          <AlertTriangle className="size-4" aria-hidden="true" />
+          Your account has been deactivated. Please contact your admin.
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      ) : null}
+
+      <NavBar deactivated={deactivated} />
+
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {deactivated ? (
+          <p className="text-sm text-muted-foreground">
+            Access is disabled while your account is deactivated. Sign out from the user menu.
+          </p>
+        ) : (
+          <>
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">
+                  {title}
+                </h1>
+                {description ? (
+                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                ) : null}
+              </div>
+              {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+            </div>
+            {children}
+          </>
+        )}
+      </main>
     </div>
   );
 }
