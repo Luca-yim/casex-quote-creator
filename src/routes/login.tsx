@@ -63,7 +63,7 @@ function LoginPage() {
 
   return (
     <AuthShell title="Sign in" subtitle="Access the CaseX Pricing Calculator">
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Work email</Label>
           <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
