@@ -52,6 +52,7 @@ export function PricingSidebar() {
     useIntake();
   const { data: catalog } = usePricingCatalog();
 
+
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
