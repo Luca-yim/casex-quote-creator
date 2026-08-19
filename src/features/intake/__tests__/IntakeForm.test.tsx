@@ -8,6 +8,18 @@ import { IntakeProvider, type IntakeContextValue } from "../IntakeContext";
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          order: () => ({ limit: async () => ({ data: [], error: null }) }),
+        }),
+      }),
+    }),
+  },
+}));
+
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: { id: "user-9" }, profile: { full_name: "Rep One" } }),
 }));
@@ -168,7 +180,7 @@ describe("conditional sections", () => {
 
 describe("returned-note callout", () => {
   it("stays hidden for a fresh draft", () => {
-    setup("sales_rep", "edit", { returnNote: null });
+    setup("sales_rep", "edit");
     expect(screen.queryByText(/returned for more info/i)).toBeNull();
   });
 });
