@@ -123,6 +123,7 @@ function triggerDownload(blob: Blob, filename: string) {
  */
 export function useQuotePdfDownload() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const queryClient = useQueryClient();
 
   const generatePdf = useCallback(async (quote: Quote, version: PdfVersion) => {
     setIsGenerating(true);
@@ -162,22 +163,35 @@ export function useQuotePdfDownload() {
 
       const shortId = quote.id.slice(0, 4);
       const filename = `CaseX-Quote-${fileSafe(quote.customerName ?? "Customer")}-${shortId}-${version}.pdf`;
+      // Local download fires first; archiving runs in parallel behind it.
       triggerDownload(blob, filename);
-      toast.success(`${version === "internal" ? "Internal" : "Customer"} PDF downloaded`);
+
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id ?? null;
+
+      const archiving = archivePdf(quote, version, blob, userId)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: quotePdfsKey(quote.id) });
+          toast.success("PDF downloaded and archived");
+        })
+        .catch((error: unknown) => {
+          toast.warning("PDF downloaded but could not be archived to server", {
+            description: error instanceof Error ? error.message : undefined,
+          });
+        });
 
       // Audit trail — never blocks the download.
-      try {
-        const { data } = await supabase.auth.getUser();
-        await writeVersionSnapshot({
-          quoteId: quote.id,
-          quoteData: quote,
-          changeReason: `Generated ${version} PDF`,
-          changedBy: data.user?.id ?? null,
-          changeType: "pdf_generated",
-        });
-      } catch (error) {
+      const auditing = writeVersionSnapshot({
+        quoteId: quote.id,
+        quoteData: quote,
+        changeReason: `Generated ${version} PDF`,
+        changedBy: userId,
+        changeType: "pdf_generated",
+      }).catch((error: unknown) => {
         console.warn("[pdf-export] audit snapshot failed", error);
-      }
+      });
+
+      await Promise.all([archiving, auditing]);
     } catch (error) {
       toast.error("PDF generation failed", {
         description: error instanceof Error ? error.message : undefined,
@@ -185,7 +199,8 @@ export function useQuotePdfDownload() {
     } finally {
       setIsGenerating(false);
     }
-  }, []);
+  }, [queryClient]);
+
 
   return { generatePdf, isGenerating };
 }
