@@ -23,7 +23,7 @@ export const Route = createFileRoute("/quotes/new")({
 
 function NewQuotePage() {
   return (
-    <ProtectedRoute allow={["sales_rep"]}>
+    <ProtectedRoute allow={["sales_rep", "estimator", "admin"]}>
       <AppLayout title="New quote" description="Creating a draft">
         <NewQuoteRunner />
       </AppLayout>
