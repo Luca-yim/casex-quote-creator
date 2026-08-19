@@ -28,7 +28,9 @@ export function useNotificationRealtime() {
 
   useEffect(() => {
     const userId = user?.id;
-    if (!userId) return;
+    if (!userId || channelOwned) return;
+    channelOwned = true;
+
 
     const flush = () => {
       timer.current = null;
