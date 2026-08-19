@@ -74,7 +74,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "New Quote",
     href: "/quotes/new",
     icon: PlusCircle,
-    roles: ["sales_rep", "estimator", "admin"],
+    roles: ["estimator", "admin"],
     order: 40,
   },
 ];

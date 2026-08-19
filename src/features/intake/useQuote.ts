@@ -51,13 +51,15 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
     mutationKey: ["quote-create", userId],
     mutationFn: async (): Promise<Quote> => {
       if (!userId) throw new Error("Not signed in");
-      if (role !== "sales_rep" && role !== "external") {
+      const CREATORS: AppRole[] = ["sales_rep", "estimator", "admin", "external"];
+      if (!role || !CREATORS.includes(role)) {
         throw new Error("Your role cannot create quotes from this page.");
       }
 
       const insertPayload = {
         requested_by: userId,
-        owner_id: role === "sales_rep" ? userId : null,
+        // External requests have no owner until an estimator assigns one.
+        owner_id: role === "external" ? null : userId,
         tier: "ballpark" as const,
         state: "draft" as const,
         name: "Untitled Quote",
