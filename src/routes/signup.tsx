@@ -62,14 +62,6 @@ function SignupPage() {
     toast.success("Account created 🎉");
   });
 
-  const googleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error("Google sign-in failed");
-  };
-
   return (
     <AuthShell title="Create account" subtitle="Request pricing for CaseXellence">
       <form onSubmit={onSubmit} className="space-y-4">
@@ -102,9 +94,6 @@ function SignupPage() {
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
-      <Button variant="outline" className="mt-3 w-full" onClick={googleSignIn}>
-        Continue with Google
-      </Button>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link to="/login" className="font-medium text-brand hover:underline">
