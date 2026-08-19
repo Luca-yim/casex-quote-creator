@@ -13,12 +13,16 @@ const SALES_REP_PRICING_STATES: QuoteState[] = [
 /**
  * Determines whether the pricing details should be visible for a given
  * role and quote state.
+ *
+ * External users NEVER see pricing — before, during or after review.
  */
 export function computeShowPricing(role: AppRole, state: QuoteState): boolean {
+  if (role === "external") return false;
   if (role === "estimator" || role === "admin") return true;
   if (role === "sales_rep") return SALES_REP_PRICING_STATES.includes(state);
   return false;
 }
+
 
 export interface IntakeContextValue {
   quoteId: string;
