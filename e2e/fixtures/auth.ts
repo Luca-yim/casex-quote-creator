@@ -16,7 +16,7 @@ const ENV_KEYS: Record<Persona, { email: string; password: string }> = {
 
 /** Home route each persona should land on after sign-in. */
 export const HOME_ROUTE: Record<Persona, RegExp> = {
-  external: /\/request-quote\/?$/,
+  external: /\/request-quote(\/|$)/,
   rep: /\/quotes\/?$/,
   estimator: /\/review\/?$/,
 };
