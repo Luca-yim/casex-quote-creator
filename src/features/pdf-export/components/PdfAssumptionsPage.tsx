@@ -31,6 +31,16 @@ const HOSTING_LABELS: Record<string, string> = {
   customer_hosted: "Customer hosted",
 };
 
+const COMPLIANCE_LABELS: Record<string, string> = {
+  fedramp_moderate: "FedRAMP Moderate",
+  fedramp_high: "FedRAMP High",
+  soc2_type2: "SOC 2 Type 2",
+  hipaa: "HIPAA",
+  cjis: "CJIS",
+  stateramp: "StateRAMP",
+  irs_1075: "IRS 1075",
+};
+
 function titleCase(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

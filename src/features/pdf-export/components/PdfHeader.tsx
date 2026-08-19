@@ -11,10 +11,10 @@ export function PdfHeader({ quoteName }: { quoteName: string }) {
     <View style={styles.header} fixed>
       {/* TODO: replace with logo asset */}
       <Text style={styles.wordmark}>CaseXellence</Text>
-      <Text style={styles.caption}>
-        {truncate(quoteName)} ·{" "}
-        <Text render={({ pageNumber }) => `Page ${pageNumber}`} />
-      </Text>
+      <Text
+        style={styles.caption}
+        render={({ pageNumber }) => `${truncate(quoteName)} · Page ${pageNumber}`}
+      />
     </View>
   );
 }
