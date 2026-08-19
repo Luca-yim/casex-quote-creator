@@ -82,7 +82,7 @@ export interface Quote {
   hostingModel: HostingModel | null;
   environmentCount: number;
   hasIntegrations: boolean;
-  integrationCount: number;
+  integrationCount: number | null;
   integrationDifficulty: IntegrationComplexity | null;
   supportTier: SupportTier | null;
   marginPercent: number;
@@ -112,7 +112,7 @@ export const complianceValues = [
  * fields; the required fields below must be present to submit for review.
  */
 export const quoteSchema = z.object({
-  name: z.string().min(1).default("Untitled quote"),
+  name: z.string().default(""),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email().nullable().default(null),
   customerType: z.enum([
@@ -140,7 +140,7 @@ export const quoteSchema = z.object({
   hostingModel: z.enum(["soc2", "fedramp", "customer_hosted"]),
   environmentCount: z.number().int().min(1).default(1),
   hasIntegrations: z.boolean().default(false),
-  integrationCount: z.number().int().min(0).default(0),
+  integrationCount: z.number().int().min(0).nullable().default(0),
   integrationDifficulty: z
     .enum(["simple", "moderate", "complex", "very_complex"])
     .nullable()
@@ -150,6 +150,18 @@ export const quoteSchema = z.object({
   marginJustification: z.string().nullable().default(null),
   repConfidence: z.enum(["high", "medium", "low"]).nullable().default(null),
   tier: z.enum(["ballpark", "proposal"]).default("ballpark"),
+}).superRefine((value, ctx) => {
+  // "Yes, we need integrations" requires a real count — empty is not 0.
+  if (
+    value.hasIntegrations &&
+    (value.integrationCount === null || value.integrationCount < 1)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["integrationCount"],
+      message: "Please enter the number of integrations required",
+    });
+  }
 });
 
 export type QuoteFormData = z.infer<typeof quoteSchema>;

@@ -62,7 +62,9 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         owner_id: role === "external" ? null : userId,
         tier: "ballpark" as const,
         state: "draft" as const,
-        name: "Untitled Quote",
+        // Drafts start unnamed; the input shows "Untitled Quote" as a
+        // placeholder and persistence auto-names on submit.
+        name: "",
         margin_percent: 20,
         contract_years: 3,
       };

@@ -33,7 +33,10 @@ export function rowToQuote(row: QuoteRow): Quote {
     hostingModel: (r["hosting_model"] ?? null) as Quote["hostingModel"],
     environmentCount: Number(r["environment_count"] ?? 1),
     hasIntegrations: Boolean(r["has_integrations"]),
-    integrationCount: Number(r["integration_count"] ?? 0),
+    integrationCount:
+      r["integration_count"] === null || r["integration_count"] === undefined
+        ? null
+        : Number(r["integration_count"]),
     integrationDifficulty: (r["integration_difficulty"] ?? null) as Quote["integrationDifficulty"],
     supportTier: (r["support_tier"] ?? null) as Quote["supportTier"],
     marginPercent: Number(r["margin_percent"] ?? 20),
