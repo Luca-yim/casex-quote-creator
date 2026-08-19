@@ -18,7 +18,18 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Some sandboxes ship only the full Chrome build; point at it when provided.
+        launchOptions: process.env["E2E_CHROME_PATH"]
+          ? { executablePath: process.env["E2E_CHROME_PATH"], args: ["--no-sandbox"] }
+          : {},
+      },
+    },
+  ],
   webServer: {
     command: "npm run dev",
     url: process.env["E2E_BASE_URL"] ?? "http://localhost:8080",
