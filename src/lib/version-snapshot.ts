@@ -9,7 +9,8 @@ export type VersionChangeType =
   | "return"
   | "send"
   | "accept"
-  | "decline";
+  | "decline"
+  | "pdf_generated";
 
 export interface WriteVersionSnapshotInput {
   quoteId: string;

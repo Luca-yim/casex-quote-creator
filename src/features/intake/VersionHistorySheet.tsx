@@ -24,6 +24,7 @@ const TYPE_VARIANT: Record<VersionChangeType, "default" | "secondary" | "outline
     send: "default",
     accept: "default",
     decline: "destructive",
+    pdf_generated: "outline",
   };
 
 /** Slide-in audit trail of every stored snapshot for a quote. */
