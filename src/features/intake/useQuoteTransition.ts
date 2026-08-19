@@ -29,6 +29,11 @@ export interface TransitionInput {
   actorRole?: AppRole | null;
   /** Required when returning a quote to the requester. */
   note?: string;
+  /** Sales rep to own the quote after approval (estimator assignment). */
+  assignRepId?: string | null;
+  assignRepName?: string | null;
+  /** Display name of the rep who owned the quote before reassignment. */
+  previousRepName?: string | null;
 }
 
 function changeReason(input: TransitionInput): string {
@@ -40,8 +45,15 @@ function changeReason(input: TransitionInput): string {
       return `Estimator ${who} claimed for review`;
     case "mark_adjusted":
       return `Estimator ${who} saved pricing adjustments`;
-    case "approve":
-      return `Approved by estimator ${who}`;
+    case "approve": {
+      const base = `Approved by estimator ${who}`;
+      if (!input.assignRepName) return base;
+      const reassigned =
+        input.previousRepName && input.previousRepName !== input.assignRepName;
+      return reassigned
+        ? `${base}, assigned to ${input.assignRepName} (reassigned from ${input.previousRepName} to ${input.assignRepName})`
+        : `${base}, assigned to ${input.assignRepName}`;
+    }
     case "return_to_sales":
       return `Returned by estimator ${who}. Reason: ${input.note ?? "(no note)"}`;
     case "send_to_customer":
@@ -75,6 +87,9 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
         case "approve":
           (patch as Record<string, unknown>)["approved_at"] = now;
           if (userId) (patch as Record<string, unknown>)["approved_by"] = userId;
+          if (input.assignRepId && input.assignRepId !== input.quote.ownerId) {
+            (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+          }
           break;
         case "send_to_customer":
           (patch as Record<string, unknown>)["sent_at"] = now;
