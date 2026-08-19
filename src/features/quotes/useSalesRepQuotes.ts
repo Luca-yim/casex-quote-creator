@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { rowToQuote } from "@/features/intake/quote-mapper";
 import type { Quote } from "@/types/quote";
 import { devLog } from "@/lib/debug-log";
+import { quoteSelectForRole } from "@/lib/quote-columns";
 
 /**
  * Fetches every quote the current rep owns or requested.
@@ -12,16 +13,16 @@ import { devLog } from "@/lib/debug-log";
  * associated with the signed-in user.
  */
 export function useSalesRepQuotes() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   return useQuery({
-    queryKey: ["quotes", "sales-rep", user?.id],
+    queryKey: ["quotes", "sales-rep", user?.id, role],
     queryFn: async (): Promise<Quote[]> => {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("quotes")
-        .select("*")
+        .select(quoteSelectForRole(role))
         .or(`requested_by.eq.${user.id},owner_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
 
@@ -29,7 +30,7 @@ export function useSalesRepQuotes() {
       devLog("[sales-rep-quotes] error:", error);
 
       if (error) throw new Error(error.message);
-      return (data ?? []).map(rowToQuote);
+      return (data ?? []).map((row) => rowToQuote(row as never));
     },
     enabled: Boolean(user),
   });

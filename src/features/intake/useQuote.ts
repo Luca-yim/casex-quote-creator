@@ -5,21 +5,24 @@ import { rowToQuote } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
 import type { AppRole } from "@/lib/auth";
 import { devLog } from "@/lib/debug-log";
+import { useAuth } from "@/lib/auth";
+import { quoteSelectForRole } from "@/lib/quote-columns";
 
 /** Fetches a single quote by id and maps it to the domain shape. */
 export function useQuoteById(quoteId: string | undefined) {
+  const { role } = useAuth();
   return useQuery({
-    queryKey: ["quote", quoteId],
+    queryKey: ["quote", quoteId, role],
     enabled: Boolean(quoteId),
     queryFn: async (): Promise<Quote> => {
       const { data, error } = await supabase
         .from("quotes")
-        .select("*")
+        .select(quoteSelectForRole(role))
         .eq("id", quoteId!)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Quote not found");
-      return rowToQuote(data);
+      return rowToQuote(data as never);
     },
   });
 }
