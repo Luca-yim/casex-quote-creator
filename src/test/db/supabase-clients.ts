@@ -88,7 +88,7 @@ export function draftPayload(userId: string, overrides: Record<string, unknown> 
     requested_by: userId,
     owner_id: userId,
     state: "draft",
-    tier: "standard",
+    tier: "ballpark",
     margin_percent: 20,
     contract_years: 3,
     ...overrides,
