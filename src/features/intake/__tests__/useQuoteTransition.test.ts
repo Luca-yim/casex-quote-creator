@@ -172,6 +172,7 @@ describe("successful transitions", () => {
   it("caches the updated quote and invalidates dependent queries", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const setQueryData = vi.spyOn(queryClient, "setQueryData");
     const { hook } = setup(queryClient);
     hook.result.current.mutate({
       action: submitAction,
@@ -179,7 +180,11 @@ describe("successful transitions", () => {
       actorName: "Rep",
     });
     await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData(["quote", "q1"])).toBeTruthy();
+    // gcTime is 0 in tests, so assert the write rather than the cached value.
+    expect(setQueryData).toHaveBeenCalledWith(
+      ["quote", "q1"],
+      expect.objectContaining({ id: "q1" }),
+    );
     const keys = invalidate.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
     expect(keys).toContain(JSON.stringify(["quotes"]));
     expect(keys).toContain(JSON.stringify(["quote-versions", "q1"]));
