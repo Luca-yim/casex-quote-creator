@@ -144,7 +144,9 @@ export function availableActions(
 /** Whether the intake fields are editable for this role at this stage. */
 export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   if (role === "admin") return true;
-  if (role === "external" || role === "sales_rep") return state === "draft";
+  if (role === "external" || role === "sales_rep") {
+    return state === "draft" || state === "estimator_adjusted";
+  }
   if (role === "estimator") {
     return (
       state === "submitted_for_review" ||

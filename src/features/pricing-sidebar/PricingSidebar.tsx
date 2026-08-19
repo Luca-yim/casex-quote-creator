@@ -48,7 +48,7 @@ const CONFIDENCE_META = {
  * save status; monetary detail renders only when the role/state allows it.
  */
 export function PricingSidebar() {
-  const { quote, role, showPricing, isSaving, lastSavedAt, updateField } =
+  const { quote, role, mode, showPricing, isSaving, lastSavedAt, updateField } =
     useIntake();
   const { data: catalog } = usePricingCatalog();
 
@@ -74,7 +74,9 @@ export function PricingSidebar() {
     return all.filter((a) => a.tone !== "warning");
   }, [quote, role]);
 
-  const canEditMargin = role === "estimator" || role === "admin";
+  // Margin controls are estimator-only, and never available in read-only mode.
+  const canEditMargin =
+    (role === "estimator" || role === "admin") && mode === "edit";
   const margin = quote.marginPercent ?? 20;
   const marginJustificationRequired = margin < 15 || margin > 25;
 
