@@ -63,6 +63,7 @@ export function useNotificationRealtime() {
       .subscribe();
 
     return () => {
+      channelOwned = false;
       if (timer.current !== null) clearTimeout(timer.current);
       timer.current = null;
       pending.current = null;
