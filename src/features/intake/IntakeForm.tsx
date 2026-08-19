@@ -20,6 +20,19 @@ import { SubmitBar } from "./SubmitBar";
 import { ReturnedNoteCallout } from "./ReturnedNoteCallout";
 
 /**
+ * Fields that render with a pre-selected default in the UI. If the stored
+ * quote has no value for them, the default is persisted on mount so the
+ * progress indicator counts them as complete.
+ */
+const PRESELECTED_DEFAULT_FIELDS = [
+  "contractYears",
+  "repeatableActivation",
+  "environmentCount",
+  "marginPercent",
+  "tier",
+] as const;
+
+/**
  * Shared intake form used by every role. Each of the 13 sections reads and
  * writes through the shared react-hook-form context.
  */
@@ -59,6 +72,28 @@ export function IntakeForm() {
     } as Partial<QuoteFormData> as QuoteFormData,
   });
 
+  // Pre-selected defaults (radios/dropdowns that render with a value) must
+  // count toward progress immediately, so push them into the quote on mount
+  // whenever the stored quote has no value for that field yet.
+  const { getValues } = form;
+  useEffect(() => {
+    if (mode === "readonly") return;
+    const values = getValues();
+    for (const field of PRESELECTED_DEFAULT_FIELDS) {
+      const stored = (quote as Record<string, unknown>)[field];
+      const formValue = (values as Record<string, unknown>)[field];
+      const storedEmpty =
+        stored === null || stored === undefined || stored === "";
+      const formFilled =
+        formValue !== null && formValue !== undefined && formValue !== "";
+      if (storedEmpty && formFilled) {
+        updateField(field, formValue);
+      }
+    }
+    // Mount-only sync: later changes flow through the watch subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Every field change auto-saves; invalid drafts still persist.
   const readonly = mode === "readonly";
   const { watch } = form;
@@ -78,6 +113,13 @@ export function IntakeForm() {
         onSubmit={(event) => event.preventDefault()}
         aria-disabled={mode === "readonly"}
       >
+        <p className="text-xs text-muted-foreground">
+          Fields marked with{" "}
+          <span className="text-destructive" aria-hidden>
+            *
+          </span>{" "}
+          are required.
+        </p>
         <ReturnedNoteCallout />
         <CustomerInfoSection />
         <TargetGoLiveSection />

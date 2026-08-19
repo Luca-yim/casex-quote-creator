@@ -19,7 +19,7 @@ import { useSubmitQuote } from "./useSubmitQuote";
  * draft here; estimator approve/return actions live in the workflow bar.
  */
 export function SubmitBar() {
-  const { quote, quoteId, role, flushSave } = useIntake();
+  const { quote, quoteId, role, flushSave, updateField } = useIntake();
   const { user } = useAuth();
   const navigate = useNavigate();
   const form = useFormContext<QuoteFormData>();
@@ -32,14 +32,23 @@ export function SubmitBar() {
   const marginError = checkMarginJustification(quote);
 
   const handleSubmit = async () => {
+    // Auto-name unnamed drafts at the point of persistence (the input keeps
+    // "Untitled Quote" as a ghosted placeholder, never a real value).
+    if (!quote.name?.trim()) {
+      updateField("name", "Untitled Quote");
+    }
     await flushSave();
+    const submissionQuote = {
+      ...quote,
+      name: quote.name?.trim() || "Untitled Quote",
+    };
     if (checkMarginJustification(quote)) {
       toast.error("Margin justification required", {
         description: MARGIN_JUSTIFICATION_MESSAGE,
       });
       return;
     }
-    const result = validateQuoteForSubmission(quote);
+    const result = validateQuoteForSubmission(submissionQuote);
     if (!result.valid) {
       await form.trigger();
       const firstField = result.missingRequiredFields[0];
@@ -54,7 +63,7 @@ export function SubmitBar() {
       return;
     }
 
-    const saved = await submit.mutateAsync(quote);
+    const saved = await submit.mutateAsync(submissionQuote);
     if (role === "external") {
       void navigate({ to: "/request-quote/confirmation/$id", params: { id: saved.id } });
     } else {
