@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 
 const ROLE_LABEL: Record<string, string> = {
   external: "External",
