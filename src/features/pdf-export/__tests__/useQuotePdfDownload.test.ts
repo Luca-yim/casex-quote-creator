@@ -80,12 +80,7 @@ beforeEach(() => {
   anchorClick = vi.fn() as unknown as () => void;
   URL.createObjectURL = vi.fn(() => "blob:mock");
   URL.revokeObjectURL = vi.fn();
-  const realCreate = document.createElement.bind(document);
-  vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
-    const el = realCreate(tag);
-    if (tag === "a") el.click = anchorClick;
-    return el;
-  });
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClick);
 });
 
 describe("generation flow", () => {
