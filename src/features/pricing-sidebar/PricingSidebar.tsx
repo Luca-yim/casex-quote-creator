@@ -235,7 +235,8 @@ export function PricingSidebar() {
               max={30}
               step={1}
               value={[margin]}
-              onValueChange={(v) => updateField("marginPercent", v[0] ?? 20)}
+              onValueChange={(v) => setDraftMargin(v[0] ?? savedMargin)}
+              onValueCommit={(v) => commitMargin(v[0] ?? savedMargin)}
             />
             <div className="space-y-1.5">
               <Label htmlFor="margin-justification" className="text-xs">
@@ -249,15 +250,12 @@ export function PricingSidebar() {
                 rows={3}
                 placeholder="Why is this margin appropriate?"
                 value={quote.marginJustification ?? ""}
-                onChange={(e) =>
-                  updateField("marginJustification", e.target.value || null)
-                }
+                onChange={(e) => handleJustificationChange(e.target.value)}
               />
-              {marginJustificationRequired &&
-              !(quote.marginJustification ?? "").trim() ? (
+              {marginBlocked ? (
                 <p role="alert" className="text-xs text-destructive">
-                  Justification is required outside the 15–25% band. Save
-                  adjustments and approval are blocked until it is provided.
+                  Justification is required outside the 15–25% band. This margin
+                  change is not saved yet — add a justification to apply it.
                 </p>
               ) : null}
             </div>
