@@ -27,19 +27,41 @@ const TYPE_VARIANT: Record<VersionChangeType, "default" | "secondary" | "outline
     pdf_generated: "outline",
   };
 
-/** Slide-in audit trail of every stored snapshot for a quote. */
-export function VersionHistorySheet({ quoteId }: { quoteId: string }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Slide-in audit trail of every stored snapshot for a quote.
+ *
+ * Uncontrolled by default (renders its own trigger button). Pass `open` and
+ * `onOpenChange` to drive it from elsewhere, e.g. the pipeline row menu.
+ */
+export function VersionHistorySheet({
+  quoteId,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  quoteId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [expanded, setExpanded] = useState<string | null>(null);
   const versions = useQuoteVersions(quoteId, open);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <History className="mr-1 size-4" /> Version history
-        </Button>
-      </SheetTrigger>
+      {isControlled ? null : (
+        <SheetTrigger asChild>
+          <Button variant="outline" size="sm">
+            <History className="mr-1 size-4" /> Version history
+          </Button>
+        </SheetTrigger>
+      )}
+
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Version history</SheetTitle>

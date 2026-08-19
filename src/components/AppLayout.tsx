@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User2, Calculator } from "lucide-react";
+import { LogOut, User2, Calculator, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
+import { DEFAULT_PIPELINE_SEARCH } from "@/features/pipeline/search";
 
 const ROLE_LABEL: Record<string, string> = {
   external: "External",
@@ -48,6 +49,16 @@ export function AppLayout({
             </span>
           </Link>
           <div className="hidden h-6 w-px bg-border sm:block" />
+          {role === "estimator" || role === "admin" ? (
+            <Link
+              to="/pipeline"
+              search={DEFAULT_PIPELINE_SEARCH}
+              className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground sm:flex"
+              activeProps={{ className: "font-semibold text-foreground underline" }}
+            >
+              <Briefcase className="size-4" /> Pipeline
+            </Link>
+          ) : null}
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-semibold text-foreground">{title}</h1>
             {description ? (
@@ -56,6 +67,7 @@ export function AppLayout({
           </div>
           {actions}
           {role ? <Badge variant="secondary">{ROLE_LABEL[role] ?? role}</Badge> : null}
+
           <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
