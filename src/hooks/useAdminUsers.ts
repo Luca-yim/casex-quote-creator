@@ -47,16 +47,35 @@ export function useAdminUsers() {
   });
 }
 
-/** Changes a user's role. The database blocks self-escalation. */
+/**
+ * Changes a user's role through the `admin_update_user_role` RPC.
+ *
+ * A direct PATCH on `profiles` cannot work: RLS limits UPDATE to the row
+ * owner, so an admin editing someone else's row matches zero rows and
+ * PostgREST still answers 204. The SECURITY DEFINER function is the only
+ * supported path and it also writes the admin audit log.
+ */
 export function useUpdateUserRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role } as never)
-        .eq("id", userId);
-      if (error) throw new Error(describeQuoteWriteError(error));
+    mutationFn: async ({
+      userId,
+      role,
+      reason,
+    }: {
+      userId: string;
+      role: AppRole;
+      reason?: string | null;
+    }) => {
+      const { error } = await (supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>)("admin_update_user_role", {
+        target_user_id: userId,
+        new_role: role,
+        reason: reason || null,
+      });
+      if (error) throw new Error(error.message);
       return { userId, role };
     },
     onSuccess: ({ role }) => {
@@ -68,16 +87,40 @@ export function useUpdateUserRole() {
   });
 }
 
-/** Deactivates or reactivates a user by stamping `profiles.deactivated_at`. */
+/**
+ * Deactivates or reactivates a user. Prefers the `admin_toggle_user_active`
+ * RPC; falls back to a direct update (and verifies a row actually changed)
+ * when that function is not deployed.
+ */
 export function useToggleUserActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ userId, deactivate }: { userId: string; deactivate: boolean }) => {
-      const { error } = await supabase
+      const rpc = supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string; code?: string } | null }>;
+      const { error: rpcError } = await rpc("admin_toggle_user_active", {
+        target_user_id: userId,
+        deactivate,
+      });
+      if (!rpcError) return { deactivate };
+      // PGRST202 = function does not exist in the schema cache.
+      if (rpcError.code && rpcError.code !== "PGRST202") {
+        throw new Error(rpcError.message);
+      }
+
+      const { data, error } = await supabase
         .from("profiles")
         .update({ deactivated_at: deactivate ? new Date().toISOString() : null } as never)
-        .eq("id", userId);
+        .eq("id", userId)
+        .select("id");
       if (error) throw new Error(describeQuoteWriteError(error));
+      if (!data || data.length === 0) {
+        throw new Error(
+          "No profile was updated — your admin permissions did not allow this change.",
+        );
+      }
       return { deactivate };
     },
     onSuccess: ({ deactivate }) => {
@@ -88,3 +131,4 @@ export function useToggleUserActive() {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
