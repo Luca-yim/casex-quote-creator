@@ -13,6 +13,13 @@ import { notificationsQueryKey } from "@/hooks/useNotifications";
  */
 const THROTTLE_MS = 1200;
 
+/**
+ * Guards against a second subscriber: the bell and the notifications page both
+ * call this hook. Supabase rejects re-using a channel name after subscribe(),
+ * and two channels would double every toast — so only the first mount owns it.
+ */
+let channelOwned = false;
+
 export function useNotificationRealtime() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -21,7 +28,9 @@ export function useNotificationRealtime() {
 
   useEffect(() => {
     const userId = user?.id;
-    if (!userId) return;
+    if (!userId || channelOwned) return;
+    channelOwned = true;
+
 
     const flush = () => {
       timer.current = null;
@@ -54,6 +63,7 @@ export function useNotificationRealtime() {
       .subscribe();
 
     return () => {
+      channelOwned = false;
       if (timer.current !== null) clearTimeout(timer.current);
       timer.current = null;
       pending.current = null;
