@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { createElement } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { buildAssumptions } from "@/lib/assumptions-builder";
@@ -8,9 +9,53 @@ import { writeVersionSnapshot } from "@/lib/version-snapshot";
 import type { PricingCatalogRow } from "@/types/pricing";
 import type { Quote } from "@/types/quote";
 import { QuotePdfDocument } from "./QuotePdfDocument";
+import { quotePdfsKey } from "./useQuotePdfHistory";
 import type { PdfContact, PdfContext, PdfVersion } from "./types";
 
 const UNKNOWN_CONTACT: PdfContact = { name: "Not assigned", email: "" };
+
+/** Storage bucket holding archived quote PDFs (private). */
+const PDF_BUCKET = "quote-pdfs";
+
+/** Filename-safe ISO timestamp, e.g. `2025-01-15T10-30-00Z`. */
+function isoStamp(date: Date): string {
+  return date.toISOString().replace(/\.\d+Z$/, "Z").replace(/:/g, "-");
+}
+
+/**
+ * Uploads the generated PDF and records it in `quote_pdfs`.
+ *
+ * Path convention is `{quote_id}/{version}-{iso_timestamp}.pdf`; the quote id
+ * MUST stay the first segment because storage RLS parses it with split_part.
+ *
+ * Future cleanup: PDFs accumulate indefinitely. A scheduled job could prune
+ * archives older than N days for accepted/declined quotes, or keep only the
+ * latest N per quote. Out of scope for MVP.
+ */
+async function archivePdf(
+  quote: Quote,
+  version: PdfVersion,
+  blob: Blob,
+  userId: string | null,
+): Promise<void> {
+  const path = `${quote.id}/${version}-${isoStamp(new Date())}.pdf`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .upload(path, blob, { contentType: "application/pdf", upsert: false });
+  if (uploadError) throw new Error(uploadError.message);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: insertError } = await (supabase as any).from("quote_pdfs").insert({
+    quote_id: quote.id,
+    version,
+    storage_path: path,
+    file_size_bytes: blob.size,
+    generated_by: userId,
+  });
+  if (insertError) throw new Error(insertError.message);
+}
+
 
 /** Loads the pricing catalog exactly as `usePricingCatalog` normalizes it. */
 async function fetchCatalog(): Promise<PricingCatalogRow[]> {
@@ -78,6 +123,7 @@ function triggerDownload(blob: Blob, filename: string) {
  */
 export function useQuotePdfDownload() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const queryClient = useQueryClient();
 
   const generatePdf = useCallback(async (quote: Quote, version: PdfVersion) => {
     setIsGenerating(true);
@@ -117,22 +163,35 @@ export function useQuotePdfDownload() {
 
       const shortId = quote.id.slice(0, 4);
       const filename = `CaseX-Quote-${fileSafe(quote.customerName ?? "Customer")}-${shortId}-${version}.pdf`;
+      // Local download fires first; archiving runs in parallel behind it.
       triggerDownload(blob, filename);
-      toast.success(`${version === "internal" ? "Internal" : "Customer"} PDF downloaded`);
+
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id ?? null;
+
+      const archiving = archivePdf(quote, version, blob, userId)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: quotePdfsKey(quote.id) });
+          toast.success("PDF downloaded and archived");
+        })
+        .catch((error: unknown) => {
+          toast.warning("PDF downloaded but could not be archived to server", {
+            description: error instanceof Error ? error.message : undefined,
+          });
+        });
 
       // Audit trail — never blocks the download.
-      try {
-        const { data } = await supabase.auth.getUser();
-        await writeVersionSnapshot({
-          quoteId: quote.id,
-          quoteData: quote,
-          changeReason: `Generated ${version} PDF`,
-          changedBy: data.user?.id ?? null,
-          changeType: "pdf_generated",
-        });
-      } catch (error) {
+      const auditing = writeVersionSnapshot({
+        quoteId: quote.id,
+        quoteData: quote,
+        changeReason: `Generated ${version} PDF`,
+        changedBy: userId,
+        changeType: "pdf_generated",
+      }).catch((error: unknown) => {
         console.warn("[pdf-export] audit snapshot failed", error);
-      }
+      });
+
+      await Promise.all([archiving, auditing]);
     } catch (error) {
       toast.error("PDF generation failed", {
         description: error instanceof Error ? error.message : undefined,
@@ -140,7 +199,8 @@ export function useQuotePdfDownload() {
     } finally {
       setIsGenerating(false);
     }
-  }, []);
+  }, [queryClient]);
+
 
   return { generatePdf, isGenerating };
 }
