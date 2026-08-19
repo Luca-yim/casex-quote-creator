@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AuthShell } from "@/components/AuthShell";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,26 @@ const schema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
 
+function LoginPageSkeleton() {
+  return (
+    <AuthShell title="Sign in" subtitle="Access the CaseX Pricing Calculator">
+      <div className="flex flex-col items-center justify-center gap-3 py-10">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">Checking session…</p>
+      </div>
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        No account?{" "}
+        <Link to="/signup" className="font-medium text-brand hover:underline">
+          Create one
+        </Link>
+      </p>
+    </AuthShell>
+  );
+}
+
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, role, ready, signOut } = useAuth();
+  const { user, role, ready, signOut, loading, profileLoading } = useAuth();
   const [existingSession, setExistingSession] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(false);
@@ -39,11 +57,14 @@ function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
+  // Resolve whether the user was already signed in when this page loaded.
+  // This is done once the global auth session has finished restoring so the
+  // login form never flashes before we know a session exists.
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      setExistingSession(Boolean(data.session));
-    });
-  }, []);
+    if (!loading) {
+      setExistingSession(Boolean(user));
+    }
+  }, [loading, user]);
 
   useEffect(() => {
     if (existingSession === false && ready && user) {
@@ -58,7 +79,6 @@ function LoginPage() {
   const handleSwitchAccount = async () => {
     setSwitching(true);
     await signOut();
-    setExistingSession(false);
     setSwitching(false);
   };
 
@@ -73,7 +93,12 @@ function LoginPage() {
     toast.success("Welcome back 👋");
   });
 
+  const checking = loading || existingSession === null || (Boolean(user) && profileLoading);
   const showNotice = existingSession === true && Boolean(user);
+
+  if (checking) {
+    return <LoginPageSkeleton />;
+  }
 
   return (
     <AuthShell title="Sign in" subtitle="Access the CaseX Pricing Calculator">
