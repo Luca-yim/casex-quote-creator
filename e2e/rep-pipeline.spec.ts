@@ -30,7 +30,9 @@ test.describe("sales rep pipeline", () => {
     await customer.fill("Playwright County Services");
     await expect(customer).toHaveValue("Playwright County Services");
 
-    await expect(page.getByText(/\d+\s*\/\s*8/)).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByText(/\d+ of \d+ required fields/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
   });
 
   test("opens a quote row in read-only detail when it is past draft", async ({ page }) => {
