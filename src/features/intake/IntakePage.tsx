@@ -70,7 +70,12 @@ export function IntakePage({
       quote,
       role,
       mode: (editable ? "edit" : "readonly") as "edit" | "readonly",
-      showPricing: forceShowPricing || computeShowPricing(role, quote.state),
+      // External users never see pricing, regardless of route overrides.
+      showPricing:
+        role === "external"
+          ? false
+          : forceShowPricing || computeShowPricing(role, quote.state),
+
       updateField,
       flushSave: flush,
       isSaving,
