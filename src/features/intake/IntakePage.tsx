@@ -122,7 +122,13 @@ export function IntakePage({
               <ReadonlyStateBanner quote={contextValue.quote} />
             ) : null}
             <QuoteWorkflowBar />
+            <QuotePdfHistory
+              quoteId={contextValue.quoteId}
+              role={contextValue.role}
+              state={contextValue.quote.state}
+            />
             <IntakeForm />
+
           </div>
           <aside className="lg:col-span-2">
             <div className="lg:sticky lg:top-24">
