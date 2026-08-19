@@ -4,8 +4,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 dotenv.config({ path: ".env.test" });
 dotenv.config({ path: ".env.test.local", override: true });
 
-export const SUPABASE_URL = process.env["VITE_SUPABASE_URL"] ?? "";
-export const SUPABASE_KEY = process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
+/**
+ * The app talks to the external project `lsmrxbpvmvrzpbtjqygh` through the
+ * VITE_APP_SUPABASE_* names; the plain VITE_SUPABASE_* names belong to the
+ * built-in Lovable Cloud backend, which has none of the quote tables.
+ */
+export const SUPABASE_URL =
+  process.env["VITE_APP_SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"] ?? "";
+export const SUPABASE_KEY =
+  process.env["VITE_APP_SUPABASE_PUBLISHABLE_KEY"] ??
+  process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
+  "";
 
 export type TestRole = "external" | "rep" | "estimator";
 
@@ -79,7 +88,7 @@ export function draftPayload(userId: string, overrides: Record<string, unknown> 
     requested_by: userId,
     owner_id: userId,
     state: "draft",
-    tier: "standard",
+    tier: "ballpark",
     margin_percent: 20,
     contract_years: 3,
     ...overrides,
