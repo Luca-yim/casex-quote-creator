@@ -27,7 +27,7 @@ const schema = z.object({
   fullName: z.string().min(2, "Enter your name"),
   company: z.string().min(2, "Enter your organization"),
   email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "At least 6 characters"),
+  password: z.string().min(12, "At least 12 characters"),
 });
 
 function SignupPage() {
