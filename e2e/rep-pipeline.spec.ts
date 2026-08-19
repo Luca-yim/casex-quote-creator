@@ -26,7 +26,7 @@ test.describe("sales rep pipeline", () => {
     await page.getByRole("link", { name: /new quote/i }).click();
     await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}/, { timeout: 45_000 });
 
-    const customer = page.getByLabel(/customer name/i).first();
+    const customer = page.getByLabel(/customer organization/i).first();
     await customer.fill("Playwright County Services");
     await expect(customer).toHaveValue("Playwright County Services");
 
