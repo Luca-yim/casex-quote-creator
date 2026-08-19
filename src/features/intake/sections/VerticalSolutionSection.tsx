@@ -11,6 +11,7 @@ import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { SectionCard } from "./SectionCard";
+import { RequiredLabel } from "./RequiredLabel";
 import { FieldError } from "./FieldError";
 import { RadioCardGroup } from "./RadioCardGroup";
 
@@ -34,7 +35,9 @@ export function VerticalSolutionSection() {
   return (
     <SectionCard icon="🎯" title="Vertical & Solution">
       <div className="space-y-2">
-        <Label>Vertical</Label>
+        <Label>
+          <RequiredLabel>Vertical</RequiredLabel>
+        </Label>
         <Controller
           control={control}
           name="vertical"
@@ -56,7 +59,9 @@ export function VerticalSolutionSection() {
       </div>
 
       <div className="space-y-2">
-        <Label>Solution</Label>
+        <Label>
+          <RequiredLabel>Solution</RequiredLabel>
+        </Label>
         <Controller
           control={control}
           name="solution"

@@ -102,7 +102,7 @@ export function buildAssumptions(quote: Quote): Assumption[] {
     });
   }
 
-  if (quote.hasIntegrations && quote.integrationCount > 5) {
+  if (quote.hasIntegrations && (quote.integrationCount ?? 0) > 5) {
     assumptions.push({
       id: "high-integrations",
       tone: "info",

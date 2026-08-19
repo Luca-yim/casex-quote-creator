@@ -43,7 +43,7 @@ export function HostingSection() {
   ];
 
   return (
-    <SectionCard icon="☁️" title="Hosting">
+    <SectionCard icon="☁️" title="Hosting" required>
       <Controller
         control={control}
         name="hostingModel"

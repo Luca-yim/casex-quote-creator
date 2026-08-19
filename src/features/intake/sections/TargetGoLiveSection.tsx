@@ -1,5 +1,5 @@
 import { Controller, useFormContext } from "react-hook-form";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfToday } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +61,12 @@ export function TargetGoLiveSection() {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
+                    className="pointer-events-auto p-3"
+                    captionLayout="dropdown"
+                    startMonth={new Date(new Date().getFullYear(), 0)}
+                    endMonth={new Date(new Date().getFullYear() + 5, 11)}
+                    defaultMonth={value ? parseISO(value) : new Date()}
+                    disabled={(date) => date < startOfToday()}
                     selected={value ? parseISO(value) : undefined}
                     onSelect={(date) =>
                       field.onChange(date ? format(date, "yyyy-MM-dd") : null)

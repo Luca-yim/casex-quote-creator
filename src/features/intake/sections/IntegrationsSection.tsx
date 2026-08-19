@@ -6,6 +6,8 @@ import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { InfoNote, SectionCard } from "./SectionCard";
 import { RadioCardGroup } from "./RadioCardGroup";
+import { RequiredLabel } from "./RequiredLabel";
+import { FieldError } from "./FieldError";
 
 const DIFFICULTY = [
   {
@@ -19,7 +21,7 @@ const DIFFICULTY = [
 
 /** Section 11 — integration count and difficulty. */
 export function IntegrationsSection() {
-  const { control } = useFormContext<QuoteFormData>();
+  const { control, formState } = useFormContext<QuoteFormData>();
   const { mode } = useIntake();
   const disabled = mode === "readonly";
   const hasIntegrations = useWatch({ control, name: "hasIntegrations" });
@@ -47,7 +49,9 @@ export function IntegrationsSection() {
       {hasIntegrations ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="integration-count">How many integrations?</Label>
+            <Label htmlFor="integration-count">
+              <RequiredLabel>How many integrations?</RequiredLabel>
+            </Label>
             <Controller
               control={control}
               name="integrationCount"
@@ -56,18 +60,22 @@ export function IntegrationsSection() {
                   id="integration-count"
                   type="number"
                   min={0}
+                  step={1}
+                  placeholder="0"
+                  aria-required="true"
                   disabled={disabled}
-                  value={field.value ?? 0}
+                  value={field.value ?? ""}
                   onChange={(event) =>
                     field.onChange(
                       event.target.value === ""
-                        ? 0
+                        ? null
                         : Number(event.target.value),
                     )
                   }
                 />
               )}
             />
+            <FieldError message={formState.errors.integrationCount?.message} />
           </div>
 
           <div className="space-y-2">
