@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { credentials, HOME_ROUTE, signIn, type Persona } from "./fixtures/auth";
+import {
+  credentials,
+  HOME_ROUTE,
+  signIn,
+  waitForLoginHydration,
+  type Persona,
+} from "./fixtures/auth";
 
 test.describe("authentication and role routing", () => {
   test("redirects an anonymous visitor from a protected route to /login", async ({ page }) => {
@@ -10,6 +16,7 @@ test.describe("authentication and role routing", () => {
 
   test("rejects invalid credentials without navigating away", async ({ page }) => {
     await page.goto("/login");
+    await waitForLoginHydration(page);
     await page.getByLabel("Work email").fill("nobody@example.com");
     await page.getByLabel("Password").fill("wrong-password");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -20,6 +27,7 @@ test.describe("authentication and role routing", () => {
 
   test("validates the email field before hitting the network", async ({ page }) => {
     await page.goto("/login");
+    await waitForLoginHydration(page);
     await page.getByLabel("Work email").fill("not-an-email");
     await page.getByLabel("Password").fill("secret123");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
