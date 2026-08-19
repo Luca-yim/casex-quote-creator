@@ -33,7 +33,7 @@ export function ModuleTierSection() {
   ];
 
   return (
-    <SectionCard icon="📦" title="Module Tier">
+    <SectionCard icon="📦" title="Module Tier" required>
       <Controller
         control={control}
         name="moduleTier"

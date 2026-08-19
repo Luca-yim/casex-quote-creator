@@ -13,6 +13,7 @@ import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { SectionCard } from "./SectionCard";
 import { FieldError } from "./FieldError";
+import { RequiredLabel } from "./RequiredLabel";
 
 const CUSTOMER_TYPES: Array<{ value: string; label: string }> = [
   { value: "state_naspo", label: "State (NASPO cooperative)" },
@@ -38,7 +39,7 @@ export function CustomerInfoSection() {
         <Input
           id="quote-name"
           disabled={disabled}
-          placeholder="e.g., State of Nevada - Health Benefits"
+          placeholder="Untitled Quote"
           {...register("name")}
         />
         <p className="text-xs text-muted-foreground">
@@ -48,9 +49,12 @@ export function CustomerInfoSection() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="customer-name">Customer organization</Label>
+        <Label htmlFor="customer-name">
+          <RequiredLabel>Customer organization</RequiredLabel>
+        </Label>
         <Input
           id="customer-name"
+          aria-required="true"
           disabled={disabled}
           placeholder="e.g., State of Nevada"
           {...register("customerName")}
@@ -71,7 +75,9 @@ export function CustomerInfoSection() {
       </div>
 
       <div className="space-y-2">
-        <Label>Customer type</Label>
+        <Label>
+          <RequiredLabel>Customer type</RequiredLabel>
+        </Label>
         <Controller
           control={control}
           name="customerType"
@@ -81,7 +87,7 @@ export function CustomerInfoSection() {
               onValueChange={field.onChange}
               disabled={disabled}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-required="true">
                 <SelectValue placeholder="Select customer type" />
               </SelectTrigger>
               <SelectContent>
@@ -98,7 +104,9 @@ export function CustomerInfoSection() {
       </div>
 
       <div className="space-y-2">
-        <Label>Contract term (years)</Label>
+        <Label>
+          <RequiredLabel>Contract term (years)</RequiredLabel>
+        </Label>
         <Controller
           control={control}
           name="contractYears"

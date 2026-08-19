@@ -12,11 +12,14 @@ export function SectionCard({
   icon,
   title,
   description,
+  required = false,
   children,
 }: {
   icon: string;
   title: string;
   description?: string | undefined;
+  /** Marks the whole section as a required choice with a red asterisk. */
+  required?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -24,6 +27,11 @@ export function SectionCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <span aria-hidden>{icon}</span> {title}
+          {required ? (
+            <span className="text-destructive" aria-hidden>
+              *
+            </span>
+          ) : null}
         </CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>

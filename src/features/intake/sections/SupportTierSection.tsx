@@ -49,7 +49,7 @@ export function SupportTierSection() {
   ];
 
   return (
-    <SectionCard icon="🎧" title="Support Tier">
+    <SectionCard icon="🎧" title="Support Tier" required>
       <Controller
         control={control}
         name="supportTier"
