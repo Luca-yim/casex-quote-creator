@@ -55,6 +55,7 @@ export function AppLayout({
           </div>
           {actions}
           {role ? <Badge variant="secondary">{ROLE_LABEL[role] ?? role}</Badge> : null}
+          <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User menu">
