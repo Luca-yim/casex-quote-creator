@@ -90,7 +90,7 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
       }
     },
     onSuccess: (quote) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       onSuccess(quote);
     },

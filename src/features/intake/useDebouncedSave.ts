@@ -56,7 +56,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       return rowToQuote(data);
     },
     onSuccess: (quote) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
       setLastSavedAt(new Date());
     },
     onError: (error) => {

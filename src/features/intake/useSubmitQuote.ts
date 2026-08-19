@@ -46,7 +46,8 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
       return rowToQuote(data);
     },
     onSuccess: (quote) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
+      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quote.id) });
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success(
         "Submitted for review. You'll be notified when the pricing team has reviewed it.",
