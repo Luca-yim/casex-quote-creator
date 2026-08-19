@@ -42,7 +42,7 @@ export function NavBar({ deactivated = false }: { deactivated?: boolean }) {
 
         <Link
           to={homeHrefForRole(role)}
-          search={role === "estimator" || role === "admin" ? undefined : undefined}
+          
           className="flex items-center gap-2 rounded-md px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="flex size-8 items-center justify-center rounded-md bg-brand text-brand-foreground">
