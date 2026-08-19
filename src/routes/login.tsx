@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AuthShell } from "@/components/AuthShell";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,28 @@ const schema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
 
+function LoginPageSkeleton() {
+  return (
+    <AuthShell title="Sign in" subtitle="Access the CaseX Pricing Calculator">
+      <div className="flex flex-col items-center justify-center gap-3 py-10">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">Checking session…</p>
+      </div>
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        No account?{" "}
+        <Link to="/signup" className="font-medium text-brand hover:underline">
+          Create one
+        </Link>
+      </p>
+    </AuthShell>
+  );
+}
+
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, role, ready, signOut } = useAuth();
+  const { user, role, ready, signOut, loading, profileLoading } = useAuth();
   const [existingSession, setExistingSession] = useState<boolean | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
@@ -39,11 +58,16 @@ function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
+  // Resolve whether the user was already signed in when this page loaded.
+  // This is captured only once after the global auth session finishes
+  // restoring, so a fresh login performed on this page is still treated as
+  // a new sign-in (and redirects home) rather than a returning session.
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      setExistingSession(Boolean(data.session));
-    });
-  }, []);
+    if (!loading && !sessionChecked) {
+      setSessionChecked(true);
+      setExistingSession(Boolean(user));
+    }
+  }, [loading, user, sessionChecked]);
 
   useEffect(() => {
     if (existingSession === false && ready && user) {
@@ -73,7 +97,12 @@ function LoginPage() {
     toast.success("Welcome back 👋");
   });
 
+  const checking = loading || existingSession === null || (Boolean(user) && profileLoading);
   const showNotice = existingSession === true && Boolean(user);
+
+  if (checking) {
+    return <LoginPageSkeleton />;
+  }
 
   return (
     <AuthShell title="Sign in" subtitle="Access the CaseX Pricing Calculator">
