@@ -14,6 +14,8 @@ import { IntakeForm } from "./IntakeForm";
 import { useQuoteById } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
+import { QuotePdfHistory } from "@/features/pdf-export/QuotePdfHistory";
+
 import type { Quote } from "@/types/quote";
 
 export interface IntakePageProps {
