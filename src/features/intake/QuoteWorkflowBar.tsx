@@ -17,10 +17,14 @@ import {
   stageOwner,
   type WorkflowAction,
 } from "@/lib/quote-workflow";
+import { checkMarginJustification } from "@/lib/quote-validation";
 import { useIntake } from "./IntakeContext";
 import { useQuoteTransition } from "./useQuoteTransition";
 import { ReturnQuoteDialog } from "./ReturnQuoteDialog";
 import { VersionHistorySheet } from "./VersionHistorySheet";
+
+/** Transitions that persist pricing and therefore must satisfy the margin rule. */
+const MARGIN_GATED_ACTIONS = new Set(["mark_adjusted", "approve", "submit_for_review"]);
 
 /** Stage indicator plus the pipeline actions available to the current role. */
 export function QuoteWorkflowBar() {
@@ -33,8 +37,12 @@ export function QuoteWorkflowBar() {
 
   const actorName = profile?.full_name || profile?.email || "a teammate";
   const returnAction = actions.find((a) => a.action === "return_to_sales");
+  const marginError = checkMarginJustification(quote);
+  const isBlocked = (action: WorkflowAction) =>
+    Boolean(marginError) && MARGIN_GATED_ACTIONS.has(action.action);
 
-  const run = (action: WorkflowAction, note?: string) =>
+  const run = (action: WorkflowAction, note?: string) => {
+    if (isBlocked(action)) return;
     transition.mutate(
       { action, quote, actorName, actorRole: role, ...(note ? { note } : {}) },
       {
@@ -46,6 +54,7 @@ export function QuoteWorkflowBar() {
         },
       },
     );
+  };
 
   return (
     <Card>
@@ -60,25 +69,39 @@ export function QuoteWorkflowBar() {
         <CardDescription>{stageOwner(quote.state)}</CardDescription>
       </CardHeader>
       {actions.length > 0 ? (
-        <CardContent className="flex flex-wrap gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.action}
-              variant={action.variant}
-              disabled={transition.isPending}
-              title={action.description}
-              onClick={() =>
-                action.action === "return_to_sales"
-                  ? setReturnOpen(true)
-                  : run(action)
-              }
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+              <Button
+                key={action.action}
+                variant={action.variant}
+                disabled={transition.isPending || isBlocked(action)}
+                title={isBlocked(action) ? marginError! : action.description}
+                aria-describedby={
+                  isBlocked(action) ? "margin-justification-error" : undefined
+                }
+                onClick={() =>
+                  action.action === "return_to_sales"
+                    ? setReturnOpen(true)
+                    : run(action)
+                }
+              >
+                {transition.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                {action.label}
+              </Button>
+            ))}
+          </div>
+          {marginError && actions.some(isBlocked) ? (
+            <p
+              id="margin-justification-error"
+              role="alert"
+              className="text-sm text-destructive"
             >
-              {transition.isPending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
-              {action.label}
-            </Button>
-          ))}
+              {marginError}
+            </p>
+          ) : null}
         </CardContent>
       ) : null}
 
