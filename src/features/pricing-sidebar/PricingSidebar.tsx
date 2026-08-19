@@ -52,6 +52,7 @@ export function PricingSidebar() {
     useIntake();
   const { data: catalog } = usePricingCatalog();
 
+
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -90,8 +91,23 @@ export function PricingSidebar() {
       ? Math.round((adjustment / breakdown.baselineTCV) * 1000) / 10
       : 0;
 
+  // External requesters get a status-only panel: no pricing, no readiness,
+  // nothing that could imply a price exists for them to see.
+  if (role === "external" && mode === "readonly") {
+    return (
+      <aside className="w-full rounded-lg border bg-card p-5">
+        <p className="text-sm font-medium">Request received</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Your request has been reviewed. A Speridian sales representative will
+          be in touch shortly to discuss next steps.
+        </p>
+      </aside>
+    );
+  }
+
   return (
     <aside className="sticky top-16 max-h-[calc(100vh-4rem)] w-full space-y-5 overflow-y-auto rounded-lg border bg-card p-5">
+
       {/* A — Tier badge */}
       <div>
         <Badge variant="secondary" className="uppercase tracking-wide">
