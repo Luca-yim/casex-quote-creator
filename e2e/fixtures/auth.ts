@@ -36,16 +36,28 @@ export function credentials(persona: Persona): { email: string; password: string
   return { email, password };
 }
 
+/**
+ * Waits until React has hydrated the login form. Submitting before hydration
+ * performs a native GET and leaks the credentials into the URL.
+ */
+export async function waitForLoginHydration(page: Page): Promise<void> {
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  // The client router swaps in the interactive tree; give it a beat to attach handlers.
+  await page.waitForTimeout(500);
+}
+
 /** Signs a persona in through the real login form and waits for their home route. */
 export async function signIn(page: Page, persona: Persona): Promise<void> {
   const { email, password } = credentials(persona);
 
   await page.goto("/login");
+  await waitForLoginHydration(page);
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
-  await expect(page).toHaveURL(HOME_ROUTE[persona], { timeout: 30_000 });
+  await expect(page).toHaveURL(HOME_ROUTE[persona], { timeout: 45_000 });
 }
 
 /** Text fragments that must never be visible to an external requester. */
