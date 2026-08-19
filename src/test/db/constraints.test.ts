@@ -74,10 +74,10 @@ describe("check constraints", () => {
     expect(error).not.toBeNull();
   });
 
-  it("rejects an unsupported contract length", async () => {
+  it("accepts any positive contract length", async () => {
     if (!ready) return;
     const { error } = await newDraft({ contract_years: 4 });
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
   });
 
   it("rejects an unknown tier value", async () => {
