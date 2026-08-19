@@ -78,9 +78,9 @@ describe("rendering", () => {
     setup("sales_rep");
     for (const title of [
       "Customer Info",
-      "Target Go-Live",
+      "Target Go-Live Date",
       "Vertical & Solution",
-      "Compliance",
+      "Compliance Requirements",
       "Module Tier",
       "Case Workers",
       "B2C Portal",
@@ -108,6 +108,7 @@ describe("rendering", () => {
     const user = userEvent.setup();
     setup("sales_rep");
     const input = screen.getByLabelText(/quote name/i);
+    await user.clear(input);
     await user.type(input, "abc{Enter}");
     expect(input).toHaveValue("abc");
   });
@@ -125,9 +126,11 @@ describe("auto-save wiring", () => {
   it("saves the customer email field too", async () => {
     const user = userEvent.setup();
     setup("sales_rep");
-    await user.type(screen.getByLabelText(/contact email/i), "a@b.gov");
+    const email = screen.getByLabelText(/contact email/i);
+    await user.clear(email);
+    await user.type(email, "a@b.gov");
     await waitFor(() =>
-      expect(updateField).toHaveBeenCalledWith("customerEmail", "a@b.gov"),
+      expect(updateField).toHaveBeenLastCalledWith("customerEmail", "a@b.gov"),
     );
   });
 
