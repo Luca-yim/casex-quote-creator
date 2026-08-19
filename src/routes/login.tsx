@@ -50,6 +50,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { user, role, ready, signOut, loading, profileLoading } = useAuth();
   const [existingSession, setExistingSession] = useState<boolean | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
@@ -58,13 +59,15 @@ function LoginPage() {
   });
 
   // Resolve whether the user was already signed in when this page loaded.
-  // This is done once the global auth session has finished restoring so the
-  // login form never flashes before we know a session exists.
+  // This is captured only once after the global auth session finishes
+  // restoring, so a fresh login performed on this page is still treated as
+  // a new sign-in (and redirects home) rather than a returning session.
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !sessionChecked) {
+      setSessionChecked(true);
       setExistingSession(Boolean(user));
     }
-  }, [loading, user]);
+  }, [loading, user, sessionChecked]);
 
   useEffect(() => {
     if (existingSession === false && ready && user) {
@@ -79,6 +82,7 @@ function LoginPage() {
   const handleSwitchAccount = async () => {
     setSwitching(true);
     await signOut();
+    setExistingSession(false);
     setSwitching(false);
   };
 
