@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminUsersTable } from "@/features/admin/AdminUsersTable";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -21,11 +22,11 @@ function AdminPage() {
       <AppLayout title="Admin" description="User and role management">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Users 🛠️</CardTitle>
+            <CardTitle className="text-base">Users</CardTitle>
             <CardDescription>Assign external, sales rep, estimator and admin roles.</CardDescription>
           </CardHeader>
-          <CardContent className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-            User management coming soon.
+          <CardContent>
+            <AdminUsersTable />
           </CardContent>
         </Card>
       </AppLayout>
