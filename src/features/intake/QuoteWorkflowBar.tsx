@@ -69,25 +69,39 @@ export function QuoteWorkflowBar() {
         <CardDescription>{stageOwner(quote.state)}</CardDescription>
       </CardHeader>
       {actions.length > 0 ? (
-        <CardContent className="flex flex-wrap gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.action}
-              variant={action.variant}
-              disabled={transition.isPending}
-              title={action.description}
-              onClick={() =>
-                action.action === "return_to_sales"
-                  ? setReturnOpen(true)
-                  : run(action)
-              }
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+              <Button
+                key={action.action}
+                variant={action.variant}
+                disabled={transition.isPending || isBlocked(action)}
+                title={isBlocked(action) ? marginError! : action.description}
+                aria-describedby={
+                  isBlocked(action) ? "margin-justification-error" : undefined
+                }
+                onClick={() =>
+                  action.action === "return_to_sales"
+                    ? setReturnOpen(true)
+                    : run(action)
+                }
+              >
+                {transition.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                {action.label}
+              </Button>
+            ))}
+          </div>
+          {marginError && actions.some(isBlocked) ? (
+            <p
+              id="margin-justification-error"
+              role="alert"
+              className="text-sm text-destructive"
             >
-              {transition.isPending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
-              {action.label}
-            </Button>
-          ))}
+              {marginError}
+            </p>
+          ) : null}
         </CardContent>
       ) : null}
 
