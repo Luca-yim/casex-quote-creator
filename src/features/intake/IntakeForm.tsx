@@ -80,8 +80,8 @@ export function IntakeForm() {
     if (mode === "readonly") return;
     const values = getValues();
     for (const field of PRESELECTED_DEFAULT_FIELDS) {
-      const stored = (quote as Record<string, unknown>)[field];
-      const formValue = (values as Record<string, unknown>)[field];
+      const stored = (quote as unknown as Record<string, unknown>)[field];
+      const formValue = (values as unknown as Record<string, unknown>)[field];
       const storedEmpty =
         stored === null || stored === undefined || stored === "";
       const formFilled =
