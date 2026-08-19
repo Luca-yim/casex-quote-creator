@@ -7,7 +7,10 @@ import { availableActions } from "@/lib/quote-workflow";
 import type { QueryClient } from "@tanstack/react-query";
 
 const single = vi.fn();
-const update = vi.fn(() => ({ eq: () => ({ select: () => ({ single }) }) }));
+const update = vi.fn((_patch: Record<string, unknown>) => ({
+  eq: () => ({ select: () => ({ single }) }),
+}));
+
 const commentInsert = vi.fn();
 
 vi.mock("@/lib/supabase", () => ({
