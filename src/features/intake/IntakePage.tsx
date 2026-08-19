@@ -11,7 +11,7 @@ import { canEditIntake } from "@/lib/quote-workflow";
 import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
 import { ReadonlyStateBanner } from "./ReadonlyStateBanner";
 import { IntakeForm } from "./IntakeForm";
-import { useQuoteById } from "./useQuote";
+import { useQuoteById, quoteDetailKey } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
 import { QuotePdfHistory } from "@/features/pdf-export/QuotePdfHistory";
@@ -56,8 +56,11 @@ export function IntakePage({
   // Optimistic local echo so the sidebar reacts before the save round-trips.
   const updateField = useCallback(
     (path: string, value: unknown) => {
-      queryClient.setQueryData(["quote", quoteId], (current: Quote | undefined) =>
-        current ? { ...current, [path]: value } : current,
+      // Prefix-scoped: the detail cache key carries a trailing role segment.
+      queryClient.setQueriesData(
+        { queryKey: quoteDetailKey(quoteId) },
+        (current: Quote | undefined) =>
+          current ? { ...current, [path]: value } : current,
       );
       save(path, value);
     },

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { quoteDetailKey } from "./useQuote";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
@@ -150,7 +151,8 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
       return updated;
     },
     onSuccess: (quote, input) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
+      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quote.id) });
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       void queryClient.invalidateQueries({ queryKey: ["quote-versions", quote.id] });
       void queryClient.invalidateQueries({ queryKey: ["quote-comments", quote.id] });

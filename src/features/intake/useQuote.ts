@@ -8,11 +8,22 @@ import { devLog } from "@/lib/debug-log";
 import { useAuth } from "@/lib/auth";
 import { quoteSelectForRole } from "@/lib/quote-columns";
 
+/**
+ * Cache key prefix for a single quote's detail entry.
+ *
+ * The read key carries a trailing role segment (the projection differs per
+ * role), so every writer must target this PREFIX rather than an exact key —
+ * otherwise cache writes silently land on an entry nobody reads.
+ */
+export function quoteDetailKey(quoteId: string | undefined) {
+  return ["quote", quoteId] as const;
+}
+
 /** Fetches a single quote by id and maps it to the domain shape. */
 export function useQuoteById(quoteId: string | undefined) {
   const { role } = useAuth();
   return useQuery({
-    queryKey: ["quote", quoteId, role],
+    queryKey: [...quoteDetailKey(quoteId), role],
     enabled: Boolean(quoteId),
     queryFn: async (): Promise<Quote> => {
       const { data, error } = await supabase
@@ -79,7 +90,7 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
       }
     },
     onSuccess: (quote) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       onSuccess(quote);
     },

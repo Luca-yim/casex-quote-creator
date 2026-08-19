@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { quoteDetailKey } from "./useQuote";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
@@ -46,7 +47,8 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
       return rowToQuote(data);
     },
     onSuccess: (quote) => {
-      queryClient.setQueryData(["quote", quote.id], quote);
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
+      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quote.id) });
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success(
         "Submitted for review. You'll be notified when the pricing team has reviewed it.",
