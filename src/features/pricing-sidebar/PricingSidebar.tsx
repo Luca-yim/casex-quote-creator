@@ -211,9 +211,11 @@ export function PricingSidebar() {
                   updateField("marginJustification", e.target.value || null)
                 }
               />
-              {marginJustificationRequired && !quote.marginJustification ? (
-                <p className="text-xs text-destructive">
-                  Justification is required outside the 15–25% band.
+              {marginJustificationRequired &&
+              !(quote.marginJustification ?? "").trim() ? (
+                <p role="alert" className="text-xs text-destructive">
+                  Justification is required outside the 15–25% band. Save
+                  adjustments and approval are blocked until it is provided.
                 </p>
               ) : null}
             </div>

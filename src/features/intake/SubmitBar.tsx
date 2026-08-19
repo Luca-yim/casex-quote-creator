@@ -4,7 +4,12 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { readinessCheck, validateQuoteForSubmission } from "@/lib/quote-validation";
+import {
+  checkMarginJustification,
+  readinessCheck,
+  validateQuoteForSubmission,
+  MARGIN_JUSTIFICATION_MESSAGE,
+} from "@/lib/quote-validation";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { useSubmitQuote } from "./useSubmitQuote";
@@ -24,9 +29,16 @@ export function SubmitBar() {
   if (!canSubmit || quote.state !== "draft") return null;
 
   const readiness = readinessCheck(quote);
+  const marginError = checkMarginJustification(quote);
 
   const handleSubmit = async () => {
     await flushSave();
+    if (checkMarginJustification(quote)) {
+      toast.error("Margin justification required", {
+        description: MARGIN_JUSTIFICATION_MESSAGE,
+      });
+      return;
+    }
     const result = validateQuoteForSubmission(quote);
     if (!result.valid) {
       await form.trigger();
@@ -52,14 +64,16 @@ export function SubmitBar() {
 
   return (
     <div className="sticky bottom-0 z-10 -mx-1 mt-6 flex flex-wrap items-center justify-between gap-3 border-t bg-background/95 px-1 py-3 backdrop-blur">
-      <p className="text-sm text-muted-foreground">
-        {readiness.ready
+      <p className={marginError ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+        {marginError
+          ? marginError
+          : readiness.ready
           ? "All required details are complete."
-          : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
+            : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
       </p>
       <Button
         type="button"
-        disabled={!readiness.ready || submit.isPending}
+        disabled={!readiness.ready || Boolean(marginError) || submit.isPending}
         onClick={() => void handleSubmit()}
       >
         {submit.isPending ? (
