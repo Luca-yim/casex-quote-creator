@@ -33,6 +33,8 @@ export function QuotePdfDownloadButton({
   const { generatePdf, isGenerating } = useQuotePdfDownload();
 
   if (!canExportPdf(quote.state)) return null;
+  // External requesters never receive a PDF — a rep delivers it to them.
+  if (role === "external") return null;
 
   const label = isGenerating ? "Preparing…" : "Download PDF";
   const icon = isGenerating ? (
@@ -41,18 +43,7 @@ export function QuotePdfDownloadButton({
     <Download className="size-4" />
   );
 
-  if (role === "external") {
-    return (
-      <Button
-        variant="outline"
-        disabled={isGenerating}
-        onClick={() => void generatePdf(quote, "customer")}
-      >
-        {icon}
-        {label}
-      </Button>
-    );
-  }
+
 
   return (
     <DropdownMenu>
