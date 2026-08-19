@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "@/features/intake/quote-mapper";
 import type { Quote } from "@/types/quote";
+import { devLog } from "@/lib/debug-log";
 
 /** States that belong to the estimator queue. */
 export const REVIEW_QUEUE_STATES = [
@@ -27,9 +28,9 @@ export function useReviewQueue(role?: string | null) {
         .in("state", REVIEW_QUEUE_STATES as unknown as string[])
         .order("submitted_at", { ascending: true, nullsFirst: false });
 
-      console.debug("[review-queue] query result:", data);
-      console.debug("[review-queue] error:", error);
-      console.debug("[review-queue] current role:", role);
+      devLog("[review-queue] query result:", data);
+      devLog("[review-queue] error:", error);
+      devLog("[review-queue] current role:", role);
 
       if (error) throw new Error(error.message);
       return (data ?? []).map(rowToQuote);

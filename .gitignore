@@ -35,3 +35,8 @@ dist-ssr
 test-results/
 playwright-report/
 coverage/
+
+# Environment files (may contain credentials)
+.env
+.env.*
+!.env.example

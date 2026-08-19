@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useProfile, profileQueryKey } from "@/hooks/useProfile";
 import type { AppRole, Profile } from "@/lib/auth-types";
+import { devLog } from "./debug-log";
 
 export type { AppRole, Profile };
 
@@ -69,9 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = session?.user ?? null;
   const { profile, isLoading: profileLoading, isError, error } = useProfile(user?.id);
 
-  console.debug("[auth] user:", user?.id);
-  console.debug("[auth] profile loading:", loading || profileLoading);
-  console.debug("[auth] profile:", profile);
+  devLog("[auth] user:", user?.id);
+  devLog("[auth] profile loading:", loading || profileLoading);
+  devLog("[auth] profile:", profile);
 
   const profileMissing = Boolean(user) && !loading && !profileLoading && !isError && !profile;
 

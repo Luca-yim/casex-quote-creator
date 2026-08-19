@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { rowToQuote } from "@/features/intake/quote-mapper";
 import type { Quote } from "@/types/quote";
+import { devLog } from "@/lib/debug-log";
 
 /**
  * Fetches every quote the current rep owns or requested.
@@ -24,8 +25,8 @@ export function useSalesRepQuotes() {
         .or(`requested_by.eq.${user.id},owner_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
 
-      console.debug("[sales-rep-quotes] result:", data);
-      console.debug("[sales-rep-quotes] error:", error);
+      devLog("[sales-rep-quotes] result:", data);
+      devLog("[sales-rep-quotes] error:", error);
 
       if (error) throw new Error(error.message);
       return (data ?? []).map(rowToQuote);
