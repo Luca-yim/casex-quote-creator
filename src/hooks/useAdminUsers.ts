@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { friendlySupabaseError } from "@/lib/supabase-errors";
+import { describeQuoteWriteError } from "@/lib/supabase-errors";
 import type { AppRole } from "@/lib/auth-types";
 
 export interface AdminUser {
@@ -41,7 +41,7 @@ export function useAdminUsers() {
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) throw new Error(friendlySupabaseError(error));
+      if (error) throw new Error(describeQuoteWriteError(error));
       return ((data ?? []) as Row[]).map(toUser);
     },
   });
@@ -56,7 +56,7 @@ export function useUpdateUserRole() {
         .from("profiles")
         .update({ role } as never)
         .eq("id", userId);
-      if (error) throw new Error(friendlySupabaseError(error));
+      if (error) throw new Error(describeQuoteWriteError(error));
       return { userId, role };
     },
     onSuccess: ({ role }) => {
@@ -77,7 +77,7 @@ export function useToggleUserActive() {
         .from("profiles")
         .update({ deactivated_at: deactivate ? new Date().toISOString() : null } as never)
         .eq("id", userId);
-      if (error) throw new Error(friendlySupabaseError(error));
+      if (error) throw new Error(describeQuoteWriteError(error));
       return { deactivate };
     },
     onSuccess: ({ deactivate }) => {
