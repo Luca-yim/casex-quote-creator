@@ -22,6 +22,7 @@ import { useIntake } from "./IntakeContext";
 import { useQuoteTransition } from "./useQuoteTransition";
 import { ReturnQuoteDialog } from "./ReturnQuoteDialog";
 import { VersionHistorySheet } from "./VersionHistorySheet";
+import { QuotePdfDownloadButton } from "@/features/pdf-export/QuotePdfDownloadButton";
 
 /** Transitions that persist pricing and therefore must satisfy the margin rule. */
 const MARGIN_GATED_ACTIONS = new Set(["mark_adjusted", "approve", "submit_for_review"]);
@@ -61,8 +62,9 @@ export function QuoteWorkflowBar() {
       <CardHeader className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Pipeline status</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{STATE_LABELS[quote.state]}</Badge>
+            <QuotePdfDownloadButton quote={quote} role={role} />
             <VersionHistorySheet quoteId={quoteId} />
           </div>
         </div>
