@@ -68,7 +68,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Briefcase,
     roles: ["estimator", "admin"],
     order: 30,
-    search: DEFAULT_PIPELINE_SEARCH,
+    search: { ...DEFAULT_PIPELINE_SEARCH },
   },
   {
     label: "New Quote",
