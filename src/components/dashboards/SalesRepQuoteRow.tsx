@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, Send } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronRight, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -16,14 +16,31 @@ function relativeDays(iso: string | null) {
 
 export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
   const { role, user, profile } = useAuth();
+  const navigate = useNavigate();
   const actorName = profile?.full_name || profile?.email || "a sales rep";
   const transition = useQuoteTransition(quote.id, user?.id);
 
   const actions = role ? availableActions(role, quote.state) : [];
   const sendAction = actions.find((a) => a.action === "send_to_customer");
 
+  const open = () => {
+    void navigate({ to: "/quotes/$id", params: { id: quote.id } });
+  };
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 p-4">
+    <li
+      role="link"
+      tabIndex={0}
+      aria-label={`Open quote ${quote.customerName || quote.name || "Untitled quote"}`}
+      onClick={open}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      }}
+      className="flex cursor-pointer flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+    >
       <div className="min-w-0">
         <p className="truncate font-medium">
           {quote.customerName || quote.name || "Untitled quote"}
@@ -40,26 +57,25 @@ export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
         {sendAction ? (
           <Button
             size="sm"
-            onClick={() =>
+            onClick={(event) => {
+              event.stopPropagation();
               transition.mutate({
                 action: sendAction,
                 quote,
                 actorName,
                 actorRole: role,
-              })
-            }
+              });
+            }}
             disabled={transition.isPending}
           >
             <Send className="mr-1 size-4" />
             {transition.isPending ? "Sending…" : "Send to Customer"}
           </Button>
-        ) : (
-          <Button asChild size="sm" variant="outline">
-            <Link to="/quotes/$id" params={{ id: quote.id }}>
-              Open <ArrowRight className="ml-1 size-4" />
-            </Link>
-          </Button>
-        )}
+        ) : null}
+        <ChevronRight
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
       </div>
     </li>
   );
