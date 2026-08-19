@@ -2,8 +2,15 @@ import { Link } from "@tanstack/react-router";
 import { FileText, Clock3, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSalesRepQuotes } from "@/features/quotes/useSalesRepQuotes";
+import { ExternalQuoteRow } from "./ExternalQuoteRow";
 
 export function ExternalDashboard() {
+  // Same user-scoped query the rep dashboard uses; RLS limits it to own rows.
+  const { data: quotes, isPending, isError, error } = useSalesRepQuotes();
+  const list = quotes ?? [];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -40,10 +47,30 @@ export function ExternalDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Your requests</CardTitle>
-          <CardDescription>Submitted requests will appear here once intake is live.</CardDescription>
+          <CardDescription>Open any request to review its details and status.</CardDescription>
         </CardHeader>
-        <CardContent className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No requests yet.
+        <CardContent>
+          {isPending ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : isError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+              Could not load your requests:{" "}
+              {error instanceof Error ? error.message : "Unknown error"}
+            </div>
+          ) : list.length === 0 ? (
+            <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No requests yet.
+            </div>
+          ) : (
+            <ul className="divide-y rounded-md border">
+              {list.map((quote) => (
+                <ExternalQuoteRow key={quote.id} quote={quote} />
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

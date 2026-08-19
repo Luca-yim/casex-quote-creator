@@ -9,6 +9,7 @@ import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { IntakeProvider, computeShowPricing } from "./IntakeContext";
 import { canEditIntake } from "@/lib/quote-workflow";
 import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
+import { ReadonlyStateBanner } from "./ReadonlyStateBanner";
 import { IntakeForm } from "./IntakeForm";
 import { useQuoteById } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
@@ -112,6 +113,9 @@ export function IntakePage({
       <IntakeProvider value={contextValue}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
+            {contextValue.mode === "readonly" ? (
+              <ReadonlyStateBanner quote={contextValue.quote} />
+            ) : null}
             <QuoteWorkflowBar />
             <IntakeForm />
           </div>

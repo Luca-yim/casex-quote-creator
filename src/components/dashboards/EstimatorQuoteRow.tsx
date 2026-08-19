@@ -1,10 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Send } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
-import { useQuoteTransition } from "@/features/intake/useQuoteTransition";
-import { availableActions, STATE_LABELS } from "@/lib/quote-workflow";
+import { STATE_LABELS } from "@/lib/quote-workflow";
 import type { Quote } from "@/types/quote";
 
 function relativeDays(iso: string | null) {
@@ -14,17 +11,11 @@ function relativeDays(iso: string | null) {
   return `${days}d ago`;
 }
 
-export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
-  const { role, user, profile } = useAuth();
+/** Clickable estimator row; opens the review detail view for any state. */
+export function EstimatorQuoteRow({ quote }: { quote: Quote }) {
   const navigate = useNavigate();
-  const actorName = profile?.full_name || profile?.email || "a sales rep";
-  const transition = useQuoteTransition(quote.id, user?.id);
-
-  const actions = role ? availableActions(role, quote.state) : [];
-  const sendAction = actions.find((a) => a.action === "send_to_customer");
-
   const open = () => {
-    void navigate({ to: "/quotes/$id", params: { id: quote.id } });
+    void navigate({ to: "/review/$id", params: { id: quote.id } });
   };
 
   return (
@@ -48,30 +39,12 @@ export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
         <p className="truncate text-xs text-muted-foreground">
           {[quote.vertical, quote.solution].filter(Boolean).join(" · ") ||
             "No vertical selected"}
-          {" · updated "}
-          {relativeDays(quote.updatedAt)}
+          {" · submitted "}
+          {relativeDays(quote.submittedAt)}
         </p>
       </div>
       <div className="flex items-center gap-3">
         <Badge variant="secondary">{STATE_LABELS[quote.state]}</Badge>
-        {sendAction ? (
-          <Button
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              transition.mutate({
-                action: sendAction,
-                quote,
-                actorName,
-                actorRole: role,
-              });
-            }}
-            disabled={transition.isPending}
-          >
-            <Send className="mr-1 size-4" />
-            {transition.isPending ? "Sending…" : "Send to Customer"}
-          </Button>
-        ) : null}
         <ChevronRight
           className="size-4 shrink-0 text-muted-foreground"
           aria-hidden="true"
