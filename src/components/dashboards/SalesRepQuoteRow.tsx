@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuoteTransition } from "@/features/intake/useQuoteTransition";
 import { availableActions, STATE_LABELS } from "@/lib/quote-workflow";
 import type { Quote } from "@/types/quote";
+import { DeleteDraftButton } from "@/features/quotes/DeleteDraftButton";
 
 function relativeDays(iso: string | null) {
   if (!iso) return "—";
@@ -72,6 +73,7 @@ export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
             {transition.isPending ? "Sending…" : "Send to Customer"}
           </Button>
         ) : null}
+        <DeleteDraftButton quote={quote} />
         <ChevronRight
           className="size-4 shrink-0 text-muted-foreground"
           aria-hidden="true"
