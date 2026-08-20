@@ -140,7 +140,7 @@ export const quoteSchema = z.object({
   hostingModel: z.enum(["soc2", "fedramp", "customer_hosted"]),
   environmentCount: z.number().int().min(1).default(1),
   hasIntegrations: z.boolean().default(false),
-  integrationCount: z.number().int().min(0).nullable().default(0),
+  integrationCount: z.number().int().min(0).nullable().default(null),
   integrationDifficulty: z
     .enum(["simple", "moderate", "complex", "very_complex"])
     .nullable()
