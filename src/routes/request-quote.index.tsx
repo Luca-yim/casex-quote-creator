@@ -4,12 +4,19 @@ import { Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExternalDashboard } from "@/components/dashboards/ExternalDashboard";
 import { useCreateDraftQuote } from "@/features/intake/useQuote";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/request-quote/")({
+  // `?start=1` is the explicit "create a new intake" entry point. Without it
+  // this route is the external user's home, so returning here (e.g. from the
+  // confirmation page) never spawns an empty draft.
+  validateSearch: (search: Record<string, unknown>) => ({
+    start: search["start"] === true || search["start"] === "1" || search["start"] === "true",
+  }),
   head: () => ({
     meta: [
       { title: "Request a quote — CaseX Pricing Calculator" },
@@ -22,11 +29,19 @@ export const Route = createFileRoute("/request-quote/")({
 });
 
 function RequestQuotePage() {
+  const { start } = Route.useSearch();
+
   return (
     <ProtectedRoute allow={["external", "sales_rep"]}>
-      <AppLayout title="Request a quote" description="Starting a new intake">
-        <RequestQuoteRunner />
-      </AppLayout>
+      {start ? (
+        <AppLayout title="Request a quote" description="Starting a new intake">
+          <RequestQuoteRunner />
+        </AppLayout>
+      ) : (
+        <AppLayout title="My requests" description="Track your CaseXellence pricing requests">
+          <ExternalDashboard />
+        </AppLayout>
+      )}
     </ProtectedRoute>
   );
 }
