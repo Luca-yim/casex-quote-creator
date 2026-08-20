@@ -14,9 +14,13 @@ export const Route = createFileRoute("/request-quote/")({
   // `?start=1` is the explicit "create a new intake" entry point. Without it
   // this route is the external user's home, so returning here (e.g. from the
   // confirmation page) never spawns an empty draft.
-  validateSearch: (search: Record<string, unknown>): { start?: true } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { start?: true; tab?: "submitted" | "drafts" } => {
     const raw = search["start"];
-    return raw === true || raw === "1" || raw === "true" ? { start: true } : {};
+    const start = raw === true || raw === "1" || raw === "true";
+    const tab = search["tab"] === "drafts" ? ("drafts" as const) : undefined;
+    return { ...(start ? { start: true as const } : {}), ...(tab ? { tab } : {}) };
   },
   head: () => ({
     meta: [
@@ -30,7 +34,8 @@ export const Route = createFileRoute("/request-quote/")({
 });
 
 function RequestQuotePage() {
-  const { start } = Route.useSearch();
+  const { start, tab } = Route.useSearch();
+  const navigate = useNavigate();
 
   return (
     <ProtectedRoute allow={["external", "sales_rep"]}>
@@ -39,8 +44,17 @@ function RequestQuotePage() {
           <RequestQuoteRunner />
         </AppLayout>
       ) : (
-        <AppLayout title="My requests" description="Track your CaseXellence pricing requests">
-          <ExternalDashboard />
+        <AppLayout title="My Quotes" description="Track your CaseXellence pricing requests">
+          <ExternalDashboard
+            tab={tab ?? "submitted"}
+            onTabChange={(next) =>
+              void navigate({
+                to: "/request-quote",
+                search: next === "drafts" ? { tab: "drafts" } : {},
+                replace: true,
+              })
+            }
+          />
         </AppLayout>
       )}
     </ProtectedRoute>

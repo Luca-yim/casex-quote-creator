@@ -49,14 +49,6 @@ export const NAV_ITEMS: NavItem[] = [
     order: 10,
   },
   {
-    label: "My Quotes",
-    href: "/my-quotes",
-    icon: FileText,
-    roles: ["external"],
-    order: 15,
-    search: { tab: "submitted" },
-  },
-  {
     label: "Dashboard",
     href: "/quotes",
     icon: LayoutDashboard,
