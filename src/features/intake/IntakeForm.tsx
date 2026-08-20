@@ -17,7 +17,6 @@ import { IntegrationsSection } from "./sections/IntegrationsSection";
 import { SupportTierSection } from "./sections/SupportTierSection";
 import { RepConfidenceSection } from "./sections/RepConfidenceSection";
 import { SubmitBar } from "./SubmitBar";
-import { ReturnedNoteCallout } from "./ReturnedNoteCallout";
 
 /**
  * Fields that render with a pre-selected default in the UI. If the stored
@@ -120,7 +119,6 @@ export function IntakeForm() {
           </span>{" "}
           are required.
         </p>
-        <ReturnedNoteCallout />
         <CustomerInfoSection />
         <TargetGoLiveSection />
         <VerticalSolutionSection />
