@@ -39,13 +39,22 @@ async function fetchPricingCatalog(hidePricing = false): Promise<PricingCatalogR
   }));
 }
 
-/** TanStack Query hook exposing the typed pricing catalog (5 min stale time). */
+/**
+ * TanStack Query hook exposing the typed pricing catalog (5 min stale time).
+ *
+ * Gated on the role being resolved for the same reason as `useQuoteById`: the
+ * projection depends on `hidePricing`, so an early fetch would be discarded
+ * and refetched once the profile lands.
+ */
 export function usePricingCatalog() {
-  const { role } = useAuth();
+  const { role, loading, profileLoading } = useAuth();
+  const roleResolved = !loading && !profileLoading && role !== null;
   const hidePricing = shouldHidePricingData(role);
   return useQuery({
     queryKey: ["pricing-catalog", hidePricing],
     queryFn: () => fetchPricingCatalog(hidePricing),
+    enabled: roleResolved,
     staleTime: FIVE_MINUTES,
   });
 }
+
