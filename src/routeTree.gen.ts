@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -43,6 +44,11 @@ const AdminRoute = AdminRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyQuotesRoute = MyQuotesRouteImport.update({
+  id: '/my-quotes',
+  path: '/my-quotes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
   '/pipeline': typeof PipelineRoute
   '/signup': typeof SignupRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
   '/pipeline': typeof PipelineRoute
   '/signup': typeof SignupRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
   '/pipeline': typeof PipelineRoute
   '/signup': typeof SignupRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/my-quotes'
     | '/notifications'
     | '/pipeline'
     | '/signup'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/my-quotes'
     | '/notifications'
     | '/pipeline'
     | '/signup'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin'
     | '/login'
+    | '/my-quotes'
     | '/notifications'
     | '/pipeline'
     | '/signup'
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
+  MyQuotesRoute: typeof MyQuotesRoute
   NotificationsRoute: typeof NotificationsRoute
   PipelineRoute: typeof PipelineRoute
   SignupRoute: typeof SignupRoute
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-quotes': {
+      id: '/my-quotes'
+      path: '/my-quotes'
+      fullPath: '/my-quotes'
+      preLoaderRoute: typeof MyQuotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -367,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
+  MyQuotesRoute: MyQuotesRoute,
   NotificationsRoute: NotificationsRoute,
   PipelineRoute: PipelineRoute,
   SignupRoute: SignupRoute,
