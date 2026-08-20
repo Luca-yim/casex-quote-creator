@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,14 +28,16 @@ type Props = {
 export function DeleteDraftButton({ quote, variant = "icon", onDeleted }: Props) {
   const { user, role } = useAuth();
   const remove = useDeleteQuote();
+  const [open, setOpen] = useState(false);
 
   if (!canDeleteDraft(quote, user?.id, role)) return null;
 
   const label = quote.customerName || quote.name || "Untitled draft";
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
+
         <Button
           type="button"
           variant="ghost"
@@ -66,8 +70,15 @@ export function DeleteDraftButton({ quote, variant = "icon", onDeleted }: Props)
             disabled={remove.isPending}
             onClick={(event) => {
               event.preventDefault();
-              remove.mutate(quote.id, { onSuccess: () => onDeleted?.() });
+              remove.mutate(quote.id, {
+                // Close only on success; on error the dialog stays open to retry.
+                onSuccess: () => {
+                  setOpen(false);
+                  onDeleted?.();
+                },
+              });
             }}
+
           >
             {remove.isPending ? "Deleting…" : "Delete draft"}
           </AlertDialogAction>
