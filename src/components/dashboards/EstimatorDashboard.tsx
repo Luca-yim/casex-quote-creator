@@ -172,6 +172,10 @@ export function EstimatorDashboard() {
                 isError={queue.isError}
                 error={queue.error}
                 emptyLabel="Nothing to review yet."
+                columns={QUEUE_COLUMNS}
+                profilesMap={profilesMap}
+                onRowClick={openQuote}
+                defaultSortKey="submitted_at"
               />
             </TabsContent>
             <TabsContent value="history">
