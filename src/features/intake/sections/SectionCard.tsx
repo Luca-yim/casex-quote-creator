@@ -32,9 +32,11 @@ export function SectionCard({
     if (!intake || intake.mode === "readonly") return;
     const next = event.relatedTarget as Node | null;
     if (next && cardRef.current?.contains(next)) return;
-    if (!intake.hasPendingChanges) return;
+    // flushSave() is a no-op when nothing is queued, so no guard is needed —
+    // and reading `hasPendingChanges` here would be a render behind the edit.
     void intake.flushSave();
   };
+
 
   return (
     <Card ref={cardRef} onBlur={handleBlur}>
