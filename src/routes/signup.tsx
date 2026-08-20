@@ -35,7 +35,7 @@ function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: "", company: "", email: "", password: "" },
+    defaultValues: { fullName: "", email: "", password: "" },
   });
 
   useEffect(() => {
