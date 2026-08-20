@@ -185,6 +185,10 @@ export function EstimatorDashboard() {
                 isError={history.isError}
                 error={history.error}
                 emptyLabel="No approved or closed quotes yet."
+                columns={HISTORY_COLUMNS}
+                profilesMap={profilesMap}
+                onRowClick={openQuote}
+                defaultSortKey="approved_at"
               />
             </TabsContent>
           </Tabs>
