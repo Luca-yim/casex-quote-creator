@@ -44,7 +44,10 @@ function RequestQuotePage() {
           <RequestQuoteRunner />
         </AppLayout>
       ) : (
-        <AppLayout title="My Quotes" description="Track your CaseXellence pricing requests">
+        <AppLayout
+          title="My Quotes"
+          description="Track submitted requests and pick up where you left off. A Speridian estimator reviews every request before pricing is released."
+        >
           <ExternalDashboard
             tab={tab ?? "submitted"}
             onTabChange={(next) =>
