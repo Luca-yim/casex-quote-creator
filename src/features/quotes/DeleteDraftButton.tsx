@@ -28,14 +28,16 @@ type Props = {
 export function DeleteDraftButton({ quote, variant = "icon", onDeleted }: Props) {
   const { user, role } = useAuth();
   const remove = useDeleteQuote();
+  const [open, setOpen] = useState(false);
 
   if (!canDeleteDraft(quote, user?.id, role)) return null;
 
   const label = quote.customerName || quote.name || "Untitled draft";
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
+
         <Button
           type="button"
           variant="ghost"
