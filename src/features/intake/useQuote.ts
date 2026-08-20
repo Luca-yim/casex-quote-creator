@@ -19,12 +19,20 @@ export function quoteDetailKey(quoteId: string | undefined) {
   return ["quote", quoteId] as const;
 }
 
-/** Fetches a single quote by id and maps it to the domain shape. */
+/**
+ * Fetches a single quote by id and maps it to the domain shape.
+ *
+ * The query stays disabled until the signed-in role is known: the column
+ * projection is role-dependent, so firing early would issue a wrong-projection
+ * request and then a second one once the role resolves.
+ */
 export function useQuoteById(quoteId: string | undefined) {
-  const { role } = useAuth();
+  const { role, loading, profileLoading } = useAuth();
+  const roleResolved = !loading && !profileLoading && role !== null;
   return useQuery({
     queryKey: [...quoteDetailKey(quoteId), role],
-    enabled: Boolean(quoteId),
+    enabled: Boolean(quoteId) && roleResolved,
+    staleTime: 30 * 1000,
     queryFn: async (): Promise<Quote> => {
       const { data, error } = await supabase
         .from("quotes")
@@ -37,6 +45,7 @@ export function useQuoteById(quoteId: string | undefined) {
     },
   });
 }
+
 
 type CreateDraftOptions = {
   userId: string | undefined;

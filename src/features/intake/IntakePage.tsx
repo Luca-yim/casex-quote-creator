@@ -90,8 +90,11 @@ export function IntakePage({
   }, [quote, quoteId, role, mode, forceShowPricing, updateField, flush, isSaving, lastSavedAt]);
 
 
-  // Only the quote blocks the first paint; catalog/verticals stream in behind it.
-  const loading = quoteQuery.isLoading;
+  // Only the quote blocks the first paint; catalog/verticals stream in behind
+  // it. The quote query is disabled until the role resolves, so treat
+  // "no data yet, no error" as loading rather than as a failure.
+  const loading = quoteQuery.isLoading || (!quoteQuery.isError && !quote);
+
 
   if (loading) {
     return (
