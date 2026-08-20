@@ -23,7 +23,9 @@ export function ExternalDashboard() {
         </CardHeader>
         <CardContent>
           <Button asChild>
-            <Link to="/request-quote">Start intake</Link>
+            <Link to="/request-quote" search={{ start: true }}>
+              Start intake
+            </Link>
           </Button>
         </CardContent>
       </Card>

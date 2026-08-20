@@ -14,9 +14,10 @@ export const Route = createFileRoute("/request-quote/")({
   // `?start=1` is the explicit "create a new intake" entry point. Without it
   // this route is the external user's home, so returning here (e.g. from the
   // confirmation page) never spawns an empty draft.
-  validateSearch: (search: Record<string, unknown>) => ({
-    start: search["start"] === true || search["start"] === "1" || search["start"] === "true",
-  }),
+  validateSearch: (search: Record<string, unknown>): { start?: true } => {
+    const raw = search["start"];
+    return raw === true || raw === "1" || raw === "true" ? { start: true } : {};
+  },
   head: () => ({
     meta: [
       { title: "Request a quote — CaseX Pricing Calculator" },
