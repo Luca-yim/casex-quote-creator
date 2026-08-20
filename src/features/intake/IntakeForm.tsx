@@ -41,7 +41,7 @@ export function IntakeForm() {
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteSchema) as never,
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       name: quote.name,
       customerName: quote.customerName ?? "",

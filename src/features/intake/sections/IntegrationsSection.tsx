@@ -75,7 +75,10 @@ export function IntegrationsSection() {
                 />
               )}
             />
-            <FieldError message={formState.errors.integrationCount?.message} />
+            {formState.touchedFields.integrationCount ||
+            formState.isSubmitted ? (
+              <FieldError message={formState.errors.integrationCount?.message} />
+            ) : null}
           </div>
 
           <div className="space-y-2">
