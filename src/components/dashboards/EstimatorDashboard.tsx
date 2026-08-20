@@ -1,13 +1,36 @@
+import { useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useReviewQueue } from "@/features/review/useReviewQueue";
 import { useQuoteHistory } from "@/features/review/useQuoteHistory";
 import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
-import { EstimatorQuoteRow } from "./EstimatorQuoteRow";
+import { useProfileNames } from "@/hooks/useProfileNames";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { calculatePricingBreakdown } from "@/lib/calculation-engine";
+import { QuoteTable } from "@/components/QuoteTable";
+import type { QuoteRowData } from "@/lib/columns/quoteColumns";
 import type { Quote } from "@/types/quote";
+
+const QUEUE_COLUMNS = [
+  "customer_name",
+  "requested_by",
+  "submitted_at",
+  "vertical",
+  "total_estimated_value",
+  "state",
+];
+
+const HISTORY_COLUMNS = [
+  "customer_name",
+  "owner_id",
+  "approved_at",
+  "vertical",
+  "total_estimated_value",
+  "state",
+];
 
 function QuoteList({
   quotes,
@@ -15,21 +38,21 @@ function QuoteList({
   isError,
   error,
   emptyLabel,
+  columns,
+  profilesMap,
+  onRowClick,
+  defaultSortKey,
 }: {
-  quotes: Quote[];
+  quotes: QuoteRowData[];
   isPending: boolean;
   isError: boolean;
   error: unknown;
   emptyLabel: string;
+  columns: string[];
+  profilesMap: Record<string, string>;
+  onRowClick: (row: QuoteRowData) => void;
+  defaultSortKey: string;
 }) {
-  if (isPending) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
-      </div>
-    );
-  }
   if (isError) {
     return (
       <div className="rounded-md border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
@@ -37,26 +60,25 @@ function QuoteList({
       </div>
     );
   }
-  if (quotes.length === 0) {
-    return (
-      <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-        {emptyLabel}
-      </div>
-    );
-  }
   return (
-    <ul className="divide-y rounded-md border">
-      {quotes.map((quote) => (
-        <EstimatorQuoteRow key={quote.id} quote={quote} />
-      ))}
-    </ul>
+    <QuoteTable
+      quotes={quotes}
+      visibleColumns={columns}
+      loading={isPending}
+      emptyMessage={emptyLabel}
+      profilesMap={profilesMap}
+      onRowClick={onRowClick}
+      defaultSort={{ key: defaultSortKey, direction: "desc" }}
+    />
   );
 }
 
 export function EstimatorDashboard() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const queue = useReviewQueue(role);
   const history = useQuoteHistory();
+  const catalog = usePricingCatalog();
 
   useQuoteRealtimeSync({
     scope: { kind: "estimator" },
