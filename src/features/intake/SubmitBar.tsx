@@ -15,6 +15,7 @@ import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { SaveStatus } from "./SaveStatus";
 import { useSubmitQuote } from "./useSubmitQuote";
+import { DeleteDraftButton } from "@/features/quotes/DeleteDraftButton";
 
 /**
  * Sticky bottom action bar. Shows the auto-save status and an explicit
@@ -106,7 +107,13 @@ export function SubmitBar() {
         {editable ? <SaveStatus /> : null}
       </div>
       <div className="flex items-center gap-2">
+        <DeleteDraftButton
+          quote={quote}
+          variant="button"
+          onDeleted={() => void navigate({ to: homeRouteForRole(role) })}
+        />
         {editable ? (
+
           <Button
             type="button"
             variant="outline"

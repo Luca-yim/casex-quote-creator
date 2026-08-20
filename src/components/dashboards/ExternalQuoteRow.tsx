@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { STATE_LABELS } from "@/lib/quote-workflow";
 import type { Quote } from "@/types/quote";
+import { DeleteDraftButton } from "@/features/quotes/DeleteDraftButton";
 
 function relativeDays(iso: string | null) {
   if (!iso) return "—";
@@ -45,6 +46,7 @@ export function ExternalQuoteRow({ quote }: { quote: Quote }) {
       </div>
       <div className="flex items-center gap-3">
         <Badge variant="secondary">{STATE_LABELS[quote.state]}</Badge>
+        <DeleteDraftButton quote={quote} />
         <ChevronRight
           className="size-4 shrink-0 text-muted-foreground"
           aria-hidden="true"
