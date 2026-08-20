@@ -70,11 +70,6 @@ function SignupPage() {
           <p className="text-xs text-destructive">{form.formState.errors.fullName?.message}</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="company">Organization</Label>
-          <Input id="company" {...form.register("company")} />
-          <p className="text-xs text-destructive">{form.formState.errors.company?.message}</p>
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
           <p className="text-xs text-destructive">{form.formState.errors.email?.message}</p>
