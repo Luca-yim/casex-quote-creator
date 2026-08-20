@@ -46,13 +46,19 @@ function ConfirmationPage() {
               <div className="flex flex-wrap justify-center gap-3">
                 <Button asChild>
                   <Link to="/request-quote/$id" params={{ id }}>
-                    View Status
+                    View quote details
                   </Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/request-quote">Submit Another</Link>
+                  <Link to="/request-quote">Return to dashboard</Link>
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link to="/request-quote" search={{ start: true }}>
+                    Submit another
+                  </Link>
                 </Button>
               </div>
+
             </CardContent>
           </Card>
         </div>

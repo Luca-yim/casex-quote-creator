@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
+import { useAuth, homeRouteForRole } from "@/lib/auth";
 import {
   checkMarginJustification,
   readinessCheck,
@@ -84,9 +84,12 @@ export function SubmitBar() {
 
     const saved = await submit.mutateAsync(submissionQuote);
     if (role === "external") {
+      // External users get a dedicated confirmation page.
       void navigate({ to: "/request-quote/confirmation/$id", params: { id: saved.id } });
     } else {
-      void navigate({ to: "/quotes/$id", params: { id: saved.id } });
+      // Internal roles return to their own dashboard rather than being left
+      // stranded on the now read-only quote they just submitted.
+      void navigate({ to: homeRouteForRole(role) });
     }
   };
 
