@@ -85,8 +85,39 @@ export function EstimatorDashboard() {
     queryKey: ["quotes", "review-queue"],
   });
 
-  const list = queue.data ?? [];
-  const historyList = history.data ?? [];
+  const rawList = queue.data ?? [];
+  const rawHistory = history.data ?? [];
+  const catalogRows = catalog.data ?? [];
+
+  const withValue = (quotes: Quote[]): QuoteRowData[] =>
+    quotes.map((quote) => ({
+      ...quote,
+      totalEstimatedValue: catalogRows.length
+        ? calculatePricingBreakdown(quote, catalogRows).finalTCV
+        : null,
+    }));
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const list = useMemo(() => withValue(rawList), [queue.data, catalog.data]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const historyList = useMemo(() => withValue(rawHistory), [history.data, catalog.data]);
+
+  // Pre-fetch every referenced profile name once, instead of per cell.
+  const profileIds = useMemo(
+    () =>
+      [...list, ...historyList].flatMap((q) => [
+        q.requestedBy,
+        q.ownerId,
+        q.approvedBy,
+      ]),
+    [list, historyList],
+  );
+  const profiles = useProfileNames(profileIds);
+  const profilesMap = profiles.data ?? {};
+
+  const openQuote = (row: QuoteRowData) => {
+    void navigate({ to: "/review/$id", params: { id: row.id } });
+  };
   const awaiting = list.filter((q) => q.state === "submitted_for_review").length;
   const inProgress = list.filter(
     (q) => q.state === "under_review" || q.state === "estimator_adjusted",
