@@ -49,7 +49,7 @@ export function IntakePage({
   useVerticalSolutions();
 
   const queryClient = useQueryClient();
-  const { save, flush, isSaving, lastSavedAt } = useDebouncedSave(quoteId);
+  const { save, flush, isSaving, lastSavedAt, hasPendingChanges } = useDebouncedSave(quoteId);
 
   const quote = quoteQuery.data as Quote | undefined;
 
