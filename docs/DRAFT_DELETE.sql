@@ -32,7 +32,7 @@ using (
   and submitted_at is null
   and (
     requested_by = auth.uid()
-    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_role(auth.uid(), 'admin')
   )
 );
 
