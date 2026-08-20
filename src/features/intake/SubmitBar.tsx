@@ -106,7 +106,13 @@ export function SubmitBar() {
         {editable ? <SaveStatus /> : null}
       </div>
       <div className="flex items-center gap-2">
+        <DeleteDraftButton
+          quote={quote}
+          variant="button"
+          onDeleted={() => void navigate({ to: homeRouteForRole(role) })}
+        />
         {editable ? (
+
           <Button
             type="button"
             variant="outline"
