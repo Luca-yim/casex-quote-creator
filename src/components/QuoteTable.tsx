@@ -70,7 +70,7 @@ export function QuoteTable({
     [visibleColumns],
   );
 
-  const ctx: QuoteColumnContext = { profilesMap };
+  const ctx: QuoteColumnContext = profilesMap ? { profilesMap } : {};
 
   const rows = useMemo(() => {
     if (!sort) return quotes;
