@@ -50,7 +50,7 @@ export function QuoteWorkflowBar() {
   // Estimator-side sales rep assignment (required for external-submitted quotes).
   const canAssign =
     (role === "estimator" || role === "admin") &&
-    actions.some((a) => a.action === "approve");
+    actions.some((a) => a.action === "approve" || a.action === "return_to_sales");
   const { data: reps = [], isLoading: repsLoading } = useSalesReps(canAssign);
   const [assignedRepId, setAssignedRepId] = useState<string>(quote.ownerId ?? "");
   useEffect(() => {
@@ -211,9 +211,13 @@ export function QuoteWorkflowBar() {
           open={returnOpen}
           onOpenChange={setReturnOpen}
           isPending={transition.isPending}
-          currentOwnerId={quote.ownerId ?? null}
-          onConfirm={(note, repId, repName) =>
-            run(returnAction, note, { id: repId, name: repName })
+          assignedRepId={assignedRepId || null}
+          assignedRepName={assignedRepName}
+          onConfirm={(note: string) =>
+            run(returnAction, note, {
+              id: assignedRepId,
+              name: assignedRepName ?? "",
+            })
           }
         />
       ) : null}
