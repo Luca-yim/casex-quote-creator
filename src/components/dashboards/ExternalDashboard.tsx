@@ -19,14 +19,7 @@ export function ExternalDashboard({ tab, onTabChange }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-brand text-xl font-semibold">My Quotes</h2>
-          <p className="text-sm text-muted-foreground">
-            Track submitted requests and pick up where you left off. A Speridian estimator reviews
-            every request before pricing is released.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button asChild>
           <Link to="/request-quote" search={{ start: true }}>
             <Plus className="size-4" aria-hidden="true" />
