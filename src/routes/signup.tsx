@@ -25,7 +25,6 @@ export const Route = createFileRoute("/signup")({
 
 const schema = z.object({
   fullName: z.string().min(2, "Enter your name"),
-  company: z.string().min(2, "Enter your organization"),
   email: z.string().email("Enter a valid email"),
   password: z.string().min(12, "At least 12 characters"),
 });
@@ -36,7 +35,7 @@ function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: "", company: "", email: "", password: "" },
+    defaultValues: { fullName: "", email: "", password: "" },
   });
 
   useEffect(() => {
@@ -51,7 +50,7 @@ function SignupPage() {
       password: values.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: values.fullName, company: values.company },
+        data: { full_name: values.fullName },
       },
     });
     setSubmitting(false);
@@ -69,11 +68,6 @@ function SignupPage() {
           <Label htmlFor="fullName">Full name</Label>
           <Input id="fullName" {...form.register("fullName")} />
           <p className="text-xs text-destructive">{form.formState.errors.fullName?.message}</p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="company">Organization</Label>
-          <Input id="company" {...form.register("company")} />
-          <p className="text-xs text-destructive">{form.formState.errors.company?.message}</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
