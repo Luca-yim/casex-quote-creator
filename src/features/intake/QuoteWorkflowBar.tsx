@@ -82,7 +82,11 @@ export function QuoteWorkflowBar() {
     return null;
   };
 
-  const run = (action: WorkflowAction, note?: string) => {
+  const run = (
+    action: WorkflowAction,
+    note?: string,
+    returnRep?: { id: string; name: string },
+  ) => {
     if (isBlocked(action)) return;
     transition.mutate(
       {
@@ -91,6 +95,13 @@ export function QuoteWorkflowBar() {
         actorName,
         actorRole: role,
         ...(note ? { note } : {}),
+        ...(returnRep
+          ? {
+              assignRepId: returnRep.id,
+              assignRepName: returnRep.name,
+              previousRepName: currentOwnerName,
+            }
+          : {}),
         ...(action.action === "approve" && assignedRepId
           ? {
               assignRepId: assignedRepId,
@@ -200,7 +211,10 @@ export function QuoteWorkflowBar() {
           open={returnOpen}
           onOpenChange={setReturnOpen}
           isPending={transition.isPending}
-          onConfirm={(note) => run(returnAction, note)}
+          currentOwnerId={quote.ownerId ?? null}
+          onConfirm={(note, repId, repName) =>
+            run(returnAction, note, { id: repId, name: repName })
+          }
         />
       ) : null}
     </Card>
