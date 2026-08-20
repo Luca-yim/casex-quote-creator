@@ -85,9 +85,22 @@ export function IntakePage({
       flushSave: flush,
       isSaving,
       lastSavedAt,
+      hasPendingChanges,
       validationErrors: {} as Record<string, string>,
     };
-  }, [quote, quoteId, role, mode, forceShowPricing, updateField, flush, isSaving, lastSavedAt]);
+  }, [
+    quote,
+    quoteId,
+    role,
+    mode,
+    forceShowPricing,
+    updateField,
+    flush,
+    isSaving,
+    lastSavedAt,
+    hasPendingChanges,
+  ]);
+
 
 
   // Only the quote blocks the first paint; catalog/verticals stream in behind
