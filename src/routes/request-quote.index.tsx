@@ -34,7 +34,8 @@ export const Route = createFileRoute("/request-quote/")({
 });
 
 function RequestQuotePage() {
-  const { start } = Route.useSearch();
+  const { start, tab } = Route.useSearch();
+  const navigate = useNavigate();
 
   return (
     <ProtectedRoute allow={["external", "sales_rep"]}>
@@ -43,8 +44,17 @@ function RequestQuotePage() {
           <RequestQuoteRunner />
         </AppLayout>
       ) : (
-        <AppLayout title="My requests" description="Track your CaseXellence pricing requests">
-          <ExternalDashboard />
+        <AppLayout title="My Quotes" description="Track your CaseXellence pricing requests">
+          <ExternalDashboard
+            tab={tab ?? "submitted"}
+            onTabChange={(next) =>
+              void navigate({
+                to: "/request-quote",
+                search: next === "drafts" ? { tab: "drafts" } : {},
+                replace: true,
+              })
+            }
+          />
         </AppLayout>
       )}
     </ProtectedRoute>
