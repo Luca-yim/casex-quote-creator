@@ -37,6 +37,9 @@ export interface IntakeContextValue {
   flushSave: () => Promise<void>;
   isSaving: boolean;
   lastSavedAt: Date | null;
+  /** True while edits are queued but not yet written to the database. */
+  hasPendingChanges: boolean;
+
   validationErrors: Record<string, string>;
 }
 

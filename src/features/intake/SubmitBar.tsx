@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -12,24 +13,42 @@ import {
 } from "@/lib/quote-validation";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
+import { SaveStatus } from "./SaveStatus";
 import { useSubmitQuote } from "./useSubmitQuote";
 
 /**
- * Sticky bottom action bar. Only requesters (external / sales rep) submit a
- * draft here; estimator approve/return actions live in the workflow bar.
+ * Sticky bottom action bar. Shows the auto-save status and an explicit
+ * "Save draft" button for anyone editing, plus "Submit for Review" for
+ * requesters (external / sales rep / admin) on a draft. Estimator
+ * approve/return actions live in the workflow bar.
  */
 export function SubmitBar() {
-  const { quote, quoteId, role, flushSave, updateField } = useIntake();
+  const { quote, quoteId, role, mode, flushSave, updateField } = useIntake();
   const { user } = useAuth();
   const navigate = useNavigate();
   const form = useFormContext<QuoteFormData>();
   const submit = useSubmitQuote(quoteId, user?.id);
+  const [savingDraft, setSavingDraft] = useState(false);
 
-  const canSubmit = role === "external" || role === "sales_rep" || role === "admin";
-  if (!canSubmit || quote.state !== "draft") return null;
+  const editable = mode === "edit";
+  const canSubmit =
+    (role === "external" || role === "sales_rep" || role === "admin") &&
+    quote.state === "draft";
+
+  if (!editable && !canSubmit) return null;
 
   const readiness = readinessCheck(quote);
   const marginError = checkMarginJustification(quote);
+
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      await flushSave();
+      toast.success("Draft saved");
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   const handleSubmit = async () => {
     // Auto-name unnamed drafts at the point of persistence (the input keeps
@@ -73,23 +92,46 @@ export function SubmitBar() {
 
   return (
     <div className="sticky bottom-0 z-10 -mx-1 mt-6 flex flex-wrap items-center justify-between gap-3 border-t bg-background/95 px-1 py-3 backdrop-blur">
-      <p className={marginError ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
-        {marginError
-          ? marginError
-          : readiness.ready
-          ? "All required details are complete."
-            : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
-      </p>
-      <Button
-        type="button"
-        disabled={!readiness.ready || Boolean(marginError) || submit.isPending}
-        onClick={() => void handleSubmit()}
-      >
-        {submit.isPending ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+      <div className="flex flex-col gap-1">
+        <p className={marginError ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+          {marginError
+            ? marginError
+            : readiness.ready
+              ? "All required details are complete."
+              : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
+        </p>
+        {editable ? <SaveStatus /> : null}
+      </div>
+      <div className="flex items-center gap-2">
+        {editable ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={savingDraft}
+            onClick={() => void handleSaveDraft()}
+          >
+            {savingDraft ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            Save draft
+          </Button>
         ) : null}
-        Submit for Review
-      </Button>
+        {canSubmit ? (
+          <Button
+            type="button"
+            disabled={!readiness.ready || Boolean(marginError) || submit.isPending}
+            onClick={() => void handleSubmit()}
+          >
+            {submit.isPending ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : null}
+            Submit for Review
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
+

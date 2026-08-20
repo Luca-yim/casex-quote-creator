@@ -32,6 +32,8 @@ export interface DebouncedSave {
   flush: () => Promise<void>;
   isSaving: boolean;
   lastSavedAt: Date | null;
+  /** True while edits are queued but not yet written to the database. */
+  hasPendingChanges: boolean;
 }
 
 /**
@@ -43,6 +45,8 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
   const pendingRef = useRef<Record<string, unknown>>({});
   const timerRef = useRef<number | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
 
   const mutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>): Promise<Quote> => {
@@ -79,8 +83,11 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
     if (Object.keys(patch).length === 0) return;
     try {
       await mutateAsync(patch);
+      setHasPendingChanges(false);
     } catch {
-      /* handled by onError */
+      // Handled by onError. The queue was already drained, so the failed patch
+      // is not retried — the user's next edit re-queues from current state.
+      setHasPendingChanges(false);
     }
   }, [mutateAsync]);
 
@@ -89,6 +96,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       const next = mergePendingPatch(pendingRef.current, path, value);
       if (next === pendingRef.current) return;
       pendingRef.current = next;
+      setHasPendingChanges(true);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
         timerRef.current = null;
@@ -105,5 +113,12 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
     [],
   );
 
-  return { save, flush, isSaving: mutation.isPending, lastSavedAt };
+  return {
+    save,
+    flush,
+    isSaving: mutation.isPending,
+    lastSavedAt,
+    hasPendingChanges,
+  };
+
 }
