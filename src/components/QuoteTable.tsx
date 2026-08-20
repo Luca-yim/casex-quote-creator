@@ -27,6 +27,8 @@ type Props = {
   visibleColumns: string[];
   onRowClick?: (row: QuoteRowData) => void;
   profilesMap?: Record<string, string>;
+  /** Profile ids whose role is `external` — flagged inline on user columns. */
+  externalUserIds?: Set<string>;
   loading?: boolean;
   emptyMessage?: string;
   defaultSort?: QuoteTableSort;
