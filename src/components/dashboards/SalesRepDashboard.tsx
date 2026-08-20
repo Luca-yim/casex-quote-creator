@@ -9,6 +9,7 @@ import { useSalesRepQuotes } from "@/features/quotes/useSalesRepQuotes";
 import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
 import { useAuth } from "@/lib/auth";
 import { SalesRepQuoteRow } from "./SalesRepQuoteRow";
+import { useProfileDirectory, externalIdSet } from "@/hooks/useProfileNames";
 import type { QuoteState } from "@/types/quote";
 
 const TABS: { id: string; label: string; states: QuoteState[] }[] = [
@@ -29,6 +30,8 @@ export function SalesRepDashboard() {
   });
 
   const list = quotes ?? [];
+  const requesterProfiles = useProfileDirectory(list.map((q) => q.requestedBy));
+  const externalUserIds = externalIdSet(requesterProfiles.data);
   const counts = TABS.map((tab) => ({
     ...tab,
     count: list.filter((q) => tab.states.includes(q.state)).length,
@@ -96,7 +99,11 @@ export function SalesRepDashboard() {
                     ) : (
                       <ul className="divide-y rounded-md border">
                         {tabQuotes.map((quote) => (
-                          <SalesRepQuoteRow key={quote.id} quote={quote} />
+                          <SalesRepQuoteRow
+                            key={quote.id}
+                            quote={quote}
+                            isExternalRequest={externalUserIds.has(quote.requestedBy)}
+                          />
                         ))}
                       </ul>
                     )}

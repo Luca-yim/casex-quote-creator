@@ -7,6 +7,7 @@ import { useQuoteTransition } from "@/features/intake/useQuoteTransition";
 import { availableActions, STATE_LABELS } from "@/lib/quote-workflow";
 import type { Quote } from "@/types/quote";
 import { DeleteDraftButton } from "@/features/quotes/DeleteDraftButton";
+import { ExternalBadge } from "@/components/ExternalBadge";
 
 function relativeDays(iso: string | null) {
   if (!iso) return "—";
@@ -15,7 +16,13 @@ function relativeDays(iso: string | null) {
   return `${days}d ago`;
 }
 
-export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
+export function SalesRepQuoteRow({
+  quote,
+  isExternalRequest = false,
+}: {
+  quote: Quote;
+  isExternalRequest?: boolean;
+}) {
   const { role, user, profile } = useAuth();
   const navigate = useNavigate();
   const actorName = profile?.full_name || profile?.email || "a sales rep";
@@ -43,8 +50,11 @@ export function SalesRepQuoteRow({ quote }: { quote: Quote }) {
       className="flex cursor-pointer flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
     >
       <div className="min-w-0">
-        <p className="truncate font-medium">
-          {quote.customerName || quote.name || "Untitled quote"}
+        <p className="flex items-center gap-2 truncate font-medium">
+          <span className="truncate">
+            {quote.customerName || quote.name || "Untitled quote"}
+          </span>
+          {isExternalRequest ? <ExternalBadge variant="compact" /> : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {[quote.vertical, quote.solution].filter(Boolean).join(" · ") ||
