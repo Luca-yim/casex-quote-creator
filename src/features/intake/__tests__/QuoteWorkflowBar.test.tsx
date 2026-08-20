@@ -29,6 +29,19 @@ const repsState = {
   isLoading: false,
 };
 vi.mock("@/hooks/useSalesReps", () => ({ useSalesReps: () => repsState }));
+vi.mock("@/hooks/useAssignableOwners", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    useAssignableOwners: () => ({
+      data: [
+        { id: "rep-1", name: "Rep One", role: "sales_rep" },
+        { id: "rep-2", name: "Rep Two", role: "sales_rep" },
+      ],
+      isLoading: false,
+    }),
+  };
+});
 
 const mutate = vi.fn();
 vi.mock("../useQuoteTransition", () => ({
@@ -74,7 +87,7 @@ describe("actions per role and state", () => {
   it("offers approve and return to an estimator under review", () => {
     setup("estimator", { state: "under_review", ownerId: "rep-1" });
     expect(screen.getByRole("button", { name: /approve pricing/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /return for more info/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /return for edit/i })).toBeInTheDocument();
   });
 
   it("shows no actions in a terminal state", () => {
@@ -194,23 +207,23 @@ describe("return for more info", () => {
   it("opens a dialog rather than transitioning immediately", async () => {
     const user = userEvent.setup();
     setup("estimator", { state: "under_review", ownerId: "rep-1" });
-    await user.click(screen.getByRole("button", { name: /return for more info/i }));
+    await user.click(screen.getByRole("button", { name: /return for edit/i }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("keeps the confirm button disabled below 20 characters", async () => {
+  it("keeps the confirm button disabled below 10 characters", async () => {
     const user = userEvent.setup();
     setup("estimator", { state: "under_review", ownerId: "rep-1" });
-    await user.click(screen.getByRole("button", { name: /return for more info/i }));
-    await user.type(screen.getByLabelText(/what needs clarification/i), "too short");
+    await user.click(screen.getByRole("button", { name: /return for edit/i }));
+    await user.type(screen.getByLabelText(/what needs clarification/i), "short");
     expect(screen.getByRole("button", { name: /return quote/i })).toBeDisabled();
   });
 
   it("enables the confirm button and submits the note", async () => {
     const user = userEvent.setup();
     setup("estimator", { state: "under_review", ownerId: "rep-1" });
-    await user.click(screen.getByRole("button", { name: /return for more info/i }));
+    await user.click(screen.getByRole("button", { name: /return for edit/i }));
     await user.type(
       screen.getByLabelText(/what needs clarification/i),
       "Please clarify user count breakdown",
@@ -220,6 +233,7 @@ describe("return for more info", () => {
     await user.click(confirm);
     expect(mutate.mock.calls[0]?.[0]).toMatchObject({
       note: "Please clarify user count breakdown",
+      assignRepId: "rep-1",
     });
   });
 });
