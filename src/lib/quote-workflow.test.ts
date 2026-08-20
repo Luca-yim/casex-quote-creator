@@ -70,11 +70,11 @@ describe("availableActions — estimator", () => {
     expect(actionsFor("estimator", "approved")).toEqual([]);
   });
 
-  it("return_to_sales routes back to draft", () => {
+  it("return_to_sales routes to estimator_adjusted", () => {
     const action = availableActions("estimator", "under_review").find(
       (a) => a.action === "return_to_sales",
     );
-    expect(action?.next).toBe("draft");
+    expect(action?.next).toBe("estimator_adjusted");
   });
 
   it("approve routes to approved", () => {

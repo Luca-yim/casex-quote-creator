@@ -10,10 +10,12 @@ import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
 import { useAuth } from "@/lib/auth";
 import { SalesRepQuoteRow } from "./SalesRepQuoteRow";
 import { useProfileDirectory, externalIdSet } from "@/hooks/useProfileNames";
+import { useReturnNotes } from "@/features/quotes/useReturnNotes";
 import type { QuoteState } from "@/types/quote";
 
 const TABS: { id: string; label: string; states: QuoteState[] }[] = [
-  { id: "drafts", label: "Drafts", states: ["draft", "estimator_adjusted"] },
+  { id: "returned", label: "Returned to me", states: ["estimator_adjusted"] },
+  { id: "drafts", label: "Drafts", states: ["draft"] },
   { id: "under-review", label: "Under Review", states: ["submitted_for_review", "under_review"] },
   { id: "approved", label: "Approved", states: ["approved"] },
   { id: "sent", label: "Sent", states: ["sent_to_customer"] },
@@ -32,6 +34,9 @@ export function SalesRepDashboard() {
   const list = quotes ?? [];
   const requesterProfiles = useProfileDirectory(list.map((q) => q.requestedBy));
   const externalUserIds = externalIdSet(requesterProfiles.data);
+  const returnNotes = useReturnNotes(
+    list.filter((q) => q.state === "estimator_adjusted").map((q) => q.id),
+  );
   const counts = TABS.map((tab) => ({
     ...tab,
     count: list.filter((q) => tab.states.includes(q.state)).length,
@@ -39,10 +44,11 @@ export function SalesRepDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Total quotes", value: isPending ? "…" : String(list.length) },
           { label: "Approved & ready", value: isPending ? "…" : String(counts.find((c) => c.id === "approved")?.count ?? 0) },
+          { label: "Returned to me", value: isPending ? "…" : String(counts.find((c) => c.id === "returned")?.count ?? 0) },
           { label: "Awaiting review", value: isPending ? "…" : String(counts.find((c) => c.id === "under-review")?.count ?? 0) },
         ].map((stat) => (
           <Card key={stat.label}>
@@ -103,6 +109,7 @@ export function SalesRepDashboard() {
                             key={quote.id}
                             quote={quote}
                             isExternalRequest={externalUserIds.has(quote.requestedBy)}
+                            returnNote={returnNotes.data?.[quote.id]?.body ?? null}
                           />
                         ))}
                       </ul>

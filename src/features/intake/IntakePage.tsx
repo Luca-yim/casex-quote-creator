@@ -7,9 +7,10 @@ import { useAuth, type AppRole } from "@/lib/auth";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { IntakeProvider, computeShowPricing } from "./IntakeContext";
-import { canEditIntake } from "@/lib/quote-workflow";
+import { canEditQuote } from "@/lib/quote-workflow";
 import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
 import { ReadonlyStateBanner } from "./ReadonlyStateBanner";
+import { ReturnedNoteCallout } from "./ReturnedNoteCallout";
 import { IntakeForm } from "./IntakeForm";
 import { useQuoteById, quoteDetailKey } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
@@ -38,7 +39,7 @@ export function IntakePage({
   title = "Quote intake",
   description = "",
 }: IntakePageProps) {
-  const { role: authRole } = useAuth();
+  const { role: authRole, user } = useAuth();
   // The signed-in role always wins; the route override is only a fallback
   // while the profile is still hydrating.
   const role: AppRole = authRole ?? roleOverride ?? "external";
@@ -69,7 +70,9 @@ export function IntakePage({
 
   const contextValue = useMemo(() => {
     if (!quote) return null;
-    const editable = mode === "edit" && canEditIntake(role, quote.state);
+    const editable =
+      mode === "edit" &&
+      canEditQuote(role, quote.state, quote.ownerId ?? null, user?.id);
     return {
       quoteId,
       quote,
@@ -94,6 +97,7 @@ export function IntakePage({
     role,
     mode,
     forceShowPricing,
+    user?.id,
     updateField,
     flush,
     isSaving,
@@ -139,6 +143,7 @@ export function IntakePage({
       <IntakeProvider value={contextValue}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
+            <ReturnedNoteCallout />
             {contextValue.mode === "readonly" ? (
               <ReadonlyStateBanner quote={contextValue.quote} />
             ) : null}

@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Send } from "lucide-react";
+import { AlertTriangle, ChevronRight, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -19,10 +19,14 @@ function relativeDays(iso: string | null) {
 export function SalesRepQuoteRow({
   quote,
   isExternalRequest = false,
+  returnNote = null,
 }: {
   quote: Quote;
   isExternalRequest?: boolean;
+  /** Latest estimator return note, shown when the quote came back for edit. */
+  returnNote?: string | null;
 }) {
+  const needsAttention = quote.state === "estimator_adjusted";
   const { role, user, profile } = useAuth();
   const navigate = useNavigate();
   const actorName = profile?.full_name || profile?.email || "a sales rep";
@@ -55,7 +59,18 @@ export function SalesRepQuoteRow({
             {quote.customerName || quote.name || "Untitled quote"}
           </span>
           {isExternalRequest ? <ExternalBadge variant="compact" /> : null}
+          {needsAttention ? (
+            <Badge className="border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300" variant="outline">
+              <AlertTriangle className="mr-1 size-3" aria-hidden="true" />
+              Attention needed
+            </Badge>
+          ) : null}
         </p>
+        {needsAttention && returnNote ? (
+          <p className="truncate text-xs text-amber-700 dark:text-amber-300" title={returnNote}>
+            “{returnNote.length > 60 ? `${returnNote.slice(0, 60)}…` : returnNote}”
+          </p>
+        ) : null}
         <p className="truncate text-xs text-muted-foreground">
           {[quote.vertical, quote.solution].filter(Boolean).join(" · ") ||
             "No vertical selected"}

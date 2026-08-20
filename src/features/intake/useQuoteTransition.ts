@@ -56,7 +56,7 @@ function changeReason(input: TransitionInput): string {
         : `${base}, assigned to ${input.assignRepName}`;
     }
     case "return_to_sales":
-      return `Returned by estimator ${who}. Reason: ${input.note ?? "(no note)"}`;
+      return `Returned for edit: ${input.note ?? "(no note)"}`;
     case "send_to_customer":
       return `Sent to customer by ${who}`;
     case "mark_accepted":
@@ -92,6 +92,13 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
             (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
           }
           break;
+        case "return_to_sales":
+          // Hand the quote to the rep who will rework it. Approval/sent
+          // stamps are deliberately left untouched.
+          if (input.assignRepId) {
+            (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+          }
+          break;
         case "send_to_customer":
           (patch as Record<string, unknown>)["sent_at"] = now;
           break;
@@ -122,7 +129,7 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           author_id: userId,
           author_role: input.actorRole ?? "estimator",
           body: input.note,
-          visibility: updated.ownerId ? "sales_rep_visible" : "external_visible",
+          visibility: "sales_rep_visible",
         });
         if (commentError) {
           toast.warning("Return note could not be saved", {
@@ -156,7 +163,11 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       void queryClient.invalidateQueries({ queryKey: ["quote-versions", quote.id] });
       void queryClient.invalidateQueries({ queryKey: ["quote-comments", quote.id] });
-      toast.success(`${input.action.label} complete`);
+      if (input.action.action === "return_to_sales") {
+        toast.success(`Quote returned to ${input.assignRepName ?? "the sales rep"}`);
+      } else {
+        toast.success(`${input.action.label} complete`);
+      }
     },
     onError: (error) => {
       const nextState = (error as { nextState?: Quote["state"] })?.nextState;

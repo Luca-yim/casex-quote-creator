@@ -10,54 +10,85 @@ interface ReturnNote {
   authorLabel: string;
 }
 
-function useLatestReturnNote(quoteId: string, enabled: boolean) {
+function useReturnNoteHistory(quoteId: string, enabled: boolean) {
   return useQuery({
-    queryKey: ["quote-comments", quoteId, "latest-return"],
+    queryKey: ["quote-comments", quoteId, "return-history"],
     enabled,
-    queryFn: async (): Promise<ReturnNote | null> => {
+    queryFn: async (): Promise<ReturnNote[]> => {
       const { data, error } = await supabase
         .from("quote_comments")
         .select("*, author:profiles(id, email, full_name)")
         .eq("quote_id", quoteId)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
-      const row = (data ?? [])[0] as Record<string, unknown> | undefined;
-      if (!row) return null;
-      const author = row["author"] as { email?: string | null; full_name?: string | null } | null;
-      return {
-        body: String(row["body"]),
-        createdAt: String(row["created_at"]),
-        authorLabel: author?.full_name || author?.email || "Estimator",
-      };
+      return ((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const author = row["author"] as
+          | { email?: string | null; full_name?: string | null }
+          | null;
+        return {
+          body: String(row["body"]),
+          createdAt: String(row["created_at"]),
+          authorLabel: author?.full_name || author?.email || "Estimator",
+        };
+      });
     },
   });
 }
 
-/** Amber callout shown to the requester when an estimator sent the quote back. */
+/** Amber callout shown to the assigned rep when an estimator returned the quote. */
 export function ReturnedNoteCallout() {
   const { quoteId, quote, role } = useIntake();
+  // External requesters never see returns — from their side the quote is
+  // simply still in review.
   const relevant =
-    quote.state === "draft" &&
-    Boolean(quote.submittedAt) &&
-    (role === "sales_rep" || role === "external" || role === "admin");
-  const { data } = useLatestReturnNote(quoteId, relevant);
+    (quote.state === "estimator_adjusted" ||
+      (quote.state === "draft" && Boolean(quote.submittedAt))) &&
+    (role === "sales_rep" || role === "admin" || role === "estimator");
+  const { data } = useReturnNoteHistory(quoteId, relevant);
 
-  if (!relevant || !data) return null;
+  const notes = data ?? [];
+  if (!relevant || notes.length === 0) return null;
+
+  const [latest, ...earlier] = notes;
+  if (!latest) return null;
 
   return (
     <Card className="border-amber-500/60 bg-amber-500/5">
       <CardHeader className="pb-2">
         <CardTitle className="text-base text-amber-700 dark:text-amber-300">
-          🔄 Returned by estimator
+          Returned by the estimator for revision
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-sm">{data.body}</p>
+      <CardContent className="space-y-3">
+        <p className="text-xs font-medium text-muted-foreground">Their notes:</p>
+        <blockquote className="border-l-4 border-amber-500/70 bg-background/60 px-3 py-2 text-sm">
+          {latest.body}
+        </blockquote>
         <p className="text-xs text-muted-foreground">
-          {data.authorLabel} ·{" "}
-          {formatDistanceToNow(new Date(data.createdAt), { addSuffix: true })}
+          {latest.authorLabel} ·{" "}
+          {formatDistanceToNow(new Date(latest.createdAt), { addSuffix: true })}
         </p>
+        <p className="text-sm">
+          Please review, update the quote, and resubmit when ready.
+        </p>
+        {earlier.length > 0 ? (
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium">
+              Earlier returns ({earlier.length})
+            </summary>
+            <ul className="mt-2 space-y-2">
+              {earlier.map((note) => (
+                <li key={note.createdAt} className="border-l-2 pl-3">
+                  <p className="text-sm text-foreground">{note.body}</p>
+                  <p>
+                    {note.authorLabel} ·{" "}
+                    {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </CardContent>
     </Card>
   );

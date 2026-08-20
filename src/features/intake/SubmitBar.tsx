@@ -32,9 +32,13 @@ export function SubmitBar() {
   const [savingDraft, setSavingDraft] = useState(false);
 
   const editable = mode === "edit";
+  const isResubmit = quote.state === "estimator_adjusted";
   const canSubmit =
-    (role === "external" || role === "sales_rep" || role === "admin") &&
-    quote.state === "draft";
+    ((role === "external" || role === "sales_rep" || role === "admin") &&
+      quote.state === "draft") ||
+    // A returned quote is resubmitted by the rep it was assigned to.
+    (isResubmit &&
+      (role === "admin" || (role === "sales_rep" && quote.ownerId === user?.id)));
 
   if (!editable && !canSubmit) return null;
 
@@ -137,7 +141,7 @@ export function SubmitBar() {
             {submit.isPending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : null}
-            Submit for Review
+            {isResubmit ? "Resubmit for review" : "Submit for Review"}
           </Button>
         ) : null}
       </div>

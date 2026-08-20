@@ -54,10 +54,10 @@ const ACTIONS: Record<QuoteAction, Omit<WorkflowAction, "action">> = {
     description: "Releases pricing back to the sales rep.",
   },
   return_to_sales: {
-    label: "Return for more info",
-    next: "draft",
+    label: "Return for edit",
+    next: "estimator_adjusted",
     variant: "outline",
-    description: "Sends the intake back to the requester for changes.",
+    description: "Assigns the quote to a sales rep for revision.",
   },
   send_to_customer: {
     label: "Send to customer",
@@ -99,8 +99,9 @@ export function stageOwner(state: QuoteState): string {
       return "With the requester — complete the intake and submit.";
     case "submitted_for_review":
     case "under_review":
-    case "estimator_adjusted":
       return "With the estimator — pricing is being reviewed.";
+    case "estimator_adjusted":
+      return "Returned for edit — with the assigned sales rep.";
     case "approved":
       return "Back with the sales rep — approved pricing is available.";
     case "sent_to_customer":
@@ -155,4 +156,48 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
     );
   }
   return false;
+}
+
+/**
+ * Whether this specific user may edit the intake right now.
+ *
+ * Adds ownership on top of the role/state rule: a returned quote
+ * (`estimator_adjusted`) is editable only by the rep it was assigned to.
+ */
+export function canEditQuote(
+  role: AppRole,
+  state: QuoteState,
+  ownerId: string | null,
+  userId: string | null | undefined,
+): boolean {
+  if (!canEditIntake(role, state)) return false;
+  if (state !== "estimator_adjusted") return true;
+  if (role === "admin" || role === "estimator") return true;
+  return Boolean(userId) && ownerId === userId;
+}
+
+/**
+ * Simplified state wording for external requesters. Internal rework
+ * (returns, estimator adjustments, internal approval) all read as "in review"
+ * until the quote is actually delivered to them.
+ */
+export function externalStateLabel(state: QuoteState): string {
+  switch (state) {
+    case "draft":
+      return "Draft";
+    case "submitted_for_review":
+      return "Awaiting review";
+    case "under_review":
+    case "estimator_adjusted":
+    case "approved":
+      return "In review";
+    case "sent_to_customer":
+      return "Ready — quote available";
+    case "accepted":
+      return "Accepted";
+    case "declined":
+      return "Not proceeding";
+    default:
+      return "Archived";
+  }
 }
