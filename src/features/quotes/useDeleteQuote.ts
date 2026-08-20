@@ -30,15 +30,26 @@ export function useDeleteQuote() {
 
   return useMutation({
     mutationFn: async (quoteId: string) => {
-      const { error } = await supabase
+      // PostgREST DELETE returns no body by default, so an RLS-filtered
+      // zero-row delete looks identical to success. `.select()` forces the
+      // affected rows back so we can detect that case.
+      const { data, error } = await supabase
         .from("quotes")
         .delete()
         .eq("id", quoteId)
-        .eq("state", "draft");
-      devLog("[delete-quote] error:", error);
+        .eq("state", "draft")
+        .select("id")
+        .maybeSingle();
+      devLog("[delete-quote] data:", data, "error:", error);
       if (error) throw error;
-      return quoteId;
+      if (!data) {
+        throw new Error(
+          "Unable to delete this draft. It may have been submitted for review, deleted already, or you may not have permission.",
+        );
+      }
+      return data.id;
     },
+
     onSuccess: (quoteId) => {
       queryClient.removeQueries({ queryKey: quoteDetailKey(quoteId) });
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
