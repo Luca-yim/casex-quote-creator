@@ -50,7 +50,7 @@ function SignupPage() {
       password: values.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: values.fullName, company: values.company },
+        data: { full_name: values.fullName },
       },
     });
     setSubmitting(false);
