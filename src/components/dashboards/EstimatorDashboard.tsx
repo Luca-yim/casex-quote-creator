@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useReviewQueue } from "@/features/review/useReviewQueue";
 import { useQuoteHistory } from "@/features/review/useQuoteHistory";
 import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
-import { useProfileNames } from "@/hooks/useProfileNames";
+import { useProfileDirectory, externalIdSet } from "@/hooks/useProfileNames";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
 import { QuoteTable } from "@/components/QuoteTable";
@@ -40,6 +40,7 @@ function QuoteList({
   emptyLabel,
   columns,
   profilesMap,
+  externalUserIds,
   onRowClick,
   defaultSortKey,
 }: {
@@ -50,6 +51,7 @@ function QuoteList({
   emptyLabel: string;
   columns: string[];
   profilesMap: Record<string, string>;
+  externalUserIds: Set<string>;
   onRowClick: (row: QuoteRowData) => void;
   defaultSortKey: string;
 }) {
@@ -67,6 +69,7 @@ function QuoteList({
       loading={isPending}
       emptyMessage={emptyLabel}
       profilesMap={profilesMap}
+      externalUserIds={externalUserIds}
       onRowClick={onRowClick}
       defaultSort={{ key: defaultSortKey, direction: "desc" }}
     />
@@ -112,8 +115,14 @@ export function EstimatorDashboard() {
       ]),
     [list, historyList],
   );
-  const profiles = useProfileNames(profileIds);
-  const profilesMap = profiles.data ?? {};
+  const profiles = useProfileDirectory(profileIds);
+  const directory = profiles.data;
+  const profilesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const [id, summary] of Object.entries(directory ?? {})) map[id] = summary.name;
+    return map;
+  }, [directory]);
+  const externalUserIds = useMemo(() => externalIdSet(directory), [directory]);
 
   const openQuote = (row: QuoteRowData) => {
     void navigate({ to: "/review/$id", params: { id: row.id } });
@@ -174,6 +183,7 @@ export function EstimatorDashboard() {
                 emptyLabel="Nothing to review yet."
                 columns={QUEUE_COLUMNS}
                 profilesMap={profilesMap}
+                externalUserIds={externalUserIds}
                 onRowClick={openQuote}
                 defaultSortKey="submitted_at"
               />
@@ -187,6 +197,7 @@ export function EstimatorDashboard() {
                 emptyLabel="No approved or closed quotes yet."
                 columns={HISTORY_COLUMNS}
                 profilesMap={profilesMap}
+                externalUserIds={externalUserIds}
                 onRowClick={openQuote}
                 defaultSortKey="approved_at"
               />

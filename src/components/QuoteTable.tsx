@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { ExternalBadge } from "@/components/ExternalBadge";
 import {
   getQuoteColumn,
   QUOTE_STATE_DISPLAY,
@@ -27,6 +28,8 @@ type Props = {
   visibleColumns: string[];
   onRowClick?: (row: QuoteRowData) => void;
   profilesMap?: Record<string, string>;
+  /** Profile ids whose role is `external` — flagged inline on user columns. */
+  externalUserIds?: Set<string>;
   loading?: boolean;
   emptyMessage?: string;
   defaultSort?: QuoteTableSort;
@@ -58,6 +61,7 @@ export function QuoteTable({
   visibleColumns,
   onRowClick,
   profilesMap,
+  externalUserIds,
   loading = false,
   emptyMessage = "No quotes to show.",
   defaultSort,
@@ -198,6 +202,14 @@ export function QuoteTable({
                         >
                           {display}
                         </Badge>
+                      ) : col.type === "user" &&
+                        col.key === "requested_by" &&
+                        typeof value === "string" &&
+                        externalUserIds?.has(value) ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {display}
+                          <ExternalBadge variant="compact" />
+                        </span>
                       ) : (
                         display
                       )}

@@ -32,6 +32,8 @@ import { useQuoteTransition } from "./useQuoteTransition";
 import { ReturnQuoteDialog } from "./ReturnQuoteDialog";
 import { VersionHistorySheet } from "./VersionHistorySheet";
 import { QuotePdfDownloadButton } from "@/features/pdf-export/QuotePdfDownloadButton";
+import { ExternalBadge } from "@/components/ExternalBadge";
+import { useProfileDirectory } from "@/hooks/useProfileNames";
 
 /** Transitions that persist pricing and therefore must satisfy the margin rule. */
 const MARGIN_GATED_ACTIONS = new Set(["mark_adjusted", "approve", "submit_for_review"]);
@@ -58,6 +60,13 @@ export function QuoteWorkflowBar() {
   const currentOwnerName = reps.find((r) => r.id === quote.ownerId)?.name ?? null;
   const assignedRepName = reps.find((r) => r.id === assignedRepId)?.name ?? null;
   const needsAssignment = canAssign && !quote.ownerId && !assignedRepId;
+
+  // Requester identity + role, so external self-serve requests are obvious.
+  const requesterProfiles = useProfileDirectory([quote.requestedBy]);
+  const requester = quote.requestedBy
+    ? requesterProfiles.data?.[quote.requestedBy]
+    : undefined;
+  const isExternalRequest = requester?.role === "external";
 
   const actorName = profile?.full_name || profile?.email || "a teammate";
   const returnAction = actions.find((a) => a.action === "return_to_sales");
@@ -112,7 +121,16 @@ export function QuoteWorkflowBar() {
             <VersionHistorySheet quoteId={quoteId} />
           </div>
         </div>
-        <CardDescription>{stageOwner(quote.state)}</CardDescription>
+        <CardDescription className="flex flex-wrap items-center gap-2">
+          <span>{stageOwner(quote.state)}</span>
+          {requester ? (
+            <span className="flex items-center gap-2">
+              <span aria-hidden="true">·</span>
+              <span>Requested by {requester.name}</span>
+              {isExternalRequest ? <ExternalBadge variant="full" /> : null}
+            </span>
+          ) : null}
+        </CardDescription>
       </CardHeader>
       {actions.length > 0 ? (
         <CardContent className="space-y-3">
