@@ -32,6 +32,8 @@ export interface DebouncedSave {
   flush: () => Promise<void>;
   isSaving: boolean;
   lastSavedAt: Date | null;
+  /** True while edits are queued but not yet written to the database. */
+  hasPendingChanges: boolean;
 }
 
 /**
@@ -43,6 +45,8 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
   const pendingRef = useRef<Record<string, unknown>>({});
   const timerRef = useRef<number | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
 
   const mutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>): Promise<Quote> => {
