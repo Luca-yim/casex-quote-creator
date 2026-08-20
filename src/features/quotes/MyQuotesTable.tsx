@@ -2,7 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { STATE_LABELS } from "@/lib/quote-workflow";
+import { STATE_LABELS, externalStateLabel } from "@/lib/quote-workflow";
+import { useAuth } from "@/lib/auth";
 import { readinessCheck } from "@/lib/quote-validation";
 import { DeleteDraftButton } from "@/features/quotes/DeleteDraftButton";
 import type { Quote } from "@/types/quote";
@@ -33,6 +34,10 @@ type Props = {
 
 export function MyQuotesTable({ tab, quotes, isPending, isError, error }: Props) {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  // External requesters see simplified wording — never internal states.
+  const stateLabel = (quote: Quote) =>
+    role === "external" ? externalStateLabel(quote.state) : STATE_LABELS[quote.state];
 
   if (isPending) {
     return (
@@ -118,7 +123,7 @@ export function MyQuotesTable({ tab, quotes, isPending, isError, error }: Props)
                 </td>
                 <td className="px-4 py-3">
                   {tab === "submitted" ? (
-                    <Badge variant="secondary">{STATE_LABELS[quote.state]}</Badge>
+                    <Badge variant="secondary">{stateLabel(quote)}</Badge>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Progress value={pct} className="h-2 w-24" />
