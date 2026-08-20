@@ -59,6 +59,8 @@ function setup(
     flushSave: vi.fn(async () => {}),
     isSaving: false,
     lastSavedAt: null,
+    hasPendingChanges: false,
+
     validationErrors: {},
   };
   return {
