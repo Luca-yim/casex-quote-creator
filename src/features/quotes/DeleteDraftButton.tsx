@@ -70,8 +70,15 @@ export function DeleteDraftButton({ quote, variant = "icon", onDeleted }: Props)
             disabled={remove.isPending}
             onClick={(event) => {
               event.preventDefault();
-              remove.mutate(quote.id, { onSuccess: () => onDeleted?.() });
+              remove.mutate(quote.id, {
+                // Close only on success; on error the dialog stays open to retry.
+                onSuccess: () => {
+                  setOpen(false);
+                  onDeleted?.();
+                },
+              });
             }}
+
           >
             {remove.isPending ? "Deleting…" : "Delete draft"}
           </AlertDialogAction>
