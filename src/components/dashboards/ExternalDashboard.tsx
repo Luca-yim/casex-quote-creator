@@ -33,7 +33,7 @@ export function ExternalDashboard() {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { icon: FileText, title: "Submit intake", body: "~5 minutes, no pricing knowledge needed." },
-          { icon: Clock3, title: "Estimator review", body: "Ajith's team validates scope and effort." },
+          { icon: Clock3, title: "Estimator review", body: "The Sales team validates scope and effort." },
           { icon: ShieldCheck, title: "Approved quote", body: "Your rep sends a customer-ready PDF." },
         ].map(({ icon: Icon, title, body }) => (
           <Card key={title}>
