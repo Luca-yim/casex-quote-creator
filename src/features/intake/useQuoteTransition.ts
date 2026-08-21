@@ -98,6 +98,12 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           if (input.assignRepId) {
             (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
           }
+          // Soft routing: remember who returned it so the resubmitted quote
+          // can be suggested back to the same estimator.
+          if (userId) {
+            (patch as Record<string, unknown>)["last_reviewed_by"] = userId;
+            (patch as Record<string, unknown>)["reviewed_by"] = userId;
+          }
           break;
         case "send_to_customer":
           (patch as Record<string, unknown>)["sent_at"] = now;
