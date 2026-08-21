@@ -199,20 +199,8 @@ export function QuoteTable({
                         col.type === "currency" && "font-mono",
                       )}
                     >
-                      {col.type === "routing" ? (
-                        display ? (
-                          <Badge
-                            variant={
-                              display.startsWith("Your resubmit")
-                                ? "default"
-                                : "outline"
-                            }
-                            className="whitespace-nowrap text-xs font-normal"
-                          >
-                            {display}
-                          </Badge>
-                        ) : null
-                      ) : col.type === "state" ? (
+                      {col.type === "state" ? (
+
                         <Badge
                           variant="secondary"
                           className={
