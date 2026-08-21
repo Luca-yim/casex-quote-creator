@@ -12,7 +12,7 @@ import { FEDRAMP_FORCING } from "./ComplianceSection";
 /** Section 10 — hosting model and environment count, gated by compliance. */
 export function HostingSection() {
   const { control, formState, setValue } = useFormContext<QuoteFormData>();
-  const { mode } = useIntake();
+  const { mode, updateField } = useIntake();
   const disabled = mode === "readonly";
 
   const compliance = (useWatch({ control, name: "compliance" }) ??
