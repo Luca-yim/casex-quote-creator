@@ -5,27 +5,34 @@ import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "@/features/intake/quote-mapper";
 import { STATE_LABELS } from "@/lib/quote-workflow";
 import { REVIEW_QUEUE_STATES } from "@/features/review/useReviewQueue";
+import { HISTORY_STATES } from "@/features/review/useQuoteHistory";
 import type { Quote } from "@/types/quote";
 
 type Scope =
   | { kind: "sales_rep"; userId: string | undefined }
-  | { kind: "estimator" };
+  | { kind: "estimator"; userId: string | undefined }
+  | { kind: "admin" };
 
 interface Options {
   /** Which rows this dashboard cares about. */
   scope: Scope;
-  /** Query cache key holding the `Quote[]` list this dashboard renders. */
-  queryKey: QueryKey;
+  /**
+   * Query cache key holding the `Quote[]` list this dashboard renders and
+   * merges realtime rows into. Omit for invalidate-only scopes (admin).
+   */
+  queryKey?: QueryKey;
 }
 
-/** True when the row belongs in this dashboard's list. */
+/** True when the row belongs in this dashboard's merged list. */
 function inScope(quote: Quote, scope: Scope): boolean {
+  if (scope.kind === "admin") return false;
   if (scope.kind === "estimator") {
     return (REVIEW_QUEUE_STATES as readonly string[]).includes(quote.state);
   }
   if (!scope.userId) return false;
   return quote.requestedBy === scope.userId || quote.ownerId === scope.userId;
 }
+
 
 /** Fetches the newest audit note so a "returned" toast can explain why. */
 async function latestChangeReason(quoteId: string): Promise<string | null> {
@@ -47,11 +54,19 @@ function mergeIntoList(list: Quote[] | undefined, quote: Quote, keep: boolean): 
   return [quote, ...without];
 }
 
+/** Keys the estimator dashboard renders outside its merged review queue. */
+const DRAFTS_KEY = (userId: string | undefined) => ["quotes", "my-drafts", userId] as const;
+const HISTORY_KEY = ["quotes", "estimator-history"] as const;
+
+/** Pipeline caches are aggregated server-side, so they can only be refetched. */
+const PIPELINE_KEYS = [["pipeline"], ["pipeline-stats"]] as const;
+
 /**
  * Live-syncs a dashboard's quote list with `public.quotes` changes.
  *
- * Purely additive: it merges realtime rows into the existing query cache and
- * raises a toast on state transitions. No transition logic is performed here.
+ * Purely additive: it merges realtime rows into the existing query cache
+ * (when a `queryKey` is given), invalidates sibling caches that can't be
+ * merged, and raises a toast on state transitions. No transition logic here.
  */
 export function useQuoteRealtimeSync({ scope, queryKey }: Options) {
   const queryClient = useQueryClient();
@@ -60,11 +75,38 @@ export function useQuoteRealtimeSync({ scope, queryKey }: Options) {
   const keyRef = useRef(queryKey);
   keyRef.current = queryKey;
 
-  const channelName = scope.kind === "estimator" ? "quotes-review-queue" : `quotes-rep-${scope.userId ?? "anon"}`;
-  const enabled = scope.kind === "estimator" || Boolean(scope.userId);
+  const scopeUserId = scope.kind === "admin" ? undefined : scope.userId;
+  const channelName =
+    scope.kind === "estimator"
+      ? "quotes-review-queue"
+      : scope.kind === "admin"
+        ? "quotes-pipeline"
+        : `quotes-rep-${scopeUserId ?? "anon"}`;
+  const enabled = scope.kind !== "sales_rep" || Boolean(scopeUserId);
 
   useEffect(() => {
     if (!enabled) return;
+
+    /** Refetch the caches this scope can't merge into. */
+    const invalidateSiblings = (
+      activeScope: Scope,
+      states: (string | undefined)[],
+    ) => {
+      if (activeScope.kind === "admin") {
+        for (const key of PIPELINE_KEYS) {
+          void queryClient.invalidateQueries({ queryKey: key });
+        }
+        return;
+      }
+      if (activeScope.kind !== "estimator") return;
+
+      if (states.includes("draft")) {
+        void queryClient.invalidateQueries({ queryKey: DRAFTS_KEY(activeScope.userId) });
+      }
+      if (states.some((s) => s && (HISTORY_STATES as readonly string[]).includes(s))) {
+        void queryClient.invalidateQueries({ queryKey: HISTORY_KEY });
+      }
+    };
 
     const channel = supabase
       .channel(channelName)
@@ -74,10 +116,18 @@ export function useQuoteRealtimeSync({ scope, queryKey }: Options) {
         (payload) => {
           const activeScope = scopeRef.current;
           const key = keyRef.current;
+          const oldState = (payload.old as Record<string, unknown> | null)?.["state"] as
+            | string
+            | undefined;
+          const newState = (payload.new as Record<string, unknown> | null)?.["state"] as
+            | string
+            | undefined;
+
+          invalidateSiblings(activeScope, [oldState, newState]);
 
           if (payload.eventType === "DELETE") {
             const oldId = (payload.old as { id?: string } | null)?.id;
-            if (!oldId) return;
+            if (!oldId || !key) return;
             queryClient.setQueryData<Quote[]>(key, (list) =>
               (list ?? []).filter((q) => q.id !== oldId),
             );
@@ -85,26 +135,23 @@ export function useQuoteRealtimeSync({ scope, queryKey }: Options) {
           }
 
           const newRow = payload.new as Record<string, unknown> | null;
-          if (!newRow || !newRow["id"]) return;
+          if (!newRow || !newRow["id"] || !key) return;
 
           let quote: Quote;
           try {
             quote = rowToQuote(newRow as never);
           } catch {
-            queryClient.invalidateQueries({ queryKey: key });
+            void queryClient.invalidateQueries({ queryKey: key });
             return;
           }
 
           // REPLICA IDENTITY FULL gives us the previous row on UPDATE.
-          const previousState =
-            payload.eventType === "UPDATE"
-              ? ((payload.old as Record<string, unknown> | null)?.["state"] as string | undefined)
-              : undefined;
+          const previousState = payload.eventType === "UPDATE" ? oldState : undefined;
 
           const relevant = inScope(quote, activeScope);
-          const wasListed = ((queryClient.getQueryData<Quote[]>(key) ?? []).some(
+          const wasListed = (queryClient.getQueryData<Quote[]>(key) ?? []).some(
             (q) => q.id === quote.id,
-          ));
+          );
 
           if (!relevant && !wasListed) return;
 
@@ -125,6 +172,7 @@ export function useQuoteRealtimeSync({ scope, queryKey }: Options) {
             }
             return;
           }
+
 
           // Sales rep view.
           if (quote.state === "approved") {

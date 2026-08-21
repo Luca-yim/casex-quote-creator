@@ -23,13 +23,16 @@ const TABS: { id: string; label: string; states: QuoteState[] }[] = [
 ];
 
 export function SalesRepDashboard() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { data: quotes, isPending, isError, error } = useSalesRepQuotes();
 
+  // Key must match `useSalesRepQuotes` exactly, or merged rows land in a
+  // cache entry nothing renders.
   useQuoteRealtimeSync({
     scope: { kind: "sales_rep", userId: user?.id },
-    queryKey: ["quotes", "sales-rep", user?.id],
+    queryKey: ["quotes", "sales-rep", user?.id, role],
   });
+
 
   const list = quotes ?? [];
   const requesterProfiles = useProfileDirectory(list.map((q) => q.requestedBy));
