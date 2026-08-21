@@ -12,7 +12,7 @@ import { FEDRAMP_FORCING } from "./ComplianceSection";
 /** Section 10 — hosting model and environment count, gated by compliance. */
 export function HostingSection() {
   const { control, formState, setValue } = useFormContext<QuoteFormData>();
-  const { mode } = useIntake();
+  const { mode, updateField } = useIntake();
   const disabled = mode === "readonly";
 
   const compliance = (useWatch({ control, name: "compliance" }) ??
@@ -22,11 +22,21 @@ export function HostingSection() {
     FEDRAMP_FORCING.includes(item),
   );
 
+  // Auto-set values must persist exactly like user-set ones, so the quote is
+  // updated alongside the form (react-hook-form's watch subscription only
+  // reports user "change" events, not programmatic setValue).
+  //
+  // Design decision: when a FedRAMP-forcing compliance regime is later
+  // removed, hosting STAYS on "fedramp" (Option B). It is a valid selection,
+  // resetting it would silently un-complete a required field and lose the
+  // user's context; the field simply becomes editable again.
   useEffect(() => {
+    if (disabled) return;
     if (fedrampRequired && hostingModel !== "fedramp") {
       setValue("hostingModel", "fedramp", { shouldDirty: true });
+      updateField("hostingModel", "fedramp");
     }
-  }, [fedrampRequired, hostingModel, setValue]);
+  }, [fedrampRequired, hostingModel, setValue, updateField, disabled]);
 
   const options = [
     {

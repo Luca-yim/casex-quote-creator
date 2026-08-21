@@ -26,29 +26,30 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
         .single();
       if (error) throw Object.assign(new Error(error.message), { code: error.code });
 
-      try {
-        await writeVersionSnapshot({
-          quoteId,
-          quoteData: { ...quote, state: "submitted_for_review", submittedAt: now },
-          changeReason: "Submitted for estimator review",
-          changedBy: userId,
-          changeType: "submit",
-        });
-      } catch (snapshotError) {
-        // The submission itself already succeeded; warn rather than lose it.
+      // Fire-and-forget: the audit snapshot must not hold the UI (and the
+      // redirect) hostage behind a second round-trip.
+      void writeVersionSnapshot({
+        quoteId,
+        quoteData: { ...quote, state: "submitted_for_review", submittedAt: now },
+        changeReason: "Submitted for estimator review",
+        changedBy: userId,
+        changeType: "submit",
+      }).catch((snapshotError) => {
         toast.warning("Audit trail incomplete", {
           description:
             snapshotError instanceof Error
               ? snapshotError.message
               : "The version snapshot failed to save.",
         });
-      }
+      });
 
       return rowToQuote(data);
     },
     onSuccess: (quote) => {
       queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
-      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quote.id) });
+      // Refetch the lists the user is about to land on, but leave the detail
+      // cache alone: re-fetching the quote we are navigating away from only
+      // causes a readonly re-render flash mid-redirect.
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success(
         "Submitted for review. You'll be notified when the pricing team has reviewed it.",

@@ -25,7 +25,7 @@ const VERTICALS = [
 /** Section 3 — vertical selection plus the solutions available within it. */
 export function VerticalSolutionSection() {
   const { control, formState, setValue } = useFormContext<QuoteFormData>();
-  const { mode } = useIntake();
+  const { mode, updateField } = useIntake();
   const disabled = mode === "readonly";
   const vertical = useWatch({ control, name: "vertical" });
   const { data: solutions = [], isLoading } = useVerticalSolutions();
@@ -48,6 +48,9 @@ export function VerticalSolutionSection() {
               onChange={(value) => {
                 field.onChange(value);
                 setValue("solution", "", { shouldDirty: true });
+                // Programmatic resets must persist too, otherwise the quote
+                // keeps a solution that no longer belongs to the vertical.
+                updateField("solution", "");
               }}
               options={VERTICALS}
               disabled={disabled}
