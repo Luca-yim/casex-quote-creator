@@ -20,6 +20,8 @@ import { PipelineStatsCards } from "./PipelineStatsCards";
 import { PipelineTable } from "./PipelineTable";
 import { usePipelineQuotes, type PipelineRow } from "./usePipelineQuotes";
 import { usePipelineStats } from "./usePipelineStats";
+import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
+
 import { filtersToSearch, searchToFilters, searchToSort } from "./search";
 import {
   ADMIN_COLUMNS,
