@@ -12,7 +12,7 @@ export function rowToQuote(row: QuoteRow): Quote {
     ownerId: r["owner_id"] ?? null,
     requestedBy: r["requested_by"],
     reviewedBy: r["reviewed_by"] ?? null,
-    lastReviewedBy: r["last_reviewed_by"] ?? null,
+    
     approvedBy: r["approved_by"] ?? null,
     name: r["name"] ?? "Untitled quote",
     customerName: r["customer_name"] ?? null,
