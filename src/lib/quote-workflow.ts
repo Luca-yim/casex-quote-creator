@@ -155,13 +155,15 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   }
   if (role === "estimator") {
     return (
-      // Estimators author their own drafts, same as reps. A returned quote
-      // (`estimator_adjusted`) is with the rep — estimators wait for resubmit.
+      // Estimators author their own drafts, and work the review window
+      // including quotes they returned for edit.
       state === "draft" ||
       state === "submitted_for_review" ||
-      state === "under_review"
+      state === "under_review" ||
+      state === "estimator_adjusted"
     );
   }
+
   return false;
 }
 
