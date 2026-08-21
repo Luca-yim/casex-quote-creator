@@ -122,7 +122,12 @@ export function availableActions(
 ): WorkflowAction[] {
   const keys: QuoteAction[] = [];
 
-  if (role === "external" || role === "sales_rep" || role === "admin") {
+  if (
+    role === "external" ||
+    role === "sales_rep" ||
+    role === "admin" ||
+    role === "estimator"
+  ) {
     if (state === "draft") keys.push("submit_for_review");
   }
 
@@ -150,6 +155,8 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   }
   if (role === "estimator") {
     return (
+      // Estimators author their own drafts, same as reps.
+      state === "draft" ||
       state === "submitted_for_review" ||
       state === "under_review" ||
       state === "estimator_adjusted"
@@ -171,6 +178,10 @@ export function canEditQuote(
   userId: string | null | undefined,
 ): boolean {
   if (!canEditIntake(role, state)) return false;
+  // An estimator may only edit a draft they own (their own authored quote).
+  if (state === "draft" && role === "estimator") {
+    return Boolean(userId) && ownerId === userId;
+  }
   if (state !== "estimator_adjusted") return true;
   if (role === "admin" || role === "estimator") return true;
   return Boolean(userId) && ownerId === userId;

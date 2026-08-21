@@ -116,6 +116,9 @@ export function QuoteWorkflowBar() {
             setReturnOpen(false);
             void navigate({ to: "/review" });
           }
+          if (action.action === "approve") {
+            void navigate({ to: "/review" });
+          }
         },
       },
     );
