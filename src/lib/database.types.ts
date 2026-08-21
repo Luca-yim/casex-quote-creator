@@ -257,6 +257,7 @@ export type Database = {
           owner_id: string | null
           requested_by: string
           reviewed_by: string | null
+          last_reviewed_by: string | null
           approved_by: string | null
           name: string
           customer_name: string | null
@@ -296,6 +297,7 @@ export type Database = {
           owner_id?: string | null
           requested_by: string
           reviewed_by?: string | null
+          last_reviewed_by?: string | null
           approved_by?: string | null
           name?: string
           customer_name?: string | null
@@ -335,6 +337,7 @@ export type Database = {
           owner_id?: string | null
           requested_by?: string
           reviewed_by?: string | null
+          last_reviewed_by?: string | null
           approved_by?: string | null
           name?: string
           customer_name?: string | null

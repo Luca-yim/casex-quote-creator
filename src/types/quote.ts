@@ -62,6 +62,8 @@ export interface Quote {
   ownerId: string | null;
   requestedBy: string;
   reviewedBy: string | null;
+  /** Estimator who most recently returned this quote for edit (soft routing). */
+  lastReviewedBy: string | null;
   approvedBy: string | null;
   name: string;
   customerName: string | null;
