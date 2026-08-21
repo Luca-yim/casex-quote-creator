@@ -186,7 +186,7 @@ export function canEditQuote(
     return Boolean(userId) && ownerId === userId;
   }
   if (state !== "estimator_adjusted") return true;
-  if (role === "admin" || role === "estimator") return true;
+  if (role === "admin") return true;
   return Boolean(userId) && ownerId === userId;
 }
 
