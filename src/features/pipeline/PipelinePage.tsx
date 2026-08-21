@@ -61,7 +61,8 @@ function pageWindow(current: number, total: number): number[] {
  * Shared read-only pipeline of approved-and-beyond quotes.
  *
  * Deferred by design: CSV export, bulk operations, inline editing, advanced
- * analytics, saved filter presets and realtime updates (60s stale time).
+ * analytics and saved filter presets. Realtime keeps the table and stat
+ * cards fresh by invalidating both pipeline caches on any quote change.
  */
 export function PipelinePage() {
   const search = routeApi.useSearch();
@@ -77,6 +78,10 @@ export function PipelinePage() {
   const quotes = usePipelineQuotes({ filters, page, sort });
   const stats = usePipelineStats({ filters, catalog: catalog.data });
   const { generatePdf, isGenerating } = useQuotePdfDownload();
+
+  // Aggregated + paginated server-side, so realtime can only invalidate.
+  useQuoteRealtimeSync({ scope: { kind: "admin" } });
+
 
   const [historyQuoteId, setHistoryQuoteId] = useState<string | null>(null);
   const [adminColumns, setAdminColumns] = useState<AdminColumnVisibility>(
