@@ -209,6 +209,19 @@ export function QuoteTable({
                         >
                           {display}
                         </Badge>
+                      ) : col.type === "routing" ? (
+                        display && display !== "—" ? (
+                          <Badge
+                            variant="secondary"
+                            className={
+                              currentUserId && value === currentUserId
+                                ? "bg-primary/15 text-primary font-semibold"
+                                : "bg-muted text-muted-foreground font-normal"
+                            }
+                          >
+                            {display}
+                          </Badge>
+                        ) : null
                       ) : col.type === "user" &&
                         col.key === "requested_by" &&
                         typeof value === "string" &&

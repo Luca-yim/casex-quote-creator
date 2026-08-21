@@ -120,6 +120,14 @@ describe("admin", () => {
     expect(actionsFor("admin", "draft")).toContain("submit_for_review");
     expect(actionsFor("admin", "approved")).toContain("send_to_customer");
   });
+
+  it("cannot approve directly from a returned quote", () => {
+    // Backend state machine rejects estimator_adjusted -> approved.
+    expect(actionsFor("admin", "estimator_adjusted")).not.toContain("approve");
+    expect(actionsFor("admin", "estimator_adjusted")).not.toContain(
+      "return_to_sales",
+    );
+  });
 });
 
 describe("action metadata", () => {
