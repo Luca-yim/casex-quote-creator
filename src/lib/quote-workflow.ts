@@ -133,7 +133,9 @@ export function availableActions(
 
   if (role === "estimator" || role === "admin") {
     if (state === "submitted_for_review") keys.push("start_review");
-    if (state === "under_review" || state === "estimator_adjusted") {
+    // `estimator_adjusted` is owned by the sales rep; estimators are read-only
+    // there (mirrors the estimators_update_actionable RLS policy).
+    if (state === "under_review" || (role === "admin" && state === "estimator_adjusted")) {
       keys.push("mark_adjusted", "approve", "return_to_sales");
     }
   }
@@ -155,12 +157,11 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   }
   if (role === "estimator") {
     return (
-      // Estimators author their own drafts, and work the review window
-      // including quotes they returned for edit.
+      // Estimators author their own drafts and work the review window. Once a
+      // quote is returned (`estimator_adjusted`) it belongs to the rep.
       state === "draft" ||
       state === "submitted_for_review" ||
-      state === "under_review" ||
-      state === "estimator_adjusted"
+      state === "under_review"
     );
   }
 
@@ -185,7 +186,7 @@ export function canEditQuote(
     return Boolean(userId) && ownerId === userId;
   }
   if (state !== "estimator_adjusted") return true;
-  if (role === "admin" || role === "estimator") return true;
+  if (role === "admin") return true;
   return Boolean(userId) && ownerId === userId;
 }
 
