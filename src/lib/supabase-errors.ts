@@ -35,6 +35,12 @@ export function describeQuoteWriteError(error: unknown, nextState?: QuoteState):
   }
   const guard = error as MaybePostgrestError | null;
   if (guard?.code === CHECK_VIOLATION || /invalid state transition/i.test(guard?.message ?? "")) {
+    if (nextState === "approved") {
+      return (
+        "This quote can't be approved yet — it was returned for edit. " +
+        "The sales rep must resubmit it, and it needs to be claimed for review again before approval."
+      );
+    }
     const target = nextState ? ` to “${STATE_LABELS[nextState]}”` : "";
     return (
       `The backend's quote state-machine guard doesn't allow this step${target} yet. ` +
