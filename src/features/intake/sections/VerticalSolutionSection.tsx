@@ -48,6 +48,9 @@ export function VerticalSolutionSection() {
               onChange={(value) => {
                 field.onChange(value);
                 setValue("solution", "", { shouldDirty: true });
+                // Programmatic resets must persist too, otherwise the quote
+                // keeps a solution that no longer belongs to the vertical.
+                updateField("solution", "");
               }}
               options={VERTICALS}
               disabled={disabled}
