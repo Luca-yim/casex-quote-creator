@@ -23,8 +23,8 @@ describe("availableActions — requesters", () => {
     },
   );
 
-  it("estimator cannot submit a draft", () => {
-    expect(actionsFor("estimator", "draft")).toEqual([]);
+  it("estimator can submit their own draft", () => {
+    expect(actionsFor("estimator", "draft")).toEqual(["submit_for_review"]);
   });
 
   it("external cannot approve from any state", () => {
@@ -168,11 +168,11 @@ describe("canEditIntake", () => {
     },
   );
 
-  it("estimator edits only while the quote is in the review window", () => {
+  it("estimator edits own drafts and the review window", () => {
     expect(canEditIntake("estimator", "submitted_for_review")).toBe(true);
     expect(canEditIntake("estimator", "under_review")).toBe(true);
     expect(canEditIntake("estimator", "estimator_adjusted")).toBe(true);
-    expect(canEditIntake("estimator", "draft")).toBe(false);
+    expect(canEditIntake("estimator", "draft")).toBe(true);
     expect(canEditIntake("estimator", "approved")).toBe(false);
   });
 
