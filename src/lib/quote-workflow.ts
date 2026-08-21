@@ -133,12 +133,11 @@ export function availableActions(
 
   if (role === "estimator" || role === "admin") {
     if (state === "submitted_for_review") keys.push("start_review");
-    // A returned quote (`estimator_adjusted`) belongs to the rep: the only way
-    // back to `approved` is resubmit -> submitted_for_review -> under_review.
-    if (state === "under_review") {
+    if (state === "under_review" || state === "estimator_adjusted") {
       keys.push("mark_adjusted", "approve", "return_to_sales");
     }
   }
+
 
   if (role === "sales_rep" || role === "admin") {
     if (state === "approved") keys.push("send_to_customer");
@@ -156,13 +155,15 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   }
   if (role === "estimator") {
     return (
-      // Estimators author their own drafts, same as reps. A returned quote
-      // (`estimator_adjusted`) is with the rep — estimators wait for resubmit.
+      // Estimators author their own drafts, and work the review window
+      // including quotes they returned for edit.
       state === "draft" ||
       state === "submitted_for_review" ||
-      state === "under_review"
+      state === "under_review" ||
+      state === "estimator_adjusted"
     );
   }
+
   return false;
 }
 
@@ -184,9 +185,10 @@ export function canEditQuote(
     return Boolean(userId) && ownerId === userId;
   }
   if (state !== "estimator_adjusted") return true;
-  if (role === "admin") return true;
+  if (role === "admin" || role === "estimator") return true;
   return Boolean(userId) && ownerId === userId;
 }
+
 
 /**
  * Simplified state wording for external requesters. Internal rework

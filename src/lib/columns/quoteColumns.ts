@@ -15,8 +15,8 @@ export type QuoteColumnType =
   | "state"
   | "user"
   | "boolean"
-  | "number"
-  | "routing";
+  | "number";
+
 
 /** Extra context available to a column formatter (e.g. resolved profile names). */
 export type QuoteColumnContext = {
@@ -206,23 +206,8 @@ export const QUOTE_COLUMNS: Record<string, QuoteColumn> = {
     accessor: (r) => r.approvedBy,
     format: (v, _row, ctx) => formatQuoteUser(v, ctx),
   }),
-  routing: column({
-    key: "routing",
-    label: "Routing",
-    type: "routing",
-    sortable: false,
-    width: "220px",
-    accessor: (r) => (r.state === "submitted_for_review" ? r.lastReviewedBy : null),
-    format: (v, _row, ctx) => {
-      if (!v) return "";
-      if (ctx.currentUserId && v === ctx.currentUserId) {
-        return "Your resubmit — ready to continue";
-      }
-      const name = ctx.profilesMap?.[v as string];
-      return `Previously reviewed by ${name ?? "another estimator"}`;
-    },
-  }),
   submitted_at: column({
+
     key: "submitted_at",
     label: "Submitted",
     type: "datetime",

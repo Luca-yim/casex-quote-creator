@@ -17,7 +17,6 @@ import type { Quote } from "@/types/quote";
 
 const QUEUE_COLUMNS = [
   "customer_name",
-  "routing",
   "requested_by",
   "submitted_at",
   "vertical",
@@ -129,7 +128,6 @@ export function EstimatorDashboard() {
         q.requestedBy,
         q.ownerId,
         q.approvedBy,
-        q.lastReviewedBy,
       ]),
     [list, historyList],
   );
