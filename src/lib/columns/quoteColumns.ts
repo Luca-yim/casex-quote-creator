@@ -15,8 +15,8 @@ export type QuoteColumnType =
   | "state"
   | "user"
   | "boolean"
-  | "number"
-  | "routing";
+  | "number";
+
 
 /** Extra context available to a column formatter (e.g. resolved profile names). */
 export type QuoteColumnContext = {
