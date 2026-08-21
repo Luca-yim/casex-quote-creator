@@ -133,9 +133,10 @@ export function availableActions(
 
   if (role === "estimator" || role === "admin") {
     if (state === "submitted_for_review") keys.push("start_review");
-    if (state === "under_review") keys.push("mark_adjusted");
-    if (state === "under_review" || state === "estimator_adjusted") {
-      keys.push("approve", "return_to_sales");
+    // A returned quote (`estimator_adjusted`) belongs to the rep: the only way
+    // back to `approved` is resubmit -> submitted_for_review -> under_review.
+    if (state === "under_review") {
+      keys.push("mark_adjusted", "approve", "return_to_sales");
     }
   }
 
