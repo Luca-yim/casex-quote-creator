@@ -50,6 +50,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
     ownerId: "user-1",
     requestedBy: "user-1",
     reviewedBy: null,
+    lastReviewedBy: null,
     
     approvedBy: null,
     name: "Test Quote",

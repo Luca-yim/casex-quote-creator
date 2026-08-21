@@ -100,6 +100,7 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           }
           if (userId) {
             (patch as Record<string, unknown>)["reviewed_by"] = userId;
+            (patch as Record<string, unknown>)["last_reviewed_by"] = userId;
           }
 
           break;
