@@ -10,6 +10,7 @@ import { IntakeProvider, computeShowPricing } from "./IntakeContext";
 import { canEditQuote } from "@/lib/quote-workflow";
 import { QuoteWorkflowBar } from "./QuoteWorkflowBar";
 import { ReadonlyStateBanner } from "./ReadonlyStateBanner";
+import { EstimatorRevisionBanner } from "./EstimatorRevisionBanner";
 import { ReturnedNoteCallout } from "./ReturnedNoteCallout";
 import { IntakeForm } from "./IntakeForm";
 import { useQuoteById, quoteDetailKey } from "./useQuote";
@@ -144,7 +145,11 @@ export function IntakePage({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-3">
             <ReturnedNoteCallout />
-            {contextValue.mode === "readonly" ? (
+            {contextValue.quote.state === "estimator_adjusted" &&
+            (contextValue.role === "estimator" || contextValue.role === "admin") &&
+            contextValue.mode === "readonly" ? (
+              <EstimatorRevisionBanner quote={contextValue.quote} />
+            ) : contextValue.mode === "readonly" ? (
               <ReadonlyStateBanner quote={contextValue.quote} />
             ) : null}
             <QuoteWorkflowBar />
