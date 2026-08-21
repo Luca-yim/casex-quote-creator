@@ -5,27 +5,34 @@ import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "@/features/intake/quote-mapper";
 import { STATE_LABELS } from "@/lib/quote-workflow";
 import { REVIEW_QUEUE_STATES } from "@/features/review/useReviewQueue";
+import { HISTORY_STATES } from "@/features/review/useQuoteHistory";
 import type { Quote } from "@/types/quote";
 
 type Scope =
   | { kind: "sales_rep"; userId: string | undefined }
-  | { kind: "estimator" };
+  | { kind: "estimator"; userId: string | undefined }
+  | { kind: "admin" };
 
 interface Options {
   /** Which rows this dashboard cares about. */
   scope: Scope;
-  /** Query cache key holding the `Quote[]` list this dashboard renders. */
-  queryKey: QueryKey;
+  /**
+   * Query cache key holding the `Quote[]` list this dashboard renders and
+   * merges realtime rows into. Omit for invalidate-only scopes (admin).
+   */
+  queryKey?: QueryKey;
 }
 
-/** True when the row belongs in this dashboard's list. */
+/** True when the row belongs in this dashboard's merged list. */
 function inScope(quote: Quote, scope: Scope): boolean {
+  if (scope.kind === "admin") return false;
   if (scope.kind === "estimator") {
     return (REVIEW_QUEUE_STATES as readonly string[]).includes(quote.state);
   }
   if (!scope.userId) return false;
   return quote.requestedBy === scope.userId || quote.ownerId === scope.userId;
 }
+
 
 /** Fetches the newest audit note so a "returned" toast can explain why. */
 async function latestChangeReason(quoteId: string): Promise<string | null> {
