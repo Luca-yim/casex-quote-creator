@@ -59,11 +59,8 @@ describe("availableActions — estimator", () => {
     ]);
   });
 
-  it("can approve or return from estimator_adjusted", () => {
-    expect(actionsFor("estimator", "estimator_adjusted")).toEqual([
-      "approve",
-      "return_to_sales",
-    ]);
+  it("has no actions on a returned quote — it belongs to the rep", () => {
+    expect(actionsFor("estimator", "estimator_adjusted")).toEqual([]);
   });
 
   it("has nothing to do once approved", () => {
@@ -171,7 +168,7 @@ describe("canEditIntake", () => {
   it("estimator edits own drafts and the review window", () => {
     expect(canEditIntake("estimator", "submitted_for_review")).toBe(true);
     expect(canEditIntake("estimator", "under_review")).toBe(true);
-    expect(canEditIntake("estimator", "estimator_adjusted")).toBe(true);
+    expect(canEditIntake("estimator", "estimator_adjusted")).toBe(false);
     expect(canEditIntake("estimator", "draft")).toBe(true);
     expect(canEditIntake("estimator", "approved")).toBe(false);
   });

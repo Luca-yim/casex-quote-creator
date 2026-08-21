@@ -17,6 +17,7 @@ import type { Quote } from "@/types/quote";
 
 const QUEUE_COLUMNS = [
   "customer_name",
+  "routing",
   "requested_by",
   "submitted_at",
   "vertical",
@@ -50,6 +51,7 @@ function QuoteList({
   columns,
   profilesMap,
   externalUserIds,
+  currentUserId,
   onRowClick,
   defaultSortKey,
 }: {
@@ -61,6 +63,7 @@ function QuoteList({
   columns: string[];
   profilesMap: Record<string, string>;
   externalUserIds: Set<string>;
+  currentUserId?: string | null;
   onRowClick: (row: QuoteRowData) => void;
   defaultSortKey: string;
 }) {
@@ -79,6 +82,7 @@ function QuoteList({
       emptyMessage={emptyLabel}
       profilesMap={profilesMap}
       externalUserIds={externalUserIds}
+      currentUserId={currentUserId ?? null}
       onRowClick={onRowClick}
       defaultSort={{ key: defaultSortKey, direction: "desc" }}
     />
@@ -86,7 +90,7 @@ function QuoteList({
 }
 
 export function EstimatorDashboard() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const navigate = useNavigate();
   const queue = useReviewQueue(role);
   const history = useQuoteHistory();
@@ -125,6 +129,7 @@ export function EstimatorDashboard() {
         q.requestedBy,
         q.ownerId,
         q.approvedBy,
+        q.lastReviewedBy,
       ]),
     [list, historyList],
   );
@@ -206,6 +211,7 @@ export function EstimatorDashboard() {
                 columns={QUEUE_COLUMNS}
                 profilesMap={profilesMap}
                 externalUserIds={externalUserIds}
+                currentUserId={user?.id ?? null}
                 onRowClick={openQuote}
                 defaultSortKey="submitted_at"
               />

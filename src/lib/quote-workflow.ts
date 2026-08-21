@@ -133,9 +133,10 @@ export function availableActions(
 
   if (role === "estimator" || role === "admin") {
     if (state === "submitted_for_review") keys.push("start_review");
-    if (state === "under_review") keys.push("mark_adjusted");
-    if (state === "under_review" || state === "estimator_adjusted") {
-      keys.push("approve", "return_to_sales");
+    // A returned quote (`estimator_adjusted`) belongs to the rep: the only way
+    // back to `approved` is resubmit -> submitted_for_review -> under_review.
+    if (state === "under_review") {
+      keys.push("mark_adjusted", "approve", "return_to_sales");
     }
   }
 
@@ -155,11 +156,11 @@ export function canEditIntake(role: AppRole, state: QuoteState): boolean {
   }
   if (role === "estimator") {
     return (
-      // Estimators author their own drafts, same as reps.
+      // Estimators author their own drafts, same as reps. A returned quote
+      // (`estimator_adjusted`) is with the rep — estimators wait for resubmit.
       state === "draft" ||
       state === "submitted_for_review" ||
-      state === "under_review" ||
-      state === "estimator_adjusted"
+      state === "under_review"
     );
   }
   return false;
@@ -183,7 +184,7 @@ export function canEditQuote(
     return Boolean(userId) && ownerId === userId;
   }
   if (state !== "estimator_adjusted") return true;
-  if (role === "admin" || role === "estimator") return true;
+  if (role === "admin") return true;
   return Boolean(userId) && ownerId === userId;
 }
 

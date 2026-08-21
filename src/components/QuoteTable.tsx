@@ -28,6 +28,8 @@ type Props = {
   visibleColumns: string[];
   onRowClick?: (row: QuoteRowData) => void;
   profilesMap?: Record<string, string>;
+  /** Signed-in user id — enables personalised routing hints. */
+  currentUserId?: string | null;
   /** Profile ids whose role is `external` — flagged inline on user columns. */
   externalUserIds?: Set<string>;
   loading?: boolean;
@@ -61,6 +63,7 @@ export function QuoteTable({
   visibleColumns,
   onRowClick,
   profilesMap,
+  currentUserId,
   externalUserIds,
   loading = false,
   emptyMessage = "No quotes to show.",
@@ -74,7 +77,10 @@ export function QuoteTable({
     [visibleColumns],
   );
 
-  const ctx: QuoteColumnContext = profilesMap ? { profilesMap } : {};
+  const ctx: QuoteColumnContext = {
+    ...(profilesMap ? { profilesMap } : {}),
+    ...(currentUserId ? { currentUserId } : {}),
+  };
 
   const rows = useMemo(() => {
     if (!sort) return quotes;
@@ -193,7 +199,16 @@ export function QuoteTable({
                         col.type === "currency" && "font-mono",
                       )}
                     >
-                      {col.type === "state" ? (
+                      {col.type === "routing" ? (
+                        display ? (
+                          <Badge
+                            variant="outline"
+                            className="whitespace-nowrap text-xs font-normal"
+                          >
+                            {display}
+                          </Badge>
+                        ) : null
+                      ) : col.type === "state" ? (
                         <Badge
                           variant="secondary"
                           className={
