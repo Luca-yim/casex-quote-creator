@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useReviewQueue } from "@/features/review/useReviewQueue";
 import { useQuoteHistory } from "@/features/review/useQuoteHistory";
+import { useMyDrafts } from "@/features/review/useMyDrafts";
 import { useQuoteRealtimeSync } from "@/features/quotes/useQuoteRealtimeSync";
 import { useProfileDirectory, externalIdSet } from "@/hooks/useProfileNames";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
@@ -20,6 +21,14 @@ const QUEUE_COLUMNS = [
   "submitted_at",
   "vertical",
   "total_estimated_value",
+  "state",
+];
+
+const DRAFT_COLUMNS = [
+  "customer_name",
+  "vertical",
+  "solution",
+  "updated_at",
   "state",
 ];
 
@@ -81,6 +90,7 @@ export function EstimatorDashboard() {
   const navigate = useNavigate();
   const queue = useReviewQueue(role);
   const history = useQuoteHistory();
+  const drafts = useMyDrafts();
   const catalog = usePricingCatalog();
 
   useQuoteRealtimeSync({
@@ -90,6 +100,7 @@ export function EstimatorDashboard() {
 
   const rawList = queue.data ?? [];
   const rawHistory = history.data ?? [];
+  const rawDrafts = drafts.data ?? [];
   const catalogRows = catalog.data ?? [];
 
   const withValue = (quotes: Quote[]): QuoteRowData[] =>
@@ -104,6 +115,8 @@ export function EstimatorDashboard() {
   const list = useMemo(() => withValue(rawList), [queue.data, catalog.data]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const historyList = useMemo(() => withValue(rawHistory), [history.data, catalog.data]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const draftList = useMemo(() => withValue(rawDrafts), [drafts.data, catalog.data]);
 
   // Pre-fetch every referenced profile name once, instead of per cell.
   const profileIds = useMemo(
@@ -124,6 +137,9 @@ export function EstimatorDashboard() {
   }, [directory]);
   const externalUserIds = useMemo(() => externalIdSet(directory), [directory]);
 
+  const openDraft = (row: QuoteRowData) => {
+    void navigate({ to: "/quotes/$id", params: { id: row.id } });
+  };
   const openQuote = (row: QuoteRowData) => {
     void navigate({ to: "/review/$id", params: { id: row.id } });
   };
@@ -167,6 +183,12 @@ export function EstimatorDashboard() {
                   {list.length}
                 </Badge>
               </TabsTrigger>
+              <TabsTrigger value="drafts" className="gap-2">
+                My Drafts
+                <Badge variant="secondary" className="px-1.5 py-0 text-xs">
+                  {draftList.length}
+                </Badge>
+              </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
                 History
                 <Badge variant="secondary" className="px-1.5 py-0 text-xs">
@@ -186,6 +208,20 @@ export function EstimatorDashboard() {
                 externalUserIds={externalUserIds}
                 onRowClick={openQuote}
                 defaultSortKey="submitted_at"
+              />
+            </TabsContent>
+            <TabsContent value="drafts">
+              <QuoteList
+                quotes={draftList}
+                isPending={drafts.isPending}
+                isError={drafts.isError}
+                error={drafts.error}
+                emptyLabel="You have no drafts yet. Start one from “New Quote”."
+                columns={DRAFT_COLUMNS}
+                profilesMap={profilesMap}
+                externalUserIds={externalUserIds}
+                onRowClick={openDraft}
+                defaultSortKey="updated_at"
               />
             </TabsContent>
             <TabsContent value="history">
