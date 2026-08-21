@@ -98,9 +98,10 @@ export function EstimatorDashboard() {
   const catalog = usePricingCatalog();
 
   useQuoteRealtimeSync({
-    scope: { kind: "estimator" },
+    scope: { kind: "estimator", userId: user?.id },
     queryKey: ["quotes", "review-queue"],
   });
+
 
   const rawList = queue.data ?? [];
   const rawHistory = history.data ?? [];
