@@ -133,9 +133,10 @@ export function availableActions(
 
   if (role === "estimator" || role === "admin") {
     if (state === "submitted_for_review") keys.push("start_review");
-    // `estimator_adjusted` is owned by the sales rep; estimators are read-only
-    // there (mirrors the estimators_update_actionable RLS policy).
-    if (state === "under_review" || (role === "admin" && state === "estimator_adjusted")) {
+    // `estimator_adjusted` is owned by the sales rep and the backend state
+    // machine no longer allows estimator_adjusted -> approved: the rep must
+    // resubmit and the quote must be re-claimed before approval.
+    if (state === "under_review") {
       keys.push("mark_adjusted", "approve", "return_to_sales");
     }
   }
