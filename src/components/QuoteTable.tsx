@@ -202,7 +202,11 @@ export function QuoteTable({
                       {col.type === "routing" ? (
                         display ? (
                           <Badge
-                            variant="outline"
+                            variant={
+                              display.startsWith("Your resubmit")
+                                ? "default"
+                                : "outline"
+                            }
                             className="whitespace-nowrap text-xs font-normal"
                           >
                             {display}
