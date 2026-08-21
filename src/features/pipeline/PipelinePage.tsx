@@ -133,10 +133,6 @@ export function PipelinePage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
-        <p className="text-sm text-muted-foreground">All approved quotes across the system</p>
-      </header>
 
       {showEmptyPipeline ? (
         <Card>
