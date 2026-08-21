@@ -36,6 +36,8 @@ export function SubmitBar() {
   const canSubmit =
     ((role === "external" || role === "sales_rep" || role === "admin") &&
       quote.state === "draft") ||
+    // Estimators submit the drafts they authored themselves.
+    (role === "estimator" && quote.state === "draft" && quote.ownerId === user?.id) ||
     // A returned quote is resubmitted by the rep it was assigned to.
     (isResubmit &&
       (role === "admin" || (role === "sales_rep" && quote.ownerId === user?.id)));

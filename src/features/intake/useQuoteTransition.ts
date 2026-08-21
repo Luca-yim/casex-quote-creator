@@ -163,7 +163,11 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
       void queryClient.invalidateQueries({ queryKey: ["quote-versions", quote.id] });
       void queryClient.invalidateQueries({ queryKey: ["quote-comments", quote.id] });
-      if (input.action.action === "return_to_sales") {
+      if (input.action.action === "approve") {
+        toast.success(
+          `Quote approved and sent to ${input.assignRepName ?? "the sales rep"}`,
+        );
+      } else if (input.action.action === "return_to_sales") {
         toast.success(`Quote returned to ${input.assignRepName ?? "the sales rep"}`);
       } else {
         toast.success(`${input.action.label} complete`);
