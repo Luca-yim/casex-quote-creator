@@ -20,11 +20,16 @@ export function useSalesRepQuotes() {
     queryFn: async (): Promise<Quote[]> => {
       if (!user) throw new Error("Not authenticated");
 
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       const { data, error } = await supabase
-        .from("quotes")
+        .rpc("quotes_scoped")
         .select(quoteSelectForRole(role))
         .or(`requested_by.eq.${user.id},owner_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
+
 
       devLog("[sales-rep-quotes] result:", data);
       devLog("[sales-rep-quotes] error:", error);
