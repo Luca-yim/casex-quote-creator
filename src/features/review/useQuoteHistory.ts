@@ -18,7 +18,7 @@ export function useQuoteHistory() {
     queryKey: ["quotes", "estimator-history"],
     queryFn: async (): Promise<Quote[]> => {
       const { data, error } = await supabase
-        .from("quotes_scoped")
+        .from("quotes")
         .select("*")
         .in("state", HISTORY_STATES as unknown as string[])
         .order("updated_at", { ascending: false });

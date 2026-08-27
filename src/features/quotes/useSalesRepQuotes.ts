@@ -21,7 +21,7 @@ export function useSalesRepQuotes() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("quotes_scoped")
+        .from("quotes")
         .select(quoteSelectForRole(role))
         .or(`requested_by.eq.${user.id},owner_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });

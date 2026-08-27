@@ -23,7 +23,7 @@ export function useReviewQueue(role?: string | null) {
     queryKey: ["quotes", "review-queue"],
     queryFn: async (): Promise<Quote[]> => {
       const { data, error } = await supabase
-        .from("quotes_scoped")
+        .from("quotes")
         .select("*")
         .in("state", REVIEW_QUEUE_STATES as unknown as string[])
         .order("submitted_at", { ascending: true, nullsFirst: false });
