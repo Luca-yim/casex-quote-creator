@@ -101,7 +101,7 @@ export function usePipelineQuotes({
     queryFn: async () => {
       const order = dbSort(sort);
       let query = supabase
-        .from("quotes")
+        .from("quotes_scoped")
         .select(EMBED, { count: "exact" })
         .in("state", effectiveStates(filters));
 

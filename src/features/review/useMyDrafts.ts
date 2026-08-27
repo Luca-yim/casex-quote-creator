@@ -18,7 +18,7 @@ export function useMyDrafts() {
     enabled: Boolean(user?.id),
     queryFn: async (): Promise<Quote[]> => {
       const { data, error } = await supabase
-        .from("quotes")
+        .from("quotes_scoped")
         .select("*")
         .eq("requested_by", user!.id)
         .eq("state", "draft")
