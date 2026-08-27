@@ -512,8 +512,18 @@ export type Database = {
     }
 
     Functions: {
-      [_ in never]: never
+      /**
+       * Role-aware, read-only projection of `public.quotes`, returning
+       * `setof public.quotes` with pricing columns nulled out for roles that
+       * must not see them. SECURITY DEFINER: it bypasses RLS, so its WHERE
+       * clause must be kept in sync with the RLS policies on `quotes`.
+       */
+      quotes_scoped: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Views"]["quotes_scoped"]["Row"][]
+      }
     }
+
     Enums: {
       [_ in never]: never
     }
