@@ -72,7 +72,7 @@ export function usePipelineStats({
     gcTime: 300_000,
     queryFn: async () => {
       let query = supabase
-        .from("quotes")
+        .from("quotes_scoped")
         .select("*")
         .in("state", effectiveStates(filters));
 

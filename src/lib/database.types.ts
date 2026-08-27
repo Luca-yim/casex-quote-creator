@@ -432,8 +432,85 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      /**
+       * Role-aware, read-only projection of `public.quotes`. Pricing columns
+       * are nulled out for roles that must not see them, so every read path
+       * uses this view while writes still target the base table.
+       */
+      quotes_scoped: {
+        Row: {
+          id: string
+          owner_id: string | null
+          requested_by: string
+          reviewed_by: string | null
+          last_reviewed_by: string | null
+          approved_by: string | null
+          name: string
+          customer_name: string | null
+          customer_type: string | null
+          customer_email: string | null
+          compliance: string[] | null
+          vertical: string | null
+          solution: string | null
+          repeatable_activation: string
+          module_tier: string | null
+          contract_years: number
+          target_go_live_date: string | null
+          case_worker_count: number | null
+          include_b2c: boolean
+          b2c_mau: number | null
+          include_b2b_portal: boolean
+          b2b_user_count: number | null
+          hosting_model: string | null
+          environment_count: number
+          has_integrations: boolean
+          integration_count: number
+          integration_difficulty: string | null
+          support_tier: string | null
+          margin_percent: number | null
+          margin_justification: string | null
+          rep_confidence: string | null
+          tier: string
+          state: string
+          submitted_at: string | null
+          approved_at: string | null
+          sent_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
+
     Functions: {
       [_ in never]: never
     }

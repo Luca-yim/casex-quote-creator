@@ -34,7 +34,7 @@ export function useMyQuotes(tab: MyQuotesTab) {
       if (!user) throw new Error("Not authenticated");
 
       let query = supabase
-        .from("quotes")
+        .from("quotes_scoped")
         .select(quoteSelectForRole(role))
         .or(`requested_by.eq.${user.id},owner_id.eq.${user.id}`);
 

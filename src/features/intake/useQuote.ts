@@ -35,7 +35,7 @@ export function useQuoteById(quoteId: string | undefined) {
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Quote> => {
       const { data, error } = await supabase
-        .from("quotes")
+        .from("quotes_scoped")
         .select(quoteSelectForRole(role))
         .eq("id", quoteId!)
         .maybeSingle();
