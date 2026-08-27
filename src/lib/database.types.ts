@@ -433,10 +433,11 @@ export type Database = {
     }
     Views: {
       /**
-       * Role-aware, read-only projection of `public.quotes`. Pricing columns
-       * are nulled out for roles that must not see them, so every read path
-       * uses this view while writes still target the base table.
+       * Row shape returned by the read-only `public.quotes_scoped()` function.
+       * Pricing columns are nulled out for roles that must not see them; all
+       * writes still target the base `quotes` table.
        */
+
       quotes_scoped: {
         Row: {
           id: string
