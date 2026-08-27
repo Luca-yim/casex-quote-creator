@@ -1,0 +1,156 @@
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import {
+  actorsReady,
+  cleanupQuotes,
+  draftPayload,
+  signInAllActors,
+  SKIP_REASON,
+  type TestActor,
+  type TestActors,
+} from "./supabase-clients";
+
+/**
+ * Proves the wire payload — not just the UI — hides pricing data.
+ *
+ * Every read goes through `public.quotes_scoped()`, which is SECURITY DEFINER
+ * and therefore bypasses RLS: changes to the RLS policies on `public.quotes`
+ * must be mirrored in the function's WHERE clause.
+ */
+
+let actors: TestActors;
+let ready = false;
+const created: string[] = [];
+
+/** Reads one quote through the scoped function as the given actor. */
+async function readScoped(actor: TestActor, quoteId: string) {
+  const { data, error } = await actor.client
+    .rpc("quotes_scoped")
+    .select("id, margin_percent, margin_justification")
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as {
+    id: string;
+    margin_percent: number | null;
+    margin_justification: string | null;
+  } | null;
+}
+
+beforeAll(async () => {
+  actors = await signInAllActors();
+  ready = actorsReady(actors);
+  if (!ready) console.warn(SKIP_REASON);
+});
+
+afterAll(async () => {
+  if (ready && actors.rep) await cleanupQuotes(actors.rep, created);
+  if (ready && actors.external) await cleanupQuotes(actors.external, created);
+});
+
+describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure", () => {
+  it("nulls pricing columns for the external requester", async () => {
+    if (!ready || !actors.external) return;
+    const { data, error } = await actors.external.client
+      .from("quotes")
+      .insert(
+        draftPayload(actors.external.userId, {
+          owner_id: null,
+          margin_percent: 27,
+          margin_justification: "external visibility check",
+        }),
+      )
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    created.push(data.id);
+
+    const row = await readScoped(actors.external, data.id);
+    expect(row).not.toBeNull();
+    expect(row?.margin_percent).toBeNull();
+    expect(row?.margin_justification).toBeNull();
+  });
+
+  it("nulls pricing columns for a rep on their own draft", async () => {
+    if (!ready || !actors.rep) return;
+    const { data, error } = await actors.rep.client
+      .from("quotes")
+      .insert(
+        draftPayload(actors.rep.userId, {
+          margin_percent: 22,
+          margin_justification: "draft stage check",
+        }),
+      )
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    created.push(data.id);
+
+    const row = await readScoped(actors.rep, data.id);
+    expect(row).not.toBeNull();
+    expect(row?.margin_percent).toBeNull();
+    expect(row?.margin_justification).toBeNull();
+  });
+
+  it("shows margin_percent but not the justification to a rep once approved", async () => {
+    if (!ready || !actors.rep || !actors.estimator) return;
+    const { data, error } = await actors.rep.client
+      .from("quotes")
+      .insert(
+        draftPayload(actors.rep.userId, {
+          margin_percent: 20,
+          margin_justification: "approved stage check",
+        }),
+      )
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    created.push(data.id);
+
+    // Walk the quote to `approved` through the normal transitions.
+    await actors.rep.client
+      .from("quotes")
+      .update({ state: "submitted_for_review", submitted_at: new Date().toISOString() })
+      .eq("id", data.id);
+    await actors.estimator.client
+      .from("quotes")
+      .update({ state: "under_review", reviewed_by: actors.estimator.userId })
+      .eq("id", data.id);
+    const { error: approveError } = await actors.estimator.client
+      .from("quotes")
+      .update({
+        state: "approved",
+        approved_by: actors.estimator.userId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    if (approveError) throw new Error(approveError.message);
+
+    const row = await readScoped(actors.rep, data.id);
+    expect(row).not.toBeNull();
+    expect(row?.margin_percent).not.toBeNull();
+    expect(row?.margin_justification).toBeNull();
+  });
+
+  it("shows both pricing columns to an estimator", async () => {
+    if (!ready || !actors.rep || !actors.estimator) return;
+    const { data, error } = await actors.rep.client
+      .from("quotes")
+      .insert(
+        draftPayload(actors.rep.userId, {
+          state: "submitted_for_review",
+          submitted_at: new Date().toISOString(),
+          margin_percent: 28,
+          margin_justification: "estimator visibility check",
+        }),
+      )
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    created.push(data.id);
+
+    const row = await readScoped(actors.estimator, data.id);
+    expect(row).not.toBeNull();
+    expect(row?.margin_percent).not.toBeNull();
+    expect(row?.margin_justification).not.toBeNull();
+  });
+});
