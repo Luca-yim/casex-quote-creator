@@ -2,7 +2,14 @@ import type { Quote } from "@/types/quote";
 
 import type { Database } from "@/lib/database.types";
 
-type QuoteRow = Database["public"]["Tables"]["quotes"]["Row"];
+type QuoteTableRow = Database["public"]["Tables"]["quotes"]["Row"];
+type QuoteViewRow = Database["public"]["Views"]["quotes_scoped"]["Row"];
+
+/**
+ * Accepts rows from either the base table or the role-scoped read view; the
+ * view nulls pricing columns for roles that must not receive them.
+ */
+type QuoteRow = QuoteTableRow | QuoteViewRow;
 
 /** Maps a snake_case `quotes` row from the database into the `Quote` domain shape. */
 export function rowToQuote(row: QuoteRow): Quote {
