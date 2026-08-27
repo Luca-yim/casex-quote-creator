@@ -478,36 +478,7 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "quotes_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
     }
 
@@ -521,6 +492,7 @@ export type Database = {
       quotes_scoped: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Views"]["quotes_scoped"]["Row"][]
+
       }
     }
 
