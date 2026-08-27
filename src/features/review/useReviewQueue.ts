@@ -22,11 +22,16 @@ export function useReviewQueue(role?: string | null) {
   return useQuery({
     queryKey: ["quotes", "review-queue"],
     queryFn: async (): Promise<Quote[]> => {
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       const { data, error } = await supabase
-        .from("quotes")
+        .rpc("quotes_scoped")
         .select("*")
         .in("state", REVIEW_QUEUE_STATES as unknown as string[])
         .order("submitted_at", { ascending: true, nullsFirst: false });
+
 
       devLog("[review-queue] query result:", data);
       devLog("[review-queue] error:", error);

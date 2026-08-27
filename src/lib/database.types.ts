@@ -433,10 +433,11 @@ export type Database = {
     }
     Views: {
       /**
-       * Role-aware, read-only projection of `public.quotes`. Pricing columns
-       * are nulled out for roles that must not see them, so every read path
-       * uses this view while writes still target the base table.
+       * Row shape returned by the read-only `public.quotes_scoped()` function.
+       * Pricing columns are nulled out for roles that must not see them; all
+       * writes still target the base `quotes` table.
        */
+
       quotes_scoped: {
         Row: {
           id: string
@@ -478,42 +479,24 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "quotes_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
     }
 
     Functions: {
-      [_ in never]: never
+      /**
+       * Role-aware, read-only projection of `public.quotes`, returning
+       * `setof public.quotes` with pricing columns nulled out for roles that
+       * must not see them. SECURITY DEFINER: it bypasses RLS, so its WHERE
+       * clause must be kept in sync with the RLS policies on `quotes`.
+       */
+      quotes_scoped: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Views"]["quotes_scoped"]["Row"][]
+
+      }
     }
+
     Enums: {
       [_ in never]: never
     }

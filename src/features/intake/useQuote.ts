@@ -34,8 +34,12 @@ export function useQuoteById(quoteId: string | undefined) {
     enabled: Boolean(quoteId) && roleResolved,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Quote> => {
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       const { data, error } = await supabase
-        .from("quotes")
+        .rpc("quotes_scoped")
         .select(quoteSelectForRole(role))
         .eq("id", quoteId!)
         .maybeSingle();
@@ -43,6 +47,7 @@ export function useQuoteById(quoteId: string | undefined) {
       if (!data) throw new Error("Quote not found");
       return rowToQuote(data as never);
     },
+
   });
 }
 
