@@ -5,7 +5,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { isTurnstileEnabled } from "@/lib/turnstile";
-import { TurnstileWidget } from "@/features/lead-intake/TurnstileWidget";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { LeadIntakeForm, type LeadIntakeValues } from "@/features/lead-intake/LeadIntakeForm";
 
 /** Internal staff belong in the authenticated intake, not the public form. */

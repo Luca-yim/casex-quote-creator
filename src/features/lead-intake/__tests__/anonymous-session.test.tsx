@@ -28,7 +28,7 @@ vi.mock("@/lib/turnstile", () => ({
   loadTurnstile: async () => ({ render: () => "w", remove: () => {} }),
 }));
 
-vi.mock("@/features/lead-intake/TurnstileWidget", () => ({
+vi.mock("@/components/TurnstileWidget", () => ({
   TurnstileWidget: ({ onToken }: { onToken: (t: string) => void }) => {
     queueMicrotask(() => onToken("captcha-token"));
     return <div data-testid="turnstile-widget" />;

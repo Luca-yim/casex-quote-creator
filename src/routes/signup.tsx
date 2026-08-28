@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, homeRouteForRole } from "@/lib/auth";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { isTurnstileEnabled } from "@/lib/turnstile";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -33,6 +35,9 @@ function SignupPage() {
   const navigate = useNavigate();
   const { user, role, loading, profileLoading, ready } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  // Supabase Auth enforces CAPTCHA on signup as well; tokens are single-use.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { fullName: "", email: "", password: "" },
@@ -51,10 +56,13 @@ function SignupPage() {
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: { full_name: values.fullName },
+        ...(captchaToken ? { captchaToken } : {}),
       },
     });
     setSubmitting(false);
     if (error) {
+      setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1);
       toast.error(error.message);
       return;
     }
@@ -84,7 +92,18 @@ function SignupPage() {
           />
           <p className="text-xs text-destructive">{form.formState.errors.password?.message}</p>
         </div>
-        <Button type="submit" className="w-full" disabled={submitting}>
+        {isTurnstileEnabled && (
+          <TurnstileWidget
+            key={captchaKey}
+            onToken={setCaptchaToken}
+            onExpire={() => setCaptchaToken(null)}
+          />
+        )}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={submitting || (isTurnstileEnabled && !captchaToken)}
+        >
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
