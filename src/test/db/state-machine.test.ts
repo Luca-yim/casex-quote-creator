@@ -132,8 +132,8 @@ describe("quote state machine (database guard)", () => {
     if (!id) return;
     const est = actors.estimator!.client;
     await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "under_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "estimator_adjusted" }).eq("id", id);
+    await est.from("quotes").update({ state: "under_review", reviewed_by: actors.estimator!.userId }).eq("id", id);
+    await est.from("quotes").update({ state: "estimator_adjusted", reviewed_by: actors.estimator!.userId }).eq("id", id);
     const { data: whoami, error: whoamiErr } = await est.rpc("current_user_role" as never);
     console.log("estimator current_user_role():", whoami, whoamiErr);
     const { data: userData } = await est.auth.getUser();
