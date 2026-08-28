@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   credentials,
   HOME_ROUTE,
+  mockAuthFor,
   signIn,
   waitForLoginHydration,
   type Persona,
@@ -15,6 +16,7 @@ test.describe("authentication and role routing", () => {
   });
 
   test("rejects invalid credentials without navigating away", async ({ page }) => {
+    await mockAuthFor(page, "rep");
     await page.goto("/login");
     await waitForLoginHydration(page);
     await page.getByLabel("Work email").fill("nobody@example.com");
