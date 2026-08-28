@@ -33,7 +33,8 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     env: {
-      // Cloudflare's documented always-passes TEST site key — never the real one.
+      // Real (public) site key. CI never solves it: Playwright stubs the
+      // Turnstile script and mocks the Supabase auth endpoints in-browser.
       VITE_APP_TURNSTILE_SITE_KEY:
         process.env["VITE_APP_TURNSTILE_SITE_KEY"] ?? "0x4AAAAAAEfi_SCZy4f9X76o",
     },

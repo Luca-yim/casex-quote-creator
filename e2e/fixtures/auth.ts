@@ -1,4 +1,9 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import {
+  mockSupabaseAuth,
+  realSessionFromEnv,
+  stubTurnstile,
+} from "./supabase-auth-mock";
 
 export type Persona = "external" | "rep" | "estimator";
 
@@ -21,19 +26,51 @@ export const HOME_ROUTE: Record<Persona, RegExp> = {
   estimator: /\/review\/?$/,
 };
 
-/** Reads the credentials for a persona from the test environment. */
+const FALLBACK_CREDENTIALS: Record<Persona, { email: string; password: string }> = {
+  external: { email: "external@test.local", password: "e2e-mocked-password" },
+  rep: { email: "rep@test.local", password: "e2e-mocked-password" },
+  estimator: { email: "estimator@test.local", password: "e2e-mocked-password" },
+};
+
+/** Stable synthetic user ids used by the mocked sessions. */
+const PERSONA_USER_ID: Record<Persona, string> = {
+  external: "00000000-0000-4000-8000-0000000000e1",
+  rep: "00000000-0000-4000-8000-0000000000b1",
+  estimator: "00000000-0000-4000-8000-0000000000c1",
+};
+
+const SESSION_ENV_KEY: Record<Persona, string> = {
+  external: "E2E_SESSION_EXTERNAL",
+  rep: "E2E_SESSION_REP",
+  estimator: "E2E_SESSION_ESTIMATOR",
+};
+
+/**
+ * Credentials for a persona. Real values may come from `.env.test.local`;
+ * otherwise deterministic placeholders are used, which is fine because the
+ * auth endpoint is mocked at the network level in CI.
+ */
 export function credentials(persona: Persona): { email: string; password: string } {
   const keys = ENV_KEYS[persona];
-  const email = process.env[keys.email];
-  const password = process.env[keys.password];
+  return {
+    email: process.env[keys.email] ?? FALLBACK_CREDENTIALS[persona].email,
+    password: process.env[keys.password] ?? FALLBACK_CREDENTIALS[persona].password,
+  };
+}
 
-  if (!email || !password) {
-    throw new Error(
-      `Missing ${keys.email}/${keys.password}. Set them in .env.test.local.`,
-    );
-  }
-
-  return { email, password };
+/**
+ * Installs the network-level auth mock for a persona. No CAPTCHA token and no
+ * credentials ever reach the real backend; the server-side CAPTCHA check is
+ * untouched.
+ */
+export async function mockAuthFor(page: Page, persona: Persona): Promise<void> {
+  const creds = credentials(persona);
+  await stubTurnstile(page);
+  await mockSupabaseAuth(page, {
+    user: { id: PERSONA_USER_ID[persona], email: creds.email, role: persona },
+    session: realSessionFromEnv(SESSION_ENV_KEY[persona]),
+    accept: creds,
+  });
 }
 
 /**
@@ -47,9 +84,26 @@ export async function waitForLoginHydration(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-/** Signs a persona in through the real login form and waits for their home route. */
+/**
+ * Skips the current test unless a real session was supplied for the persona.
+ *
+ * The mocked session is enough to exercise the login form itself, but any
+ * assertion past the guard needs a token the real backend accepts (role lookup,
+ * quote reads). Production and test share one backend and the CAPTCHA check is
+ * never short-circuited server-side, so CI cannot mint one itself.
+ */
+export function requireRealSession(persona: Persona): void {
+  test.skip(
+    !process.env[SESSION_ENV_KEY[persona]],
+    `Set ${SESSION_ENV_KEY[persona]} to a real session JSON to run authenticated journeys.`,
+  );
+}
+
+/** Signs a persona in through the login form, with the auth call mocked. */
 export async function signIn(page: Page, persona: Persona): Promise<void> {
+  requireRealSession(persona);
   const { email, password } = credentials(persona);
+  await mockAuthFor(page, persona);
 
   await page.goto("/login");
   await waitForLoginHydration(page);

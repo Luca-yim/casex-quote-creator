@@ -1,18 +1,22 @@
 import { test, expect } from "@playwright/test";
+import { prepareAnonymousJourney } from "./fixtures/anonymous";
 
 /**
  * Public (anonymous) lead-intake journey.
  *
  * The route is public and linked from the landing page. Anonymous sign-in is
- * gated by Cloudflare Turnstile; the dev server runs with Cloudflare's
- * documented always-passes TEST site key (see playwright.config.ts).
+ * gated by Cloudflare Turnstile. In CI the widget script is stubbed and the
+ * Supabase auth endpoint is mocked at the network level (see
+ * fixtures/anonymous.ts) — the real CAPTCHA is never solved or bypassed
+ * server-side.
  */
 test.describe("public lead intake", () => {
   test("an anonymous visitor can submit a lead and sees a real lead number", async ({ page }) => {
+    await prepareAnonymousJourney(page);
     await page.goto("/get-a-quote");
 
     await expect(page.getByRole("heading", { name: "Get a quote" })).toBeVisible();
-    // Turnstile (test key) solves itself; the session is ready once the
+    // The stubbed widget resolves immediately; the session is ready once the
     // challenge slot disappears from step 1.
     await expect(page.getByText("Preparing your form…")).toBeHidden({ timeout: 30_000 });
     await expect(page.getByTestId("turnstile-widget")).toHaveCount(0, { timeout: 30_000 });
