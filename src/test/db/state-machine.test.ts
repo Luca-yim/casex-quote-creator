@@ -78,10 +78,16 @@ describe("quote state machine (database guard)", () => {
     const id = await newDraft();
     if (!id) return;
     await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
+    const { data: whoami, error: whoamiErr } = await actors.estimator!.client.rpc("current_user_role" as never);
+    console.log("estimator current_user_role():", whoami, whoamiErr);
+    const { data: userData } = await actors.estimator!.client.auth.getUser();
+    console.log("estimator auth.uid():", userData?.user?.id, "expected:", "fe3a6f78-949a-4cc1-995e-7d2d5ec72877");
     const { error } = await actors.estimator!.client
       .from("quotes")
       .update({ state: "under_review" })
       .eq("id", id);
+    console.log("update error (A):", JSON.stringify(error));
+
     expect(error).toBeNull();
     expect((await readQuote(actors.estimator!, id, "state"))?.["state"]).toBe("under_review");
   });
