@@ -17,6 +17,7 @@
  */
 import { createClient, type Session } from "@supabase/supabase-js";
 import { appendFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import dotenv from "dotenv";
 
 type PersonaKey = "REP" | "EXTERNAL" | "ESTIMATOR" | "ANON";
@@ -157,6 +158,7 @@ async function main(): Promise<void> {
   const anon = await mintAnonymous();
   results.push(["E2E_SESSION_ANON", JSON.stringify(anon)]);
   console.error(`minted E2E_SESSION_ANON (user ${anon.user.id})`);
+  debugClaims("ANON", anon.access_token);
 
   if (toGithubEnv) {
     const file = requireEnv("GITHUB_ENV");
