@@ -60,9 +60,9 @@ test.describe("authentication and role routing", () => {
   test("exposes the persona emails only to the signed-in user", async ({ page }) => {
     const { email } = credentials("rep");
     await signIn(page, "rep");
-    await expect(page.locator("body")).toContainText(email.split("@")[0]!, {
-      ignoreCase: true,
-      timeout: 20_000,
-    });
+    // Desktop Chrome is the only configured project, so the identity lives behind
+    // NavUserMenu ("User menu"). NavMobileMenu's trigger is "Open main menu".
+    await page.getByRole("button", { name: "User menu" }).click();
+    await expect(page.getByText(email)).toBeVisible({ timeout: 20_000 });
   });
 });
