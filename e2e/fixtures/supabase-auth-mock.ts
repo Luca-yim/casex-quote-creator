@@ -176,8 +176,6 @@ export async function stubTurnstile(page: Page): Promise<void> {
           reset: function () {},
           remove: function () {},
         };
-        if (window.__turnstileOnLoad) window.__turnstileOnLoad();
-        window.dispatchEvent(new Event('turnstile-loaded'));
       `,
     }),
   );
