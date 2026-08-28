@@ -1,5 +1,10 @@
-import { test, type Page } from "@playwright/test";
-import { mockSupabaseAuth, realSessionFromEnv, stubTurnstile } from "./supabase-auth-mock";
+import { type Page } from "@playwright/test";
+import {
+  mockSupabaseAuth,
+  realSessionFromEnv,
+  requireSessionForAppProject,
+  stubTurnstile,
+} from "./supabase-auth-mock";
 
 /** Stable synthetic identity for the anonymous lead-intake journey. */
 export const ANON_USER = {
