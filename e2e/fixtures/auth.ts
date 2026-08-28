@@ -99,8 +99,8 @@ export function requireRealSession(persona: Persona): void {
   requireSessionForAppProject(SESSION_ENV_KEY[persona]);
 }
 
-/** Diagnostic switch: `E2E_DEBUG_AUTH=1` turns on the real-session tracing. */
-const DEBUG_AUTH = process.env["E2E_DEBUG_AUTH"] === "1";
+/** Diagnostic switch: `E2E_DEBUG_AUTH=1|true` turns on the real-session tracing. */
+const DEBUG_AUTH = process.env["E2E_DEBUG_AUTH"] === "1" || process.env["E2E_DEBUG_AUTH"] === "true";
 
 /** Polls client-side state so a stuck sign-in is visible, not just a timeout. */
 async function traceClientState(page: Page, persona: Persona, seconds = 20): Promise<void> {

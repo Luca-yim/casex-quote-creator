@@ -10,6 +10,7 @@ jobs:
     timeout-minutes: 30
     env:
       CI: "true"
+      E2E_DEBUG_AUTH: "true"
       # App project (NOT the Lovable Cloud project). Publishable values are public.
       VITE_APP_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       VITE_APP_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_PUBLISHABLE_KEY }}
