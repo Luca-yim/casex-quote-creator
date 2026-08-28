@@ -15,14 +15,14 @@ const SUPABASE_URL =
   (import.meta.env['VITE_APP_SUPABASE_URL'] as string | undefined) ??
   "https://lsmrxbpvmvrzpbtjqygh.supabase.co";
 
-/** Fallback: the publishable (anon) key for `lsmrxbpvmvrzpbtjqygh`. Safe to ship — it is a public key. */
-const FALLBACK_PUBLISHABLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzbXJ4YnB2bXZyenBidGpxeWdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNjE0NDYsImV4cCI6MjEwMjYzNzQ0Nn0.4kz3ho9thrJFEKzlkP6ttkl3O0IKCeLaLttU7JVY6jI";
-
+/**
+ * Publishable (anon) key for the app project. There is deliberately NO
+ * hardcoded fallback: a key committed to source cannot be rotated after an
+ * exposure, so it must always come from the environment.
+ */
 const SUPABASE_PUBLISHABLE_KEY =
   (import.meta.env['VITE_APP_SUPABASE_PUBLISHABLE_KEY'] as string | undefined) ??
-  (import.meta.env['APP_SUPABASE_PUBLISHABLE_KEY'] as string | undefined) ??
-  FALLBACK_PUBLISHABLE_KEY;
+  (import.meta.env['APP_SUPABASE_PUBLISHABLE_KEY'] as string | undefined);
 
 export type TypedSupabaseClient = SupabaseClient<Database>;
 
@@ -32,9 +32,10 @@ function createTypedClient(): TypedSupabaseClient {
   if (!SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
       "Missing VITE_APP_SUPABASE_PUBLISHABLE_KEY. Add your Supabase publishable " +
-        "key (sb_publishable_...) in the project environment settings.",
+        "key (sb_publishable_...) to .env / your environment settings.",
     );
   }
+
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
