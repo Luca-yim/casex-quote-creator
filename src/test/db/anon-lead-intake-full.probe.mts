@@ -89,6 +89,86 @@ async function main() {
     );
   }
 
+  // rep sign-in (needed early to source real fixture ids for step 2c)
+  const rep = client();
+  const repAuth = await rep.auth.signInWithPassword({
+    email: process.env["TEST_USER_REP_EMAIL"] ?? "",
+    password: process.env["TEST_USER_REP_PASSWORD"] ?? "",
+  });
+  const repOk = !repAuth.error;
+  if (!repOk) console.warn("! rep sign-in failed:", repAuth.error?.message);
+
+  // 2c. tamper attempt: set all 8 internal-workflow columns at once
+  const TAMPERED = [
+    "status",
+    "lead_score",
+    "confidence_pct",
+    "claimed_by",
+    "claimed_at",
+    "assigned_rep_id",
+    "converted_quote_id",
+    "duplicate_of_lead_id",
+  ] as const;
+  const SAFE_DEFAULTS: Record<string, unknown> = {
+    status: "new_lead",
+    lead_score: null,
+    confidence_pct: null,
+    claimed_by: null,
+    claimed_at: null,
+    assigned_rep_id: null,
+    converted_quote_id: null,
+    duplicate_of_lead_id: null,
+  };
+
+  if (repOk) {
+    const repProfileId = repAuth.data.user?.id ?? null;
+    const quoteRes = await rep.rpc("quotes_scoped");
+    const quoteId = Array.isArray(quoteRes.data) && quoteRes.data.length > 0
+      ? (quoteRes.data[0] as { id: string }).id
+      : null;
+    console.log(`\nSTEP 2c fixtures: rep profile id = ${repProfileId}, quote id = ${quoteId}`);
+
+    const rowC = payload(anonId, {
+      status: "qualified",
+      lead_score: 100,
+      confidence_pct: 99,
+      claimed_by: repProfileId,
+      claimed_at: new Date().toISOString(),
+      assigned_rep_id: repProfileId,
+      converted_quote_id: quoteId,
+      duplicate_of_lead_id: rowA.id,
+    });
+    const insC = await anon.from("lead_intakes").insert(rowC);
+    if (insC.error) {
+      console.log(`! STEP 2c tampered insert REJECTED: ${insC.error.message}`);
+    } else {
+      created.push(rowC.id);
+      const readC = await anon.from("lead_intakes").select("*").eq("id", rowC.id).maybeSingle();
+      if (!readC.data) {
+        console.error("✗ STEP 2c read-back failed:", readC.error?.message ?? "no row");
+      } else {
+        console.log("\n--- STEP 2c: tampered columns as stored ---");
+        let allSafe = true;
+        for (const col of TAMPERED) {
+          const actual = (readC.data as Record<string, unknown>)[col];
+          const expected = SAFE_DEFAULTS[col];
+          const safe = JSON.stringify(actual) === JSON.stringify(expected);
+          if (!safe) allSafe = false;
+          console.log(
+            `  ${safe ? "✓" : "✗"} ${col.padEnd(22)} = ${describe(actual)}  (expected ${describe(expected)})`,
+          );
+        }
+        console.log(
+          allSafe
+            ? "\n✓ STEP 2c all 8 tampered values discarded — safe defaults stored"
+            : "\n✗ STEP 2c tampered values PERSISTED — insert policy needs a WITH CHECK",
+        );
+      }
+    }
+  } else {
+    console.warn("! STEP 2c skipped (no rep session for fixture ids)");
+  }
+
   // 3. anon full read-back
   const back = await anon.from("lead_intakes").select("*").eq("id", rowA.id).maybeSingle();
   if (!back.data) {
@@ -98,16 +178,10 @@ async function main() {
   }
 
   // 4. sales_rep read
-  const rep = client();
-  const repAuth = await rep.auth.signInWithPassword({
-    email: process.env["TEST_USER_REP_EMAIL"] ?? "",
-    password: process.env["TEST_USER_REP_PASSWORD"] ?? "",
-  });
-  let repOk = false;
-  if (repAuth.error) {
-    console.warn("! STEP 4 rep sign-in failed:", repAuth.error.message);
+  if (!repOk) {
+    console.warn("! STEP 4 skipped: rep sign-in failed");
   } else {
-    repOk = true;
+
     const repRead = await rep.from("lead_intakes").select("*").eq("id", rowA.id).maybeSingle();
     if (!repRead.data) {
       console.error("✗ STEP 4 rep read failed:", repRead.error?.message ?? "no row");
