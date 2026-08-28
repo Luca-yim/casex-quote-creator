@@ -20,9 +20,28 @@ import { appendFileSync } from "node:fs";
 
 type PersonaKey = "REP" | "EXTERNAL" | "ESTIMATOR" | "ANON";
 
-const SUPABASE_URL = requireEnv("SUPABASE_URL");
-const SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-const PUBLISHABLE_KEY = requireEnv("SUPABASE_PUBLISHABLE_KEY");
+/**
+ * The E2E stack targets the app's own Supabase project (VITE_APP_SUPABASE_*),
+ * which is NOT the auto-provisioned Lovable Cloud project exposed as
+ * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY. Resolve the app project first and
+ * refuse to run when the service-role key belongs to a different project —
+ * tokens minted against the wrong project produce 401s on every data read.
+ */
+const SUPABASE_URL = pick("E2E_SUPABASE_URL", "VITE_APP_SUPABASE_URL", "SUPABASE_URL");
+const PUBLISHABLE_KEY = pick(
+  "E2E_SUPABASE_PUBLISHABLE_KEY",
+  "VITE_APP_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+);
+const SERVICE_ROLE_KEY = pick("E2E_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");
+
+function pick(...names: string[]): string {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  throw new Error(`Missing one of: ${names.join(", ")}. This script is server-side only.`);
+}
 
 /** Email addresses of the seeded personas. */
 const PERSONA_EMAIL: Record<PersonaKey, string> = {
@@ -32,6 +51,11 @@ const PERSONA_EMAIL: Record<PersonaKey, string> = {
   // The public lead-intake journey runs as a real anonymous auth user.
   ANON: process.env["TEST_USER_ANON_EMAIL"] ?? "",
 };
+
+/** Project ref embedded in a Supabase URL, e.g. https://<ref>.supabase.co. */
+function projectRef(url: string): string {
+  return new URL(url).hostname.split(".")[0] ?? "";
+}
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -87,6 +111,15 @@ async function mintAnonymous(): Promise<Session> {
 }
 
 async function main(): Promise<void> {
+  const ref = projectRef(SUPABASE_URL);
+  const { data: probe, error: probeError } = await admin.auth.admin.listUsers({ perPage: 1 });
+  if (probeError || !probe) {
+    throw new Error(
+      `The service-role key does not work for project "${ref}" (${probeError?.message ?? "no response"}). ` +
+        "Set E2E_SUPABASE_SERVICE_ROLE_KEY to that project's service-role key.",
+    );
+  }
+
   const toGithubEnv = process.argv.includes("--github");
   const results: Array<[string, string]> = [];
 
