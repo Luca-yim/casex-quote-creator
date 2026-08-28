@@ -212,3 +212,31 @@ function tokenIssuer(sessionJson: string): string | null {
     return null;
   }
 }
+
+/**
+ * Diagnostic only: logs every network call the page makes (URL + status), plus
+ * whether each one was fulfilled by a mock. Enabled per-test, never by default.
+ */
+export function logNetwork(page: Page, tag: string): void {
+  page.on("request", (r) => {
+    console.log(`[${tag}] --> ${r.method()} ${r.url()}`);
+  });
+  page.on("response", (r) => {
+    console.log(`[${tag}] <-- ${r.status()} ${r.request().method()} ${r.url()}`);
+  });
+  page.on("requestfailed", (r) => {
+    console.log(`[${tag}] xxx FAILED ${r.method()} ${r.url()} :: ${r.failure()?.errorText}`);
+  });
+  page.on("console", (m) => {
+    console.log(`[${tag}] browser.${m.type()}: ${m.text()}`);
+  });
+}
+
+/** Diagnostic only: presence/shape of a session env var inside THIS process. */
+export function logSessionEnv(key: string): void {
+  const raw = process.env[key];
+  console.log(
+    `[env] ${key}: present=${!!raw} length=${raw?.length ?? 0} issuer=${raw ? tokenIssuer(raw) : "n/a"} ` +
+      `pid=${process.pid} VITE_APP_SUPABASE_URL=${process.env["VITE_APP_SUPABASE_URL"] ?? "(unset)"}`,
+  );
+}
