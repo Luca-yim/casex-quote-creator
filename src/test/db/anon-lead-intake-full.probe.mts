@@ -178,16 +178,10 @@ async function main() {
   }
 
   // 4. sales_rep read
-  const rep = client();
-  const repAuth = await rep.auth.signInWithPassword({
-    email: process.env["TEST_USER_REP_EMAIL"] ?? "",
-    password: process.env["TEST_USER_REP_PASSWORD"] ?? "",
-  });
-  let repOk = false;
-  if (repAuth.error) {
-    console.warn("! STEP 4 rep sign-in failed:", repAuth.error.message);
+  if (!repOk) {
+    console.warn("! STEP 4 skipped: rep sign-in failed");
   } else {
-    repOk = true;
+
     const repRead = await rep.from("lead_intakes").select("*").eq("id", rowA.id).maybeSingle();
     if (!repRead.data) {
       console.error("✗ STEP 4 rep read failed:", repRead.error?.message ?? "no row");
