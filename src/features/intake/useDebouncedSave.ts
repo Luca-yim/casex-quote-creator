@@ -95,10 +95,12 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       timerRef.current = null;
     }
     const patch = pendingRef.current;
+    const fields = pendingFieldsRef.current;
     pendingRef.current = {};
+    pendingFieldsRef.current = {};
     if (Object.keys(patch).length === 0) return;
     try {
-      await mutateAsync(patch);
+      await mutateAsync({ patch, fields });
       setHasPendingChanges(false);
     } catch {
       // Handled by onError. The queue was already drained, so the failed patch
@@ -112,6 +114,10 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       const next = mergePendingPatch(pendingRef.current, path, value);
       if (next === pendingRef.current) return;
       pendingRef.current = next;
+      pendingFieldsRef.current = {
+        ...pendingFieldsRef.current,
+        [path]: value,
+      } as Partial<Quote>;
       setHasPendingChanges(true);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
@@ -119,6 +125,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
         void flush();
       }, AUTOSAVE_DEBOUNCE_MS);
     },
+
     [flush],
   );
 
