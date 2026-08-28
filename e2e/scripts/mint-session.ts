@@ -17,6 +17,7 @@
  */
 import { createClient, type Session } from "@supabase/supabase-js";
 import { appendFileSync } from "node:fs";
+import dotenv from "dotenv";
 
 type PersonaKey = "REP" | "EXTERNAL" | "ESTIMATOR" | "ANON";
 
