@@ -1,5 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import {
+  logNetwork,
+  logSessionEnv,
   mockSupabaseAuth,
   realSessionFromEnv,
   requireSessionForAppProject,
@@ -97,10 +99,43 @@ export function requireRealSession(persona: Persona): void {
   requireSessionForAppProject(SESSION_ENV_KEY[persona]);
 }
 
+/** Diagnostic switch: `E2E_DEBUG_AUTH=1` turns on the real-session tracing. */
+const DEBUG_AUTH = process.env["E2E_DEBUG_AUTH"] === "1";
+
+/** Polls client-side state so a stuck sign-in is visible, not just a timeout. */
+async function traceClientState(page: Page, persona: Persona, seconds = 20): Promise<void> {
+  for (let t = 0; t <= seconds; t += 5) {
+    const snapshot = await page
+      .evaluate(() => {
+        const authKeys = Object.keys(window.localStorage).filter((k) => /auth-token/.test(k));
+        const stored = authKeys[0] ? window.localStorage.getItem(authKeys[0]) : null;
+        let userId: string | null = null;
+        try {
+          userId = stored ? (JSON.parse(stored).user?.id ?? null) : null;
+        } catch {
+          userId = "(unparseable)";
+        }
+        const body = document.body?.innerText?.replace(/\s+/g, " ").slice(0, 160) ?? "";
+        return { href: location.href, authKeys, userId, body };
+      })
+      .catch((e: unknown) => ({ error: String(e) }));
+    console.log(`[state ${persona} t+${t}s] ${JSON.stringify(snapshot)}`);
+    if (t < seconds) await page.waitForTimeout(5_000);
+  }
+}
+
 /** Signs a persona in through the login form, with the auth call mocked. */
 export async function signIn(page: Page, persona: Persona): Promise<void> {
+  if (DEBUG_AUTH) logSessionEnv(SESSION_ENV_KEY[persona]);
   requireRealSession(persona);
   const { email, password } = credentials(persona);
+  if (DEBUG_AUTH) {
+    logNetwork(page, persona);
+    console.log(`[signin ${persona}] credentials email=${email} passwordLength=${password.length}`);
+    console.log(
+      `[signin ${persona}] session source=${realSessionFromEnv(SESSION_ENV_KEY[persona]) ? "REAL env session" : "SYNTHETIC fallback"}`,
+    );
+  }
   await mockAuthFor(page, persona);
 
   await page.goto("/login");
@@ -108,6 +143,11 @@ export async function signIn(page: Page, persona: Persona): Promise<void> {
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  if (DEBUG_AUTH) console.log(`[signin ${persona}] clicked Sign in at ${new Date().toISOString()}`);
+
+  if (DEBUG_AUTH) {
+    await traceClientState(page, persona);
+  }
 
   await expect(page).toHaveURL(HOME_ROUTE[persona], { timeout: 45_000 });
 }
