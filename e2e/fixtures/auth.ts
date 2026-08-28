@@ -1,7 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
   mockSupabaseAuth,
   realSessionFromEnv,
+  requireSessionForAppProject,
   stubTurnstile,
 } from "./supabase-auth-mock";
 
@@ -93,10 +94,7 @@ export async function waitForLoginHydration(page: Page): Promise<void> {
  * never short-circuited server-side, so CI cannot mint one itself.
  */
 export function requireRealSession(persona: Persona): void {
-  test.skip(
-    !process.env[SESSION_ENV_KEY[persona]],
-    `Set ${SESSION_ENV_KEY[persona]} to a real session JSON to run authenticated journeys.`,
-  );
+  requireSessionForAppProject(SESSION_ENV_KEY[persona]);
 }
 
 /** Signs a persona in through the login form, with the auth call mocked. */

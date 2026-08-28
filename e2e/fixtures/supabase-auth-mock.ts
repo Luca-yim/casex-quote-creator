@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import { test, type Page, type Route } from "@playwright/test";
 
 /**
  * Network-level mocks for the Supabase auth endpoints.
@@ -179,4 +179,36 @@ export async function stubTurnstile(page: Page): Promise<void> {
       `,
     }),
   );
+}
+
+/**
+ * Skips the current test unless `key` holds a real session JSON minted against
+ * the same Supabase project the app talks to. A session from another project
+ * parses fine but every data read comes back 401 (`PGRST301`).
+ */
+export function requireSessionForAppProject(key: string): void {
+  const raw = process.env[key];
+  test.skip(!raw, `Set ${key} to a real session JSON to run authenticated journeys.`);
+  if (!raw) return;
+
+  const appUrl = process.env["VITE_APP_SUPABASE_URL"];
+  const issuer = tokenIssuer(raw);
+  test.skip(
+    !!appUrl && !!issuer && !issuer.startsWith(appUrl),
+    `${key} was minted against ${issuer}, but the app targets ${appUrl}. ` +
+      "Re-mint with E2E_SUPABASE_SERVICE_ROLE_KEY for the app's own project.",
+  );
+}
+
+/** `iss` claim of the access token inside a stored session JSON, if readable. */
+function tokenIssuer(sessionJson: string): string | null {
+  try {
+    const token = (JSON.parse(sessionJson) as { access_token?: string }).access_token;
+    const payload = token?.split(".")[1];
+    if (!payload) return null;
+    const claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as { iss?: string };
+    return claims.iss ?? null;
+  } catch {
+    return null;
+  }
 }
