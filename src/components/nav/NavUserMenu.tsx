@@ -22,8 +22,10 @@ export function NavUserMenu({ deactivated = false }: { deactivated?: boolean }) 
   const { profile, user, role, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const name = profile?.full_name ?? null;
+  const name = profile?.full_name?.trim() ? profile.full_name.trim() : null;
   const email = profile?.email ?? user?.email ?? null;
+  // Collapsed trigger shows one identity only: name preferred, email as fallback.
+  const identity = name ?? email ?? null;
 
   const handleSignOut = async () => {
     await signOut();
