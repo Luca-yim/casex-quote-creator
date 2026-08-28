@@ -4,6 +4,7 @@ import {
   anonClient,
   cleanupQuotes,
   draftPayload,
+  readQuote,
   signInAllActors,
   SKIP_REASON,
   type TestActors,
@@ -55,26 +56,21 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
   it("lets a rep create their own draft", async () => {
     if (!ready) return;
     const rep = actors.rep!;
-    const { data, error } = await rep.client
-      .from("quotes")
-      .insert(draftPayload(rep.userId))
-      .select("id, state, owner_id")
-      .single();
+    const payload = draftPayload(rep.userId);
+    const { error } = await rep.client.from("quotes").insert(payload);
     expect(error).toBeNull();
-    expect(data?.state).toBe("draft");
-    if (data?.id) created.push(data.id);
+    if (!error) created.push(payload.id);
+    const row = await readQuote(rep, payload.id, "id, state, owner_id");
+    expect(row?.["state"]).toBe("draft");
   });
 
   it("rejects a rep creating a quote owned by someone else", async () => {
     if (!ready) return;
     const rep = actors.rep!;
     const other = actors.estimator!.userId;
-    const { data, error } = await rep.client
-      .from("quotes")
-      .insert(draftPayload(rep.userId, { requested_by: other, owner_id: other }))
-      .select("id")
-      .single();
-    if (data?.id) created.push(data.id);
+    const payload = draftPayload(rep.userId, { requested_by: other, owner_id: other });
+    const { error } = await rep.client.from("quotes").insert(payload);
+    if (!error) created.push(payload.id);
     expect(error).not.toBeNull();
   });
 
@@ -82,17 +78,16 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     if (!ready) return;
     const repQuote = created[0];
     if (!repQuote) return;
-    const { data } = await actors.external!.client
-      .from("quotes")
-      .select("id")
-      .eq("id", repQuote)
-      .maybeSingle();
+    const data = await readQuote(actors.external!, repQuote, "id");
     expect(data).toBeNull();
   });
 
   it("lets an estimator read quotes they do not own", async () => {
     if (!ready) return;
-    const { error } = await actors.estimator!.client.from("quotes").select("id").limit(5);
+    const { error } = await actors.estimator!.client
+      .rpc("quotes_scoped")
+      .select("id")
+      .limit(5);
     expect(error).toBeNull();
   });
 
