@@ -145,6 +145,7 @@ async function main(): Promise<void> {
     const session = await mintForEmail(PERSONA_EMAIL[key]);
     results.push([`E2E_SESSION_${key}`, JSON.stringify(session)]);
     console.error(`minted E2E_SESSION_${key} for ${PERSONA_EMAIL[key]} (user ${session.user.id})`);
+    debugClaims(key, session.access_token);
   }
 
   const anon = await mintAnonymous();
