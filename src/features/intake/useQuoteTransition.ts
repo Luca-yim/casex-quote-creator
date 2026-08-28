@@ -76,20 +76,34 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
       const now = new Date().toISOString();
       const patch: Database["public"]["Tables"]["quotes"]["Update"] =
         { state: action.next } as Database["public"]["Tables"]["quotes"]["Update"];
+      // Mirrors `patch` in domain shape. The Data API no longer returns the
+      // updated row (SELECT on `public.quotes` is revoked so pricing columns
+      // can only leave through `quotes_scoped()`), so the client derives the
+      // post-write quote instead of reading the server echo.
+      const applied: Partial<Quote> = { state: action.next, updatedAt: now };
 
       switch (action.action) {
         case "submit_for_review":
           (patch as Record<string, unknown>)["submitted_at"] = now;
+          applied.submittedAt = now;
           break;
         case "start_review":
         case "mark_adjusted":
-          if (userId) (patch as Record<string, unknown>)["reviewed_by"] = userId;
+          if (userId) {
+            (patch as Record<string, unknown>)["reviewed_by"] = userId;
+            applied.reviewedBy = userId;
+          }
           break;
         case "approve":
           (patch as Record<string, unknown>)["approved_at"] = now;
-          if (userId) (patch as Record<string, unknown>)["approved_by"] = userId;
+          applied.approvedAt = now;
+          if (userId) {
+            (patch as Record<string, unknown>)["approved_by"] = userId;
+            applied.approvedBy = userId;
+          }
           if (input.assignRepId && input.assignRepId !== input.quote.ownerId) {
             (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+            applied.ownerId = input.assignRepId;
           }
           break;
         case "return_to_sales":
@@ -97,26 +111,25 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           // stamps are deliberately left untouched.
           if (input.assignRepId) {
             (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+            applied.ownerId = input.assignRepId;
           }
           if (userId) {
             (patch as Record<string, unknown>)["reviewed_by"] = userId;
             (patch as Record<string, unknown>)["last_reviewed_by"] = userId;
+            applied.reviewedBy = userId;
+            applied.lastReviewedBy = userId;
           }
 
           break;
         case "send_to_customer":
           (patch as Record<string, unknown>)["sent_at"] = now;
+          applied.sentAt = now;
           break;
         default:
           break;
       }
 
-      const { data, error } = await supabase
-        .from("quotes")
-        .update(patch)
-        .eq("id", quoteId)
-        .select("*")
-        .single();
+      const { error } = await supabase.from("quotes").update(patch).eq("id", quoteId);
 
       if (error) {
         throw Object.assign(new Error(error.message), {
@@ -125,7 +138,8 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
         });
       }
 
-      const updated = rowToQuote(data);
+      const updated: Quote = { ...input.quote, ...applied };
+
 
       // Return notes are visible to whoever requested the quote.
       if (action.action === "return_to_sales" && input.note && userId) {
