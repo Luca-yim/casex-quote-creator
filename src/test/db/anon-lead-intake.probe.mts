@@ -34,7 +34,7 @@ async function main() {
   const row = {
     id,
     submitted_by_anon_id: data.user.id,
-    company_name: "Probe Co",
+    organization_name: "Probe Co",
     contact_name: "Probe Contact",
     contact_email: `probe+${Date.now()}@example.com`,
   };
