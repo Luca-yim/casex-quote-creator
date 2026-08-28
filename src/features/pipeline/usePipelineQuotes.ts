@@ -105,8 +105,8 @@ export function usePipelineQuotes({
       // mirrored in the function's WHERE clause in Supabase — the function does
       // not inherit policy changes automatically.
       let query = supabase
-        .rpc("quotes_scoped")
-        .select(EMBED, { count: "exact" })
+        .rpc("quotes_scoped", {}, { count: "exact" })
+        .select(EMBED)
         .in("state", effectiveStates(filters));
 
       if (filters.vertical) query = query.eq("vertical", filters.vertical);
