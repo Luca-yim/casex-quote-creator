@@ -481,6 +481,24 @@ export type Database = {
         }
         Relationships: []
       }
+
+      /**
+       * Row shape returned by the read-only `public.quote_versions_scoped()`
+       * function: the same columns as `quote_versions`, with pricing keys
+       * removed from the `snapshot` jsonb for roles that must not see them.
+       */
+      quote_versions_scoped: {
+        Row: {
+          id: string
+          quote_id: string
+          version_number: number
+          snapshot: Json
+          change_reason: string | null
+          changed_by: string | null
+          changed_at: string
+        }
+        Relationships: []
+      }
     }
 
     Functions: {
