@@ -40,10 +40,13 @@ export type AppNotification = {
 
 export const notificationsQueryKey = ["notifications"] as const;
 
-async function fetchNotifications(limit: number): Promise<AppNotification[]> {
+async function fetchNotifications(userId: string, limit: number): Promise<AppNotification[]> {
+  // RLS already scopes rows to the caller; the explicit filter is
+  // defense-in-depth and makes the query's intent readable on its own.
   const { data, error } = await db
     .from("notifications")
     .select("*, quote:quotes(id, name, customer_name, state)")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
