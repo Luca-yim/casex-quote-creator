@@ -38,7 +38,7 @@ export function NavMobileMenu({ deactivated = false }: { deactivated?: boolean }
           variant="ghost"
           size="icon"
           className="min-h-11 min-w-11 md:hidden"
-          aria-label={identity ? `User menu — ${identity}` : "User menu"}
+          aria-label={identity ? `Open main menu — ${identity}` : "Open main menu"}
           title={identity ?? undefined}
           aria-expanded={open}
         >
