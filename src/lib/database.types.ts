@@ -495,7 +495,20 @@ export type Database = {
         Returns: Database["public"]["Views"]["quotes_scoped"]["Row"][]
 
       }
+      /**
+       * Server-side state machine for quotes. Validates the requested
+       * transition against the caller's role and the current state, and is
+       * the only supported way to change `public.quotes.state`.
+       */
+      transition_quote: {
+        Args: {
+          p_quote_id: string
+          p_new_state: Database["public"]["Tables"]["quotes"]["Row"]["state"]
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
     }
+
 
     Enums: {
       [_ in never]: never

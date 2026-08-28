@@ -6,9 +6,13 @@ import { makeQuote } from "@/lib/calculation-engine/__test-fixtures__/catalog";
 import { availableActions } from "@/lib/quote-workflow";
 import type { QueryClient } from "@tanstack/react-query";
 
-const single = vi.fn();
+/** Result of the `transition_quote()` RPC, which now owns state changes. */
+const rpcResult = vi.fn();
+const rpc = vi.fn((_fn: string, _args: Record<string, unknown>) => rpcResult());
+/** Result of the plain field-stamp UPDATE that accompanies a transition. */
+const stampResult = vi.fn();
 const update = vi.fn((_patch: Record<string, unknown>) => ({
-  eq: () => ({ select: () => ({ single }) }),
+  eq: () => stampResult(),
 }));
 
 const commentInsert = vi.fn();
@@ -18,6 +22,7 @@ vi.mock("@/lib/supabase", () => ({
     from: vi.fn((table: string) =>
       table === "quote_comments" ? { insert: commentInsert } : { update },
     ),
+    rpc: (...args: [string, Record<string, unknown>]) => rpc(...args),
   },
 }));
 
@@ -66,10 +71,8 @@ function setup(queryClient: QueryClient = createTestQueryClient()) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  single.mockResolvedValue({
-    data: { id: "q1", state: "approved", owner_id: "rep-1" },
-    error: null,
-  });
+  rpcResult.mockResolvedValue({ data: null, error: null });
+  stampResult.mockResolvedValue({ data: null, error: null });
   commentInsert.mockResolvedValue({ error: null });
   writeVersionSnapshot.mockResolvedValue({ version_number: 2 });
 });
@@ -85,8 +88,11 @@ describe("successful transitions", () => {
       assignRepName: "Rep One",
     });
     await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
+    expect(rpc).toHaveBeenCalledWith("transition_quote", {
+      p_quote_id: "q1",
+      p_new_state: "approved",
+    });
     const patch = update.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(patch["state"]).toBe("approved");
     expect(patch["approved_by"]).toBe("user-9");
     expect(patch["approved_at"]).toBeTruthy();
     expect(patch["owner_id"]).toBe("rep-1");
@@ -198,7 +204,7 @@ describe("successful transitions", () => {
 
 describe("failure handling", () => {
   it("surfaces an RLS denial to the caller as an error state", async () => {
-    single.mockResolvedValue({
+    rpcResult.mockResolvedValue({
       data: null,
       error: { message: "new row violates row-level security policy", code: "42501" },
     });
@@ -217,7 +223,7 @@ describe("failure handling", () => {
   });
 
   it("does not write a snapshot when the update fails", async () => {
-    single.mockResolvedValue({ data: null, error: { message: "denied" } });
+    rpcResult.mockResolvedValue({ data: null, error: { message: "denied" } });
     const { hook } = setup();
     hook.result.current.mutate({
       action: submitAction,

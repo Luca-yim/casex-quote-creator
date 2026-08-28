@@ -122,3 +122,20 @@ export async function cleanupQuotes(actor: TestActor, ids: string[]): Promise<vo
   if (ids.length === 0) return;
   await actor.client.from("quotes").delete().in("id", ids);
 }
+
+/**
+ * Performs a quote state transition the way the app does: through the
+ * server-side state machine `transition_quote()`, never a direct UPDATE of
+ * `quotes.state`.
+ */
+export async function transitionQuote(
+  actor: TestActor,
+  quoteId: string,
+  newState: string,
+): Promise<{ error: { message: string; code?: string } | null }> {
+  const { error } = await actor.client.rpc("transition_quote", {
+    p_quote_id: quoteId,
+    p_new_state: newState,
+  });
+  return { error: error ? { message: error.message, code: error.code } : null };
+}

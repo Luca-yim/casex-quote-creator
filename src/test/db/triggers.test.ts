@@ -5,6 +5,7 @@ import {
   draftPayload,
   signInAllActors,
   SKIP_REASON,
+  transitionQuote,
   readQuote,
   type TestActors,
 } from "./supabase-clients";
@@ -83,8 +84,9 @@ describe("database triggers", () => {
     if (!id) return;
     await actors.rep!.client
       .from("quotes")
-      .update({ state: "submitted_for_review", submitted_at: new Date().toISOString() })
+      .update({ submitted_at: new Date().toISOString() })
       .eq("id", id);
+    await transitionQuote(actors.rep!, id, "submitted_for_review");
     const note = await waitForNotification("estimator", id);
     expect(note).not.toBeNull();
   });
@@ -93,10 +95,9 @@ describe("database triggers", () => {
     if (!ready) return;
     const id = await newDraft();
     if (!id) return;
-    const est = actors.estimator!.client;
-    await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "under_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "approved" }).eq("id", id);
+    await transitionQuote(actors.rep!, id, "submitted_for_review");
+    await transitionQuote(actors.estimator!, id, "under_review");
+    await transitionQuote(actors.estimator!, id, "approved");
     const note = await waitForNotification("rep", id);
     expect(note).not.toBeNull();
     expect(String(note?.["type"])).toMatch(/approved|state/i);
@@ -106,7 +107,7 @@ describe("database triggers", () => {
     if (!ready) return;
     const id = await newDraft();
     if (!id) return;
-    await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
+    await transitionQuote(actors.rep!, id, "submitted_for_review");
     const note = await waitForNotification("estimator", id);
     if (!note) return;
     expect(note["read_at"] ?? null).toBeNull();
