@@ -1,4 +1,5 @@
 import { test, type Page, type Route } from "@playwright/test";
+import { createHash } from "node:crypto";
 
 /**
  * Network-level mocks for the Supabase auth endpoints.
