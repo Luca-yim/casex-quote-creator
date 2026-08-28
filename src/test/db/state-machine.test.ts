@@ -117,7 +117,7 @@ describe("quote state machine (database guard)", () => {
     console.log("estimator auth.uid():", userData?.user?.id, "expected:", "fe3a6f78-949a-4cc1-995e-7d2d5ec72877");
     const { error } = await actors.estimator!.client
       .from("quotes")
-      .update({ state: "under_review" })
+      .update({ state: "under_review", reviewed_by: actors.estimator!.userId })
       .eq("id", id)
       .select("id");
     console.log("update error (A):", JSON.stringify(error));
@@ -132,13 +132,17 @@ describe("quote state machine (database guard)", () => {
     if (!id) return;
     const est = actors.estimator!.client;
     await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "under_review" }).eq("id", id);
-    await est.from("quotes").update({ state: "estimator_adjusted" }).eq("id", id);
+    await est.from("quotes").update({ state: "under_review", reviewed_by: actors.estimator!.userId }).eq("id", id);
+    await est.from("quotes").update({ state: "estimator_adjusted", reviewed_by: actors.estimator!.userId }).eq("id", id);
     const { data: whoami, error: whoamiErr } = await est.rpc("current_user_role" as never);
     console.log("estimator current_user_role():", whoami, whoamiErr);
     const { data: userData } = await est.auth.getUser();
     console.log("estimator auth.uid():", userData?.user?.id, "expected:", "fe3a6f78-949a-4cc1-995e-7d2d5ec72877");
-    const { error } = await est.from("quotes").update({ state: "draft" }).eq("id", id).select("id");
+    const { error } = await est
+      .from("quotes")
+      .update({ state: "draft", reviewed_by: actors.estimator!.userId })
+      .eq("id", id)
+      .select("id");
     console.log("update error (B):", JSON.stringify(error));
 
     expect(error).toBeNull();
