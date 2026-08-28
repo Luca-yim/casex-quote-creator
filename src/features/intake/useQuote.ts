@@ -70,7 +70,12 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         throw new Error("Your role cannot create quotes from this page.");
       }
 
+      // The id is generated client-side so the insert never needs a
+      // `.select()` echo: SELECT on `public.quotes` is revoked so pricing
+      // columns can only leave the database through `quotes_scoped()`.
+      const now = new Date().toISOString();
       const insertPayload = {
+        id: crypto.randomUUID(),
         requested_by: userId,
         // External requests have no owner until an estimator assigns one.
         owner_id: role === "external" ? null : userId,
@@ -91,13 +96,17 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         const result = await supabase
           .from("quotes")
           .insert(insertPayload)
-          .select("*")
-          .abortSignal(controller.signal)
-          .single();
+          .abortSignal(controller.signal);
         devLog("[quote-create] Supabase response:", result);
 
         if (result.error) throw new Error(result.error.message);
-        return rowToQuote(result.data);
+        // Built from the payload we sent plus the timestamps the row defaults
+        // to, rather than read back from Postgres.
+        return rowToQuote({
+          ...insertPayload,
+          created_at: now,
+          updated_at: now,
+        } as never);
       } catch (error) {
         if (controller.signal.aborted) {
           throw new Error("Quote creation timed out after 5 seconds. Please try again.");
@@ -106,6 +115,7 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
       } finally {
         window.clearTimeout(timeoutId);
       }
+
     },
     onSuccess: (quote) => {
       queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);

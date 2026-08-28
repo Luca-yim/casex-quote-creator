@@ -31,24 +31,24 @@ export function useDeleteQuote() {
   return useMutation({
     mutationFn: async (quoteId: string) => {
       // PostgREST DELETE returns no body by default, so an RLS-filtered
-      // zero-row delete looks identical to success. `.select()` forces the
-      // affected rows back so we can detect that case.
-      const { data, error } = await supabase
+      // zero-row delete looks identical to success. `count: "exact"` reports
+      // the number of affected rows without a RETURNING clause — the base
+      // table grants no SELECT, so `.select()` would fail outright.
+      const { count, error } = await supabase
         .from("quotes")
-        .delete()
+        .delete({ count: "exact" })
         .eq("id", quoteId)
-        .eq("state", "draft")
-        .select("id")
-        .maybeSingle();
-      devLog("[delete-quote] data:", data, "error:", error);
+        .eq("state", "draft");
+      devLog("[delete-quote] count:", count, "error:", error);
       if (error) throw error;
-      if (!data) {
+      if (!count) {
         throw new Error(
           "Unable to delete this draft. It may have been submitted for review, deleted already, or you may not have permission.",
         );
       }
-      return data.id;
+      return quoteId;
     },
+
 
     onSuccess: (quoteId) => {
       queryClient.removeQueries({ queryKey: quoteDetailKey(quoteId) });

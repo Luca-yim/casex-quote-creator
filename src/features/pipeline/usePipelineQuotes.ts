@@ -100,9 +100,13 @@ export function usePipelineQuotes({
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const order = dbSort(sort);
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       let query = supabase
-        .from("quotes")
-        .select(EMBED, { count: "exact" })
+        .rpc("quotes_scoped", {}, { count: "exact" })
+        .select(EMBED)
         .in("state", effectiveStates(filters));
 
       if (filters.vertical) query = query.eq("vertical", filters.vertical);

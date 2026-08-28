@@ -50,21 +50,16 @@ afterAll(async () => {
 describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure", () => {
   it("nulls pricing columns for the external requester", async () => {
     if (!ready || !actors.external) return;
-    const { data, error } = await actors.external.client
-      .from("quotes")
-      .insert(
-        draftPayload(actors.external.userId, {
-          owner_id: null,
-          margin_percent: 27,
-          margin_justification: "external visibility check",
-        }),
-      )
-      .select("id")
-      .single();
+    const payload = draftPayload(actors.external.userId, {
+      owner_id: null,
+      margin_percent: 27,
+      margin_justification: "external visibility check",
+    });
+    const { error } = await actors.external.client.from("quotes").insert(payload);
     if (error) throw new Error(error.message);
-    created.push(data.id);
+    created.push(payload.id);
 
-    const row = await readScoped(actors.external, data.id);
+    const row = await readScoped(actors.external, payload.id);
     expect(row).not.toBeNull();
     expect(row?.margin_percent).toBeNull();
     expect(row?.margin_justification).toBeNull();
@@ -72,20 +67,15 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
 
   it("nulls pricing columns for a rep on their own draft", async () => {
     if (!ready || !actors.rep) return;
-    const { data, error } = await actors.rep.client
-      .from("quotes")
-      .insert(
-        draftPayload(actors.rep.userId, {
-          margin_percent: 22,
-          margin_justification: "draft stage check",
-        }),
-      )
-      .select("id")
-      .single();
+    const payload = draftPayload(actors.rep.userId, {
+      margin_percent: 22,
+      margin_justification: "draft stage check",
+    });
+    const { error } = await actors.rep.client.from("quotes").insert(payload);
     if (error) throw new Error(error.message);
-    created.push(data.id);
+    created.push(payload.id);
 
-    const row = await readScoped(actors.rep, data.id);
+    const row = await readScoped(actors.rep, payload.id);
     expect(row).not.toBeNull();
     expect(row?.margin_percent).toBeNull();
     expect(row?.margin_justification).toBeNull();
@@ -93,28 +83,23 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
 
   it("shows margin_percent but not the justification to a rep once approved", async () => {
     if (!ready || !actors.rep || !actors.estimator) return;
-    const { data, error } = await actors.rep.client
-      .from("quotes")
-      .insert(
-        draftPayload(actors.rep.userId, {
-          margin_percent: 20,
-          margin_justification: "approved stage check",
-        }),
-      )
-      .select("id")
-      .single();
+    const payload = draftPayload(actors.rep.userId, {
+      margin_percent: 20,
+      margin_justification: "approved stage check",
+    });
+    const { error } = await actors.rep.client.from("quotes").insert(payload);
     if (error) throw new Error(error.message);
-    created.push(data.id);
+    created.push(payload.id);
 
     // Walk the quote to `approved` through the normal transitions.
     await actors.rep.client
       .from("quotes")
       .update({ state: "submitted_for_review", submitted_at: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", payload.id);
     await actors.estimator.client
       .from("quotes")
       .update({ state: "under_review", reviewed_by: actors.estimator.userId })
-      .eq("id", data.id);
+      .eq("id", payload.id);
     const { error: approveError } = await actors.estimator.client
       .from("quotes")
       .update({
@@ -122,10 +107,10 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
         approved_by: actors.estimator.userId,
         approved_at: new Date().toISOString(),
       })
-      .eq("id", data.id);
+      .eq("id", payload.id);
     if (approveError) throw new Error(approveError.message);
 
-    const row = await readScoped(actors.rep, data.id);
+    const row = await readScoped(actors.rep, payload.id);
     expect(row).not.toBeNull();
     expect(row?.margin_percent).not.toBeNull();
     expect(row?.margin_justification).toBeNull();
@@ -133,22 +118,17 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
 
   it("shows both pricing columns to an estimator", async () => {
     if (!ready || !actors.rep || !actors.estimator) return;
-    const { data, error } = await actors.rep.client
-      .from("quotes")
-      .insert(
-        draftPayload(actors.rep.userId, {
-          state: "submitted_for_review",
-          submitted_at: new Date().toISOString(),
-          margin_percent: 28,
-          margin_justification: "estimator visibility check",
-        }),
-      )
-      .select("id")
-      .single();
+    const payload = draftPayload(actors.rep.userId, {
+      state: "submitted_for_review",
+      submitted_at: new Date().toISOString(),
+      margin_percent: 28,
+      margin_justification: "estimator visibility check",
+    });
+    const { error } = await actors.rep.client.from("quotes").insert(payload);
     if (error) throw new Error(error.message);
-    created.push(data.id);
+    created.push(payload.id);
 
-    const row = await readScoped(actors.estimator, data.id);
+    const row = await readScoped(actors.estimator, payload.id);
     expect(row).not.toBeNull();
     expect(row?.margin_percent).not.toBeNull();
     expect(row?.margin_justification).not.toBeNull();

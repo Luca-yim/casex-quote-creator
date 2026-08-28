@@ -3,7 +3,7 @@ import { quoteDetailKey } from "./useQuote";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { QUOTE_FIELD_COLUMNS, rowToQuote } from "./quote-mapper";
+import { QUOTE_FIELD_COLUMNS } from "./quote-mapper";
 import type { Quote } from "@/types/quote";
 import { describeQuoteWriteError } from "@/lib/supabase-errors";
 
@@ -36,6 +36,13 @@ export interface DebouncedSave {
   hasPendingChanges: boolean;
 }
 
+interface SaveInput {
+  /** Column-keyed patch sent to PostgREST. */
+  patch: Record<string, unknown>;
+  /** The same values in domain (camelCase) shape, for the cache update. */
+  fields: Partial<Quote>;
+}
+
 /**
  * Debounced, batched auto-save for a quote draft. Invalid drafts still save —
  * validation only gates submission.
@@ -43,25 +50,33 @@ export interface DebouncedSave {
 export function useDebouncedSave(quoteId: string): DebouncedSave {
   const queryClient = useQueryClient();
   const pendingRef = useRef<Record<string, unknown>>({});
+  const pendingFieldsRef = useRef<Partial<Quote>>({});
   const timerRef = useRef<number | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
 
   const mutation = useMutation({
-    mutationFn: async (patch: Record<string, unknown>): Promise<Quote> => {
-      const { data, error } = await supabase
+    mutationFn: async ({ patch, fields }: SaveInput): Promise<Partial<Quote>> => {
+      // No `.select()` echo: SELECT on `public.quotes` is revoked so pricing
+      // columns can only leave the database through `quotes_scoped()`. The
+      // cache is updated from the patch we just sent.
+      const { error } = await supabase
         .from("quotes")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update(patch as any)
-        .eq("id", quoteId)
-        .select("*")
-        .single();
+        .eq("id", quoteId);
       if (error) throw Object.assign(new Error(error.message), { code: error.code });
-      return rowToQuote(data);
+      return fields;
     },
-    onSuccess: (quote) => {
-      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
+    onSuccess: (fields) => {
+      queryClient.setQueriesData<Quote>(
+        { queryKey: quoteDetailKey(quoteId) },
+        (previous) =>
+          previous
+            ? { ...previous, ...fields, updatedAt: new Date().toISOString() }
+            : previous,
+      );
       setLastSavedAt(new Date());
     },
     onError: (error) => {
@@ -71,6 +86,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
     },
   });
 
+
   const { mutateAsync } = mutation;
 
   const flush = useCallback(async () => {
@@ -79,10 +95,12 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       timerRef.current = null;
     }
     const patch = pendingRef.current;
+    const fields = pendingFieldsRef.current;
     pendingRef.current = {};
+    pendingFieldsRef.current = {};
     if (Object.keys(patch).length === 0) return;
     try {
-      await mutateAsync(patch);
+      await mutateAsync({ patch, fields });
       setHasPendingChanges(false);
     } catch {
       // Handled by onError. The queue was already drained, so the failed patch
@@ -96,6 +114,10 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       const next = mergePendingPatch(pendingRef.current, path, value);
       if (next === pendingRef.current) return;
       pendingRef.current = next;
+      pendingFieldsRef.current = {
+        ...pendingFieldsRef.current,
+        [path]: value,
+      } as Partial<Quote>;
       setHasPendingChanges(true);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
@@ -103,6 +125,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
         void flush();
       }, AUTOSAVE_DEBOUNCE_MS);
     },
+
     [flush],
   );
 

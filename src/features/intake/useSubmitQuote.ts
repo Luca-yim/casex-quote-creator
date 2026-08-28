@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { quoteDetailKey } from "./useQuote";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { rowToQuote } from "./quote-mapper";
+
 import type { Quote } from "@/types/quote";
 import { describeQuoteWriteError } from "@/lib/supabase-errors";
 import { writeVersionSnapshot } from "@/lib/version-snapshot";
@@ -17,13 +17,14 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
   return useMutation({
     mutationFn: async (quote: Quote): Promise<Quote> => {
       const now = new Date().toISOString();
-      const { data, error } = await supabase
+      // No `.select()` echo: SELECT on `public.quotes` is revoked so pricing
+      // columns can only leave the database through `quotes_scoped()`. The
+      // post-write quote is derived from the patch we just sent.
+      const { error } = await supabase
         .from("quotes")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({ state: "submitted_for_review", submitted_at: now } as any)
-        .eq("id", quoteId)
-        .select("*")
-        .single();
+        .eq("id", quoteId);
       if (error) throw Object.assign(new Error(error.message), { code: error.code });
 
       // Fire-and-forget: the audit snapshot must not hold the UI (and the
@@ -43,7 +44,12 @@ export function useSubmitQuote(quoteId: string, userId: string | undefined) {
         });
       });
 
-      return rowToQuote(data);
+      return {
+        ...quote,
+        state: "submitted_for_review",
+        submittedAt: now,
+        updatedAt: now,
+      };
     },
     onSuccess: (quote) => {
       queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);

@@ -71,8 +71,12 @@ export function usePipelineStats({
     staleTime: 60_000,
     gcTime: 300_000,
     queryFn: async () => {
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       let query = supabase
-        .from("quotes")
+        .rpc("quotes_scoped")
         .select("*")
         .in("state", effectiveStates(filters));
 
