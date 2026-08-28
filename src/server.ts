@@ -61,6 +61,9 @@ const CSP = [
   "media-src 'self' data: blob:",
   "worker-src 'self' blob:",
   "connect-src 'self' https: wss: blob: data:",
+  // Cloudflare Turnstile renders its challenge in an iframe from this origin.
+  "frame-src 'self' https://challenges.cloudflare.com",
+  "child-src 'self' https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
