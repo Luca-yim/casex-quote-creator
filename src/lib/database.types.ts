@@ -514,6 +514,15 @@ export type Database = {
 
       }
       /**
+       * Role-aware, read-only projection of `public.quote_versions`, returning
+       * `setof public.quote_versions` with pricing keys stripped from the
+       * snapshot jsonb for roles that must not see them.
+       */
+      quote_versions_scoped: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Views"]["quote_versions_scoped"]["Row"][]
+      }
+      /**
        * Server-side state machine for quotes. Validates the requested
        * transition against the caller's role and the current state, and is
        * the only supported way to change `public.quotes.state`.
