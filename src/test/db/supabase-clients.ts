@@ -81,9 +81,16 @@ export const SKIP_REASON =
   "DB tests skipped — set TEST_USER_*_EMAIL / _PASSWORD in .env.test.local " +
   "with real accounts (see `npm run test:db:setup`).";
 
-/** Minimal valid draft payload owned by `userId`. */
+/**
+ * Minimal valid draft payload owned by `userId`.
+ *
+ * The id is generated client-side: `authenticated` has no SELECT on
+ * `public.quotes` (pricing columns may only leave through `quotes_scoped()`),
+ * so an insert can never read its own row back with `.select()`.
+ */
 export function draftPayload(userId: string, overrides: Record<string, unknown> = {}) {
   return {
+    id: crypto.randomUUID(),
     name: `DB test quote ${Date.now()}`,
     requested_by: userId,
     owner_id: userId,
@@ -94,6 +101,21 @@ export function draftPayload(userId: string, overrides: Record<string, unknown> 
     ...overrides,
   };
 }
+
+/** Reads columns of one quote through the role-scoped read function. */
+export async function readQuote(
+  actor: TestActor,
+  quoteId: string,
+  columns: string,
+): Promise<Record<string, unknown> | null> {
+  const { data } = await actor.client
+    .rpc("quotes_scoped")
+    .select(columns)
+    .eq("id", quoteId)
+    .maybeSingle();
+  return (data as Record<string, unknown> | null) ?? null;
+}
+
 
 /** Deletes quotes created by a suite; ignores rows RLS already blocks. */
 export async function cleanupQuotes(actor: TestActor, ids: string[]): Promise<void> {
