@@ -5,6 +5,7 @@ import {
   draftPayload,
   signInAllActors,
   SKIP_REASON,
+  readQuote,
   type TestActors,
 } from "./supabase-clients";
 
@@ -38,14 +39,12 @@ describe("quote state machine (database guard)", () => {
     if (!ready) return;
     const id = await newDraft();
     if (!id) return;
-    const { data, error } = await actors.rep!.client
+    const { error } = await actors.rep!.client
       .from("quotes")
       .update({ state: "submitted_for_review", submitted_at: new Date().toISOString() })
-      .eq("id", id)
-      .select("state")
-      .single();
+      .eq("id", id);
     expect(error).toBeNull();
-    expect(data?.state).toBe("submitted_for_review");
+    expect((await readQuote(actors.rep!, id, "state"))?.["state"]).toBe("submitted_for_review");
   });
 
   it("rejects draft → approved (skipping review)", async () => {
@@ -79,14 +78,12 @@ describe("quote state machine (database guard)", () => {
     const id = await newDraft();
     if (!id) return;
     await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
-    const { data, error } = await actors.estimator!.client
+    const { error } = await actors.estimator!.client
       .from("quotes")
       .update({ state: "under_review" })
-      .eq("id", id)
-      .select("state")
-      .single();
+      .eq("id", id);
     expect(error).toBeNull();
-    expect(data?.state).toBe("under_review");
+    expect((await readQuote(actors.estimator!, id, "state"))?.["state"]).toBe("under_review");
   });
 
   it("allows an estimator to return estimator_adjusted → draft", async () => {
@@ -97,14 +94,9 @@ describe("quote state machine (database guard)", () => {
     await actors.rep!.client.from("quotes").update({ state: "submitted_for_review" }).eq("id", id);
     await est.from("quotes").update({ state: "under_review" }).eq("id", id);
     await est.from("quotes").update({ state: "estimator_adjusted" }).eq("id", id);
-    const { data, error } = await est
-      .from("quotes")
-      .update({ state: "draft" })
-      .eq("id", id)
-      .select("state")
-      .single();
+    const { error } = await est.from("quotes").update({ state: "draft" }).eq("id", id);
     expect(error).toBeNull();
-    expect(data?.state).toBe("draft");
+    expect((await readQuote(actors.estimator!, id, "state"))?.["state"]).toBe("draft");
   });
 
   it("allows approve then send_to_customer by the owning rep", async () => {
@@ -117,19 +109,15 @@ describe("quote state machine (database guard)", () => {
     const approved = await est
       .from("quotes")
       .update({ state: "approved", approved_by: actors.estimator!.userId })
-      .eq("id", id)
-      .select("state")
-      .single();
+      .eq("id", id);
     expect(approved.error).toBeNull();
 
-    const { data, error } = await actors.rep!.client
+    const { error } = await actors.rep!.client
       .from("quotes")
       .update({ state: "sent_to_customer" })
-      .eq("id", id)
-      .select("state")
-      .single();
+      .eq("id", id);
     expect(error).toBeNull();
-    expect(data?.state).toBe("sent_to_customer");
+    expect((await readQuote(actors.rep!, id, "state"))?.["state"]).toBe("sent_to_customer");
   });
 
   it("rejects reopening an accepted quote", async () => {

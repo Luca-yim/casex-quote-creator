@@ -5,6 +5,7 @@ import {
   draftPayload,
   signInAllActors,
   SKIP_REASON,
+  readQuote,
   type TestActors,
 } from "./supabase-clients";
 
@@ -58,33 +59,21 @@ describe("database triggers", () => {
     if (!ready) return;
     const id = await newDraft();
     if (!id) return;
-    const { data } = await actors.rep!.client
-      .from("quotes")
-      .select("created_at, updated_at")
-      .eq("id", id)
-      .single();
-    expect(data?.created_at).toBeTruthy();
-    expect(data?.updated_at).toBeTruthy();
+    const data = await readQuote(actors.rep!, id, "created_at, updated_at");
+    expect(data?.["created_at"]).toBeTruthy();
+    expect(data?.["updated_at"]).toBeTruthy();
   });
 
   it("advances updated_at on every write", async () => {
     if (!ready) return;
     const id = await newDraft();
     if (!id) return;
-    const before = await actors.rep!.client
-      .from("quotes")
-      .select("updated_at")
-      .eq("id", id)
-      .single();
+    const before = await readQuote(actors.rep!, id, "updated_at");
     await new Promise((r) => setTimeout(r, 1100));
     await actors.rep!.client.from("quotes").update({ name: "renamed" }).eq("id", id);
-    const after = await actors.rep!.client
-      .from("quotes")
-      .select("updated_at")
-      .eq("id", id)
-      .single();
-    expect(new Date(String(after.data?.updated_at)).getTime()).toBeGreaterThan(
-      new Date(String(before.data?.updated_at)).getTime(),
+    const after = await readQuote(actors.rep!, id, "updated_at");
+    expect(new Date(String(after?.["updated_at"])).getTime()).toBeGreaterThan(
+      new Date(String(before?.["updated_at"])).getTime(),
     );
   });
 
