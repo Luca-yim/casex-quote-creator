@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as GetAQuoteRouteImport } from './routes/get-a-quote'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -39,6 +40,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GetAQuoteRoute = GetAQuoteRouteImport.update({
+  id: '/get-a-quote',
+  path: '/get-a-quote',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -117,6 +123,7 @@ const RequestQuoteConfirmationIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/get-a-quote': typeof GetAQuoteRoute
   '/login': typeof LoginRoute
   '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/get-a-quote': typeof GetAQuoteRoute
   '/login': typeof LoginRoute
   '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
+  '/get-a-quote': typeof GetAQuoteRoute
   '/login': typeof LoginRoute
   '/my-quotes': typeof MyQuotesRoute
   '/notifications': typeof NotificationsRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/get-a-quote'
     | '/login'
     | '/my-quotes'
     | '/notifications'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/get-a-quote'
     | '/login'
     | '/my-quotes'
     | '/notifications'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/admin'
+    | '/get-a-quote'
     | '/login'
     | '/my-quotes'
     | '/notifications'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
+  GetAQuoteRoute: typeof GetAQuoteRoute
   LoginRoute: typeof LoginRoute
   MyQuotesRoute: typeof MyQuotesRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -268,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/get-a-quote': {
+      id: '/get-a-quote'
+      path: '/get-a-quote'
+      fullPath: '/get-a-quote'
+      preLoaderRoute: typeof GetAQuoteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -386,6 +406,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
+  GetAQuoteRoute: GetAQuoteRoute,
   LoginRoute: LoginRoute,
   MyQuotesRoute: MyQuotesRoute,
   NotificationsRoute: NotificationsRoute,
