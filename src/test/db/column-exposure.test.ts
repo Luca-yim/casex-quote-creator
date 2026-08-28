@@ -5,6 +5,7 @@ import {
   draftPayload,
   signInAllActors,
   SKIP_REASON,
+  transitionQuote,
   type TestActor,
   type TestActors,
 } from "./supabase-clients";
@@ -94,20 +95,15 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
     // Walk the quote to `approved` through the normal transitions.
     await actors.rep.client
       .from("quotes")
-      .update({ state: "submitted_for_review", submitted_at: new Date().toISOString() })
+      .update({ submitted_at: new Date().toISOString() })
       .eq("id", payload.id);
-    await actors.estimator.client
-      .from("quotes")
-      .update({ state: "under_review", reviewed_by: actors.estimator.userId })
-      .eq("id", payload.id);
-    const { error: approveError } = await actors.estimator.client
-      .from("quotes")
-      .update({
-        state: "approved",
-        approved_by: actors.estimator.userId,
-        approved_at: new Date().toISOString(),
-      })
-      .eq("id", payload.id);
+    await transitionQuote(actors.rep, payload.id, "submitted_for_review");
+    await transitionQuote(actors.estimator, payload.id, "under_review");
+    const { error: approveError } = await transitionQuote(
+      actors.estimator,
+      payload.id,
+      "approved",
+    );
     if (approveError) throw new Error(approveError.message);
 
     const row = await readScoped(actors.rep, payload.id);

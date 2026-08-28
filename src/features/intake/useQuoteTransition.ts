@@ -74,9 +74,11 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
     mutationFn: async (input: TransitionInput): Promise<Quote> => {
       const { action } = input;
       const now = new Date().toISOString();
-      const patch: Database["public"]["Tables"]["quotes"]["Update"] =
-        { state: action.next } as Database["public"]["Tables"]["quotes"]["Update"];
-      // Mirrors `patch` in domain shape. The Data API no longer returns the
+      // State itself is never written through the table: `transition_quote()`
+      // owns the state machine (and its RLS/`WITH CHECK` rules). Only the
+      // accompanying stamps go through the ordinary UPDATE path.
+      const stamps: Record<string, unknown> = {};
+      // Mirrors the write in domain shape. The Data API no longer returns the
       // updated row (SELECT on `public.quotes` is revoked so pricing columns
       // can only leave through `quotes_scoped()`), so the client derives the
       // post-write quote instead of reading the server echo.
@@ -84,25 +86,25 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
 
       switch (action.action) {
         case "submit_for_review":
-          (patch as Record<string, unknown>)["submitted_at"] = now;
+          stamps["submitted_at"] = now;
           applied.submittedAt = now;
           break;
         case "start_review":
         case "mark_adjusted":
           if (userId) {
-            (patch as Record<string, unknown>)["reviewed_by"] = userId;
+            stamps["reviewed_by"] = userId;
             applied.reviewedBy = userId;
           }
           break;
         case "approve":
-          (patch as Record<string, unknown>)["approved_at"] = now;
+          stamps["approved_at"] = now;
           applied.approvedAt = now;
           if (userId) {
-            (patch as Record<string, unknown>)["approved_by"] = userId;
+            stamps["approved_by"] = userId;
             applied.approvedBy = userId;
           }
           if (input.assignRepId && input.assignRepId !== input.quote.ownerId) {
-            (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+            stamps["owner_id"] = input.assignRepId;
             applied.ownerId = input.assignRepId;
           }
           break;
@@ -110,26 +112,42 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           // Hand the quote to the rep who will rework it. Approval/sent
           // stamps are deliberately left untouched.
           if (input.assignRepId) {
-            (patch as Record<string, unknown>)["owner_id"] = input.assignRepId;
+            stamps["owner_id"] = input.assignRepId;
             applied.ownerId = input.assignRepId;
           }
           if (userId) {
-            (patch as Record<string, unknown>)["reviewed_by"] = userId;
-            (patch as Record<string, unknown>)["last_reviewed_by"] = userId;
+            stamps["reviewed_by"] = userId;
+            stamps["last_reviewed_by"] = userId;
             applied.reviewedBy = userId;
             applied.lastReviewedBy = userId;
           }
 
           break;
         case "send_to_customer":
-          (patch as Record<string, unknown>)["sent_at"] = now;
+          stamps["sent_at"] = now;
           applied.sentAt = now;
           break;
         default:
           break;
       }
 
-      const { error } = await supabase.from("quotes").update(patch).eq("id", quoteId);
+      if (Object.keys(stamps).length > 0) {
+        const { error: stampError } = await supabase
+          .from("quotes")
+          .update(stamps as Database["public"]["Tables"]["quotes"]["Update"])
+          .eq("id", quoteId);
+        if (stampError) {
+          throw Object.assign(new Error(stampError.message), {
+            code: stampError.code,
+            nextState: action.next,
+          });
+        }
+      }
+
+      const { error } = await supabase.rpc("transition_quote", {
+        p_quote_id: quoteId,
+        p_new_state: action.next,
+      });
 
       if (error) {
         throw Object.assign(new Error(error.message), {
@@ -137,6 +155,7 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           nextState: action.next,
         });
       }
+
 
       const updated: Quote = { ...input.quote, ...applied };
 
@@ -177,11 +196,11 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
       return updated;
     },
     onSuccess: (quote, input) => {
-      queryClient.setQueriesData({ queryKey: quoteDetailKey(quote.id) }, quote);
-      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quote.id) });
+      queryClient.setQueriesData({ queryKey: quoteDetailKey(quoteId) }, quote);
+      void queryClient.invalidateQueries({ queryKey: quoteDetailKey(quoteId) });
       void queryClient.invalidateQueries({ queryKey: ["quotes"] });
-      void queryClient.invalidateQueries({ queryKey: ["quote-versions", quote.id] });
-      void queryClient.invalidateQueries({ queryKey: ["quote-comments", quote.id] });
+      void queryClient.invalidateQueries({ queryKey: ["quote-versions", quoteId] });
+      void queryClient.invalidateQueries({ queryKey: ["quote-comments", quoteId] });
       if (input.action.action === "approve") {
         toast.success(
           `Quote approved and sent to ${input.assignRepName ?? "the sales rep"}`,
