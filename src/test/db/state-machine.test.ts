@@ -9,6 +9,39 @@ import {
   type TestActors,
 } from "./supabase-clients";
 
+
+// --- TEMPORARY DIAGNOSTIC: log raw PostgREST requests/responses ---
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (input: any, init: any = {}) => {
+  const url = typeof input === "string" ? input : input?.url ?? String(input);
+  const method = (init?.method ?? input?.method ?? "GET").toUpperCase();
+  const isQuotesWrite = url.includes("/rest/v1/quotes") && method !== "GET";
+  let reqHeaders: Record<string, string> = {};
+  try {
+    const h = new Headers(init?.headers ?? input?.headers ?? {});
+    h.forEach((v, k) => {
+      reqHeaders[k] = /authorization|apikey/i.test(k) ? "<redacted>" : v;
+    });
+  } catch {}
+  if (isQuotesWrite) {
+    console.log("[REQ]", method, url);
+    console.log("[REQ headers]", JSON.stringify(reqHeaders));
+    console.log("[REQ body]", typeof init?.body === "string" ? init.body : String(init?.body));
+  }
+  const res = await realFetch(input, init);
+  if (isQuotesWrite) {
+    const clone = res.clone();
+    const text = await clone.text();
+    const resHeaders: Record<string, string> = {};
+    res.headers.forEach((v, k) => (resHeaders[k] = v));
+    console.log("[RES]", res.status, res.statusText);
+    console.log("[RES headers]", JSON.stringify(resHeaders));
+    console.log("[RES body]", text);
+  }
+  return res;
+}) as typeof fetch;
+// --- END DIAGNOSTIC ---
+
 let actors: TestActors;
 let ready = false;
 const created: string[] = [];
@@ -85,7 +118,8 @@ describe("quote state machine (database guard)", () => {
     const { error } = await actors.estimator!.client
       .from("quotes")
       .update({ state: "under_review" })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id");
     console.log("update error (A):", JSON.stringify(error));
 
     expect(error).toBeNull();
@@ -104,7 +138,7 @@ describe("quote state machine (database guard)", () => {
     console.log("estimator current_user_role():", whoami, whoamiErr);
     const { data: userData } = await est.auth.getUser();
     console.log("estimator auth.uid():", userData?.user?.id, "expected:", "fe3a6f78-949a-4cc1-995e-7d2d5ec72877");
-    const { error } = await est.from("quotes").update({ state: "draft" }).eq("id", id);
+    const { error } = await est.from("quotes").update({ state: "draft" }).eq("id", id).select("id");
     console.log("update error (B):", JSON.stringify(error));
 
     expect(error).toBeNull();
