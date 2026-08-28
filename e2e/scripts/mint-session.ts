@@ -113,6 +113,21 @@ async function mintAnonymous(): Promise<Session> {
   return mintForEmail(email);
 }
 
+/**
+ * TEMP DIAGNOSTIC: decode (no verification) a minted access_token and print
+ * its identifying claims. Safe: prints claims only, never the token itself.
+ */
+function debugClaims(label: string, accessToken: string): void {
+  const segment = accessToken.split(".")[1] ?? "";
+  const json = Buffer.from(segment.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+  const c = JSON.parse(json) as Record<string, unknown>;
+  const exp = typeof c["exp"] === "number" ? new Date(c["exp"] * 1000).toISOString() : "n/a";
+  console.error(
+    `[claims ${label}] iss=${String(c["iss"])} aud=${JSON.stringify(c["aud"])} role=${String(c["role"])} ` +
+      `sub=${String(c["sub"])} exp=${exp} (now=${new Date().toISOString()})`,
+  );
+}
+
 async function main(): Promise<void> {
   const ref = projectRef(SUPABASE_URL);
   const { data: probe, error: probeError } = await admin.auth.admin.listUsers({ perPage: 1 });
