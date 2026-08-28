@@ -17,8 +17,12 @@ export function useMyDrafts() {
     queryKey: ["quotes", "my-drafts", user?.id],
     enabled: Boolean(user?.id),
     queryFn: async (): Promise<Quote[]> => {
+      // NOTE: `quotes_scoped()` is SECURITY DEFINER and therefore bypasses RLS.
+      // Any future change to the RLS policies on `public.quotes` must be
+      // mirrored in the function's WHERE clause in Supabase — the function does
+      // not inherit policy changes automatically.
       const { data, error } = await supabase
-        .from("quotes")
+        .rpc("quotes_scoped")
         .select("*")
         .eq("requested_by", user!.id)
         .eq("state", "draft")
