@@ -28,6 +28,7 @@ test.describe("authentication and role routing", () => {
   });
 
   test("validates the email field before hitting the network", async ({ page }) => {
+    await mockAuthFor(page, "rep");
     await page.goto("/login");
     await waitForLoginHydration(page);
     await page.getByLabel("Work email").fill("not-an-email");
