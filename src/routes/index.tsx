@@ -69,9 +69,12 @@ function Landing() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg">
-            <Link to="/signup">
-              Request pricing <ArrowRight className="ml-1 size-4" />
+            <Link to="/get-a-quote">
+              Get a quote <ArrowRight className="ml-1 size-4" />
             </Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary">
+            <Link to="/signup">Create an account</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link to="/login">Team sign in</Link>
@@ -106,6 +109,20 @@ function Landing() {
           ))}
         </div>
       </section>
+
+      <footer className="border-t">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground">
+          <span>© {new Date().getFullYear()} Speridian Technologies</span>
+          <nav className="flex gap-4">
+            <Link to="/get-a-quote" className="hover:text-brand">
+              Get a quote
+            </Link>
+            <Link to="/login" className="hover:text-brand">
+              Team sign in
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

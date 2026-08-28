@@ -27,7 +27,7 @@ type AuthContextValue = {
    * Reuses any existing session (anonymous or real) instead of creating a
    * duplicate anonymous user. Returns the active session, or null on failure.
    */
-  anonymousSignIn: () => Promise<Session | null>;
+  anonymousSignIn: (captchaToken?: string) => Promise<Session | null>;
   signOut: () => Promise<void>;
 };
 
@@ -83,16 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileMissing = Boolean(user) && !loading && !profileLoading && !isError && !profile;
 
-  const anonymousSignIn = async (): Promise<Session | null> => {
+  const anonymousSignIn = async (captchaToken?: string): Promise<Session | null> => {
     // Reuse whatever session already exists — anonymous or fully authenticated.
     const { data: existing } = await supabase.auth.getSession();
     if (existing.session) return existing.session;
 
-    // TODO(captcha): pass { options: { captchaToken } } once the
-    // Supabase project's CAPTCHA provider is confirmed — see
-    // docs/STATE_OF_PLAY note on Phase 5. Do not enable public traffic
-    // to this route until that TODO is resolved.
-    const { data, error } = await supabase.auth.signInAnonymously();
+    // Cloudflare Turnstile guards this call; the token comes from the widget
+    // rendered on the first step of the public lead-intake form.
+    const { data, error } = await supabase.auth.signInAnonymously(
+      captchaToken ? { options: { captchaToken } } : {},
+    );
     if (error) {
       devLog("[auth] anonymous sign-in failed:", error.message);
       return null;

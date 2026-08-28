@@ -3,16 +3,19 @@ import { test, expect } from "@playwright/test";
 /**
  * Public (anonymous) lead-intake journey.
  *
- * The route is built-but-gated: it is not linked from navigation until the
- * CAPTCHA TODO in src/lib/auth.tsx is resolved, so this test navigates to it
- * directly.
+ * The route is public and linked from the landing page. Anonymous sign-in is
+ * gated by Cloudflare Turnstile; the dev server runs with Cloudflare's
+ * documented always-passes TEST site key (see playwright.config.ts).
  */
 test.describe("public lead intake", () => {
   test("an anonymous visitor can submit a lead and sees a real lead number", async ({ page }) => {
     await page.goto("/get-a-quote");
 
     await expect(page.getByRole("heading", { name: "Get a quote" })).toBeVisible();
+    // Turnstile (test key) solves itself; the session is ready once the
+    // challenge slot disappears from step 1.
     await expect(page.getByText("Preparing your form…")).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByTestId("turnstile-widget")).toHaveCount(0, { timeout: 30_000 });
 
     const stamp = Date.now();
     await page.getByLabel("Organization name").fill(`E2E County ${stamp}`);

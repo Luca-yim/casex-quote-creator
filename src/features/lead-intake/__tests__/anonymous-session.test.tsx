@@ -21,6 +21,20 @@ vi.mock("@/hooks/useProfile", () => ({
   profileQueryKey: (id?: string) => ["profile", id],
 }));
 
+// Turnstile is enabled; the widget hands back a token once, immediately.
+vi.mock("@/lib/turnstile", () => ({
+  isTurnstileEnabled: true,
+  TURNSTILE_SITE_KEY: "test-site-key",
+  loadTurnstile: async () => ({ render: () => "w", remove: () => {} }),
+}));
+
+vi.mock("@/features/lead-intake/TurnstileWidget", () => ({
+  TurnstileWidget: ({ onToken }: { onToken: (t: string) => void }) => {
+    queueMicrotask(() => onToken("captcha-token"));
+    return <div data-testid="turnstile-widget" />;
+  },
+}));
+
 vi.mock("@/hooks/useVerticalSolutions", () => ({
   useVerticalSolutions: () => ({ data: [] }),
 }));
