@@ -61,7 +61,7 @@ export function useNotifications({ limit = 50 }: { limit?: number } = {}) {
     queryKey: [...notificationsQueryKey, limit],
     enabled: Boolean(user?.id),
     staleTime: 30_000,
-    queryFn: () => fetchNotifications(limit),
+    queryFn: () => fetchNotifications(user!.id, limit),
   });
 
   const notifications = useMemo(() => query.data ?? [], [query.data]);
