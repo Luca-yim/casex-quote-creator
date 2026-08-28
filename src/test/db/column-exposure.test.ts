@@ -37,6 +37,17 @@ async function readScoped(actor: TestActor, quoteId: string) {
   } | null;
 }
 
+/** Reads a quote's audit-trail snapshots through the role-scoped function. */
+async function readScopedVersions(actor: TestActor, quoteId: string) {
+  const { data, error } = await actor.client
+    .rpc("quote_versions_scoped")
+    .select("*")
+    .eq("quote_id", quoteId)
+    .order("version_number", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as Array<{ snapshot: Record<string, unknown> }>;
+}
+
 beforeAll(async () => {
   actors = await signInAllActors();
   ready = actorsReady(actors);
@@ -128,5 +139,59 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
     expect(row).not.toBeNull();
     expect(row?.margin_percent).not.toBeNull();
     expect(row?.margin_justification).not.toBeNull();
+  });
+});
+
+describe.runIf(process.env["VITEST_DB"] !== "0")("quote_versions_scoped snapshot exposure", () => {
+  it("strips pricing keys from a rep's snapshot but keeps them for an estimator", async () => {
+    if (!ready || !actors.rep || !actors.estimator) return;
+    const payload = draftPayload(actors.rep.userId, {
+      margin_percent: 24,
+      margin_justification: "snapshot visibility check",
+    });
+    const { error } = await actors.rep.client.from("quotes").insert(payload);
+    if (error) throw new Error(error.message);
+    created.push(payload.id);
+
+    const snapshot = {
+      id: payload.id,
+      name: "snapshot visibility check",
+      margin_percent: 24,
+      margin_justification: "why the margin is 24",
+    };
+    const { error: versionError } = await actors.rep.client.from("quote_versions").insert({
+      id: crypto.randomUUID(),
+      quote_id: payload.id,
+      version_number: 1,
+      snapshot,
+      change_reason: "column exposure check",
+      changed_by: actors.rep.userId,
+    });
+    if (versionError) throw new Error(versionError.message);
+
+    // Rep, on their own draft: pricing keys must be gone.
+    const repRows = await readScopedVersions(actors.rep, payload.id);
+    expect(repRows).toHaveLength(1);
+    const repSnapshot = repRows[0]?.snapshot ?? {};
+    expect(Object.keys(repSnapshot)).not.toContain("margin_percent");
+    expect(Object.keys(repSnapshot)).not.toContain("margin_justification");
+
+    // Same version, estimator: both keys present once it reaches their queue.
+    await actors.rep.client
+      .from("quotes")
+      .update({ submitted_at: new Date().toISOString() })
+      .eq("id", payload.id);
+    const { error: transitionError } = await transitionQuote(
+      actors.rep,
+      payload.id,
+      "submitted_for_review",
+    );
+    if (transitionError) throw new Error(transitionError.message);
+
+    const estimatorRows = await readScopedVersions(actors.estimator, payload.id);
+    expect(estimatorRows).toHaveLength(1);
+    const estimatorSnapshot = estimatorRows[0]?.snapshot ?? {};
+    expect(Object.keys(estimatorSnapshot)).toContain("margin_percent");
+    expect(Object.keys(estimatorSnapshot)).toContain("margin_justification");
   });
 });
