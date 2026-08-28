@@ -81,8 +81,11 @@ export async function mockAuthFor(page: Page, persona: Persona): Promise<void> {
  * performs a native GET and leaks the credentials into the URL.
  */
 export async function waitForLoginHydration(page: Page): Promise<void> {
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  // No networkidle wait: realtime/polling connections keep the page from ever
+  // reaching idle. Wait for the interactive element instead.
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
   // The client router swaps in the interactive tree; give it a beat to attach handlers.
   await page.waitForTimeout(500);
 }

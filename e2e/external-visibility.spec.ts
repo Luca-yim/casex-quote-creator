@@ -9,7 +9,7 @@ test.describe("external requester never sees pricing", () => {
   test("dashboard shows requests without any pricing language", async ({ page }) => {
     // Sign-in may resume an in-progress request; go to the dashboard explicitly.
     await page.goto("/request-quote");
-    await expect(page.getByRole("heading", { name: /request/i }).first()).toBeVisible({
+    await expect(page.getByRole("heading", { name: /my quotes/i }).first()).toBeVisible({
       timeout: 20_000,
     });
 
