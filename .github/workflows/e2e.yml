@@ -20,12 +20,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
 
       # Mints real sessions server-side with the service-role key. The public,
       # CAPTCHA-gated sign-in endpoints are never called, and the resulting
@@ -33,10 +32,10 @@ jobs:
       - name: Mint E2E sessions
         env:
           E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-        run: npx tsx e2e/scripts/mint-session.ts --github
+        run: bunx tsx e2e/scripts/mint-session.ts --github
 
       - name: Run Playwright
-        run: npx playwright test
+        run: bunx playwright test
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
