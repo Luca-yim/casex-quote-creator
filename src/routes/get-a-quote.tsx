@@ -1,10 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { isTurnstileEnabled } from "@/lib/turnstile";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { LeadIntakeForm, type LeadIntakeValues } from "@/features/lead-intake/LeadIntakeForm";
+
+/** Internal staff belong in the authenticated intake, not the public form. */
+const INTERNAL_ROLES = ["sales_rep", "estimator", "admin"] as const;
 
 export const Route = createFileRoute("/get-a-quote")({
   head: () => ({
@@ -22,27 +27,40 @@ export const Route = createFileRoute("/get-a-quote")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      // Built-but-gated: no public traffic until the CAPTCHA TODO is resolved.
-      { name: "robots", content: "noindex" },
     ],
   }),
   component: GetAQuotePage,
 });
 
 function GetAQuotePage() {
-  const { session, anonymousSignIn } = useAuth();
+  const { session, role, anonymousSignIn } = useAuth();
+  const navigate = useNavigate();
+  const isInternal = role !== null && (INTERNAL_ROLES as readonly string[]).includes(role);
   const [sessionReady, setSessionReady] = useState(Boolean(session));
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [leadNumber, setLeadNumber] = useState<string | null>(null);
 
+  // Internal staff never touch the anonymous path — send them to the
+  // authenticated intake before any sign-in happens.
   useEffect(() => {
+    if (isInternal) void navigate({ to: "/request-quote", replace: true });
+  }, [isInternal, navigate]);
+
+  useEffect(() => {
+    if (isInternal) return;
     let active = true;
     if (session) {
       setSessionReady(true);
       return;
     }
-    void anonymousSignIn().then((next) => {
+    // With Turnstile configured we wait for a solved challenge before
+    // creating the anonymous session.
+    if (isTurnstileEnabled && !captchaToken) return;
+
+    void anonymousSignIn(captchaToken ?? undefined).then((next) => {
       if (!active) return;
       if (!next) {
+        setCaptchaToken(null);
         toast.error("We couldn't start your request. Please refresh and try again.");
         return;
       }
@@ -53,7 +71,7 @@ function GetAQuotePage() {
     };
     // anonymousSignIn is stable for the provider's lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [session, captchaToken, isInternal]);
 
   const handleSubmit = async (values: LeadIntakeValues) => {
     const { data: current } = await supabase.auth.getSession();
@@ -138,12 +156,23 @@ function GetAQuotePage() {
           minutes.
         </p>
       </header>
-      {sessionReady ? null : (
+      {sessionReady || (isTurnstileEnabled && !captchaToken) ? null : (
         <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
         </p>
       )}
-      <LeadIntakeForm onSubmit={handleSubmit} disabled={!sessionReady} />
+      <LeadIntakeForm
+        onSubmit={handleSubmit}
+        disabled={!sessionReady}
+        firstStepSlot={
+          sessionReady ? null : (
+            <TurnstileWidget
+              onToken={setCaptchaToken}
+              onExpire={() => setCaptchaToken(null)}
+            />
+          )
+        }
+      />
     </main>
   );
 }

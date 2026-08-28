@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, homeRouteForRole } from "@/lib/auth";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { isTurnstileEnabled } from "@/lib/turnstile";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -53,6 +55,11 @@ function LoginPage() {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(false);
+  // Supabase Auth enforces CAPTCHA on every endpoint, so password sign-in
+  // needs a token too. Tokens are single-use: remount the widget after a
+  // failed attempt by bumping the key.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -88,9 +95,14 @@ function LoginPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword(values);
+    const { error } = await supabase.auth.signInWithPassword({
+      ...values,
+      ...(captchaToken ? { options: { captchaToken } } : {}),
+    });
     setSubmitting(false);
     if (error) {
+      setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1);
       toast.error(error.message);
       return;
     }
@@ -143,7 +155,18 @@ function LoginPage() {
             />
             <p className="text-xs text-destructive">{form.formState.errors.password?.message}</p>
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
+          {isTurnstileEnabled && (
+            <TurnstileWidget
+              key={captchaKey}
+              onToken={setCaptchaToken}
+              onExpire={() => setCaptchaToken(null)}
+            />
+          )}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={submitting || (isTurnstileEnabled && !captchaToken)}
+          >
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>

@@ -32,6 +32,11 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    env: {
+      // Cloudflare's documented always-passes TEST site key — never the real one.
+      VITE_APP_TURNSTILE_SITE_KEY:
+        process.env["VITE_APP_TURNSTILE_SITE_KEY"] ?? "1x00000000000000000000AA",
+    },
     url: process.env["E2E_BASE_URL"] ?? "http://localhost:8080",
     reuseExistingServer: true,
     timeout: 120_000,
