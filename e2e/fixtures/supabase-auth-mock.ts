@@ -239,4 +239,35 @@ export function logSessionEnv(key: string): void {
     `[env] ${key}: present=${!!raw} length=${raw?.length ?? 0} issuer=${raw ? tokenIssuer(raw) : "n/a"} ` +
       `pid=${process.pid} VITE_APP_SUPABASE_URL=${process.env["VITE_APP_SUPABASE_URL"] ?? "(unset)"}`,
   );
+  if (raw) logSessionClaims(key, raw);
+}
+
+/**
+ * Decodes (no verification) the access token held by the Playwright process at
+ * the moment it is used, in the same shape the mint step prints. Comparing the
+ * two `[claims …]` lines pins down whether the token the test holds is the one
+ * that was minted. Prints claims and a short fingerprint only, never the token.
+ */
+export function logSessionClaims(label: string, sessionJson: string): void {
+  try {
+    const token = (JSON.parse(sessionJson) as { access_token?: string }).access_token ?? "";
+    const segment = token.split(".")[1] ?? "";
+    const json = Buffer.from(segment.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+      "utf8",
+    );
+    const c = JSON.parse(json) as Record<string, unknown>;
+    const exp = typeof c["exp"] === "number" ? new Date(c["exp"] * 1000).toISOString() : "n/a";
+    console.log(
+      `[claims ${label}] iss=${String(c["iss"])} aud=${JSON.stringify(c["aud"])} role=${String(c["role"])} ` +
+        `sub=${String(c["sub"])} exp=${exp} (now=${new Date().toISOString()}) ` +
+        `tokenFingerprint=${tokenFingerprint(token)}`,
+    );
+  } catch (error) {
+    console.log(`[claims ${label}] undecodable: ${String(error)}`);
+  }
+}
+
+/** Stable short hash of a token, so two sides can be compared without leaking it. */
+export function tokenFingerprint(token: string): string {
+  return `${createHash("sha256").update(token).digest("hex").slice(0, 12)}/len=${token.length}`;
 }
