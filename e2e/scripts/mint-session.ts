@@ -17,6 +17,7 @@
  */
 import { createClient, type Session } from "@supabase/supabase-js";
 import { appendFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import dotenv from "dotenv";
 
 type PersonaKey = "REP" | "EXTERNAL" | "ESTIMATOR" | "ANON";
@@ -124,8 +125,14 @@ function debugClaims(label: string, accessToken: string): void {
   const exp = typeof c["exp"] === "number" ? new Date(c["exp"] * 1000).toISOString() : "n/a";
   console.error(
     `[claims ${label}] iss=${String(c["iss"])} aud=${JSON.stringify(c["aud"])} role=${String(c["role"])} ` +
-      `sub=${String(c["sub"])} exp=${exp} (now=${new Date().toISOString()})`,
+      `sub=${String(c["sub"])} exp=${exp} (now=${new Date().toISOString()}) ` +
+      `tokenFingerprint=${tokenFingerprint(accessToken)}`,
   );
+}
+
+/** Stable short hash of a token, so mint-side and test-side can be compared safely. */
+function tokenFingerprint(token: string): string {
+  return `${createHash("sha256").update(token).digest("hex").slice(0, 12)}/len=${token.length}`;
 }
 
 async function main(): Promise<void> {
@@ -151,6 +158,7 @@ async function main(): Promise<void> {
   const anon = await mintAnonymous();
   results.push(["E2E_SESSION_ANON", JSON.stringify(anon)]);
   console.error(`minted E2E_SESSION_ANON (user ${anon.user.id})`);
+  debugClaims("ANON", anon.access_token);
 
   if (toGithubEnv) {
     const file = requireEnv("GITHUB_ENV");
