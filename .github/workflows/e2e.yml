@@ -17,6 +17,10 @@ jobs:
       TEST_USER_REP_EMAIL: ${{ vars.TEST_USER_REP_EMAIL }}
       TEST_USER_EXTERNAL_EMAIL: ${{ vars.TEST_USER_EXTERNAL_EMAIL }}
       TEST_USER_ESTIMATOR_EMAIL: ${{ vars.TEST_USER_ESTIMATOR_EMAIL }}
+      # Real credentials -> secrets.*, never vars.*
+      TEST_USER_REP_PASSWORD: ${{ secrets.TEST_USER_REP_PASSWORD }}
+      TEST_USER_EXTERNAL_PASSWORD: ${{ secrets.TEST_USER_EXTERNAL_PASSWORD }}
+      TEST_USER_ESTIMATOR_PASSWORD: ${{ secrets.TEST_USER_ESTIMATOR_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
