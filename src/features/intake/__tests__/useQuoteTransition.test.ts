@@ -191,7 +191,7 @@ describe("successful transitions", () => {
     // prefix-scoped or it lands on an entry nobody reads.
     expect(setQueriesData).toHaveBeenCalledWith(
       { queryKey: ["quote", "q1"] },
-      expect.objectContaining({ id: "q1" }),
+      expect.objectContaining({ state: "submitted_for_review" }),
     );
     const keys = invalidate.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
     expect(keys).toContain(JSON.stringify(["quotes"]));
