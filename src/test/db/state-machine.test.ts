@@ -117,7 +117,7 @@ describe("quote state machine (database guard)", () => {
     console.log("estimator auth.uid():", userData?.user?.id, "expected:", "fe3a6f78-949a-4cc1-995e-7d2d5ec72877");
     const { error } = await actors.estimator!.client
       .from("quotes")
-      .update({ state: "under_review" })
+      .update({ state: "under_review", reviewed_by: actors.estimator!.userId })
       .eq("id", id)
       .select("id");
     console.log("update error (A):", JSON.stringify(error));
