@@ -430,6 +430,75 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_intakes: {
+        Row: {
+          id: string
+          lead_number: string | null
+          submitted_by_anon_id: string | null
+          organization_name: string
+          contact_name: string
+          contact_email: string
+          contact_phone: string | null
+          region: string | null
+          vertical: string | null
+          solution: string | null
+          internal_user_range: string | null
+          external_portal_required: boolean | null
+          external_portal_monthly_logins_range: string | null
+          b2b_portal_required: boolean | null
+          b2b_user_count_range: string | null
+          hosting_preference: string | null
+          compliance_requirements: string[] | null
+          integration_required: boolean | null
+          integration_count_range: string | null
+          integration_difficulty: string | null
+          additional_notes: string | null
+          status: string
+          lead_score: number | null
+          lead_score_label: string | null
+          confidence_pct: number | null
+          duplicate_of_lead_id: string | null
+          assigned_rep_id: string | null
+          claimed_by: string | null
+          claimed_at: string | null
+          converted_quote_id: string | null
+          submitted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          submitted_by_anon_id?: string | null
+          organization_name: string
+          contact_name: string
+          contact_email: string
+          contact_phone?: string | null
+          region?: string | null
+          vertical?: string | null
+          solution?: string | null
+          internal_user_range?: string | null
+          external_portal_required?: boolean | null
+          external_portal_monthly_logins_range?: string | null
+          b2b_portal_required?: boolean | null
+          b2b_user_count_range?: string | null
+          hosting_preference?: string | null
+          compliance_requirements?: string[] | null
+          integration_required?: boolean | null
+          integration_count_range?: string | null
+          integration_difficulty?: string | null
+          additional_notes?: string | null
+        }
+        Update: {
+          organization_name?: string
+          contact_name?: string
+          contact_email?: string
+          contact_phone?: string | null
+          region?: string | null
+          additional_notes?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       /**

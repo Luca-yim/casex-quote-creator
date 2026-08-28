@@ -22,6 +22,12 @@ type AuthContextValue = {
   profileMissing: boolean;
   /** True only when session AND profile are both settled and present. */
   ready: boolean;
+  /**
+   * Signs the visitor in anonymously for the public lead-intake flow.
+   * Reuses any existing session (anonymous or real) instead of creating a
+   * duplicate anonymous user. Returns the active session, or null on failure.
+   */
+  anonymousSignIn: () => Promise<Session | null>;
   signOut: () => Promise<void>;
 };
 
@@ -35,6 +41,7 @@ const AuthContext = createContext<AuthContextValue>({
   profileError: null,
   profileMissing: false,
   ready: false,
+  anonymousSignIn: async () => null,
   signOut: async () => {},
 });
 
@@ -76,6 +83,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileMissing = Boolean(user) && !loading && !profileLoading && !isError && !profile;
 
+  const anonymousSignIn = async (): Promise<Session | null> => {
+    // Reuse whatever session already exists — anonymous or fully authenticated.
+    const { data: existing } = await supabase.auth.getSession();
+    if (existing.session) return existing.session;
+
+    // TODO(captcha): pass { options: { captchaToken } } once the
+    // Supabase project's CAPTCHA provider is confirmed — see
+    // docs/STATE_OF_PLAY note on Phase 5. Do not enable public traffic
+    // to this route until that TODO is resolved.
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      devLog("[auth] anonymous sign-in failed:", error.message);
+      return null;
+    }
+    setSession(data.session);
+    return data.session;
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     queryClient.removeQueries({ queryKey: ["profile"] });
@@ -93,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileLoading: Boolean(user) && profileLoading,
         profileError: isError ? ((error as Error | null) ?? new Error("Profile failed to load")) : null,
         profileMissing,
+        anonymousSignIn,
         ready: Boolean(user) && !loading && !profileLoading && Boolean(profile),
         signOut,
       }}
