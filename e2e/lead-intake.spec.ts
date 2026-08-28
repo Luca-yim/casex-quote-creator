@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { prepareAnonymousJourney } from "./fixtures/anonymous";
 
 /**
  * Public (anonymous) lead-intake journey.
@@ -9,6 +10,7 @@ import { test, expect } from "@playwright/test";
  */
 test.describe("public lead intake", () => {
   test("an anonymous visitor can submit a lead and sees a real lead number", async ({ page }) => {
+    await prepareAnonymousJourney(page);
     await page.goto("/get-a-quote");
 
     await expect(page.getByRole("heading", { name: "Get a quote" })).toBeVisible();

@@ -1,4 +1,9 @@
 import { expect, type Page } from "@playwright/test";
+import {
+  mockSupabaseAuth,
+  realSessionFromEnv,
+  stubTurnstile,
+} from "./supabase-auth-mock";
 
 export type Persona = "external" | "rep" | "estimator";
 
@@ -30,7 +35,7 @@ const FALLBACK_CREDENTIALS: Record<Persona, { email: string; password: string }>
 /** Stable synthetic user ids used by the mocked sessions. */
 const PERSONA_USER_ID: Record<Persona, string> = {
   external: "00000000-0000-4000-8000-0000000000e1",
-  rep: "00000000-0000-4000-8000-0000000000r1".replace(/r/g, "b"),
+  rep: "00000000-0000-4000-8000-0000000000b1",
   estimator: "00000000-0000-4000-8000-0000000000c1",
 };
 
