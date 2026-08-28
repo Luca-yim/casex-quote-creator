@@ -59,7 +59,7 @@ async function mintForEmail(email: string): Promise<Session> {
   if (!hashedToken) throw new Error(`generateLink(${email}) returned no hashed_token`);
 
   const { data: verified, error: verifyError } = await publicClient().auth.verifyOtp({
-    type: "magiclink",
+    type: "email",
     token_hash: hashedToken,
   });
   if (verifyError || !verified.session) {
