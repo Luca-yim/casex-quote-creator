@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { quoteDetailKey } from "./useQuote";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { rowToQuote } from "./quote-mapper";
+
 import type { Quote } from "@/types/quote";
 import type { Database } from "@/lib/database.types";
 import type { WorkflowAction, QuoteAction } from "@/lib/quote-workflow";
