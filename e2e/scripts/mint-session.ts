@@ -27,12 +27,14 @@ type PersonaKey = "REP" | "EXTERNAL" | "ESTIMATOR" | "ANON";
  * refuse to run when the service-role key belongs to a different project —
  * tokens minted against the wrong project produce 401s on every data read.
  */
-const SUPABASE_URL = pick("E2E_SUPABASE_URL", "VITE_APP_SUPABASE_URL", "SUPABASE_URL");
-const PUBLISHABLE_KEY = pick(
-  "E2E_SUPABASE_PUBLISHABLE_KEY",
-  "VITE_APP_SUPABASE_PUBLISHABLE_KEY",
-  "SUPABASE_PUBLISHABLE_KEY",
-);
+dotenv.config({ path: ".env.test" });
+dotenv.config({ path: ".env.test.local", override: true });
+
+// Deliberately NO fallback to the generic SUPABASE_URL: that name points at the
+// auto-provisioned Lovable Cloud project, and minting there yields tokens the
+// app's PostgREST rejects with `PGRST301 / no suitable key`.
+const SUPABASE_URL = pick("E2E_SUPABASE_URL", "VITE_APP_SUPABASE_URL");
+const PUBLISHABLE_KEY = pick("E2E_SUPABASE_PUBLISHABLE_KEY", "VITE_APP_SUPABASE_PUBLISHABLE_KEY");
 const SERVICE_ROLE_KEY = pick("E2E_SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");
 
 function pick(...names: string[]): string {
