@@ -93,10 +93,35 @@ export async function waitForLoginHydration(page: Page): Promise<void> {
  * never short-circuited server-side, so CI cannot mint one itself.
  */
 export function requireRealSession(persona: Persona): void {
+  const key = SESSION_ENV_KEY[persona];
+  const raw = process.env[key];
+  test.skip(!raw, `Set ${key} to a real session JSON to run authenticated journeys.`);
+  if (!raw) return;
+
+  // A session minted against the wrong Supabase project parses fine but every
+  // data read comes back 401 (`PGRST301`). Skip loudly instead of failing late.
+  const appUrl = process.env["VITE_APP_SUPABASE_URL"];
+  const issuer = tokenIssuer(raw);
   test.skip(
-    !process.env[SESSION_ENV_KEY[persona]],
-    `Set ${SESSION_ENV_KEY[persona]} to a real session JSON to run authenticated journeys.`,
+    !!appUrl && !!issuer && !issuer.startsWith(appUrl),
+    `${key} was minted against ${issuer}, but the app targets ${appUrl}. ` +
+      "Re-mint with E2E_SUPABASE_SERVICE_ROLE_KEY for the app's own project.",
   );
+}
+
+/** `iss` claim of the access token inside a stored session JSON, if readable. */
+function tokenIssuer(sessionJson: string): string | null {
+  try {
+    const token = (JSON.parse(sessionJson) as { access_token?: string }).access_token;
+    const payload = token?.split(".")[1];
+    if (!payload) return null;
+    const claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as {
+      iss?: string;
+    };
+    return claims.iss ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Signs a persona in through the login form, with the auth call mocked. */
