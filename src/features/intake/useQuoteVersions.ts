@@ -32,7 +32,7 @@ export function useQuoteVersions(quoteId: string, enabled = true) {
         .order("version_number", { ascending: false });
       if (error) throw new Error(error.message);
 
-      const rows = (data ?? []) as Record<string, unknown>[];
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
       const authorIds = Array.from(
         new Set(rows.map((r) => r["changed_by"]).filter((id): id is string => Boolean(id))),
       );
