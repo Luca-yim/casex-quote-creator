@@ -1,0 +1,46 @@
+name: E2E
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      # App project (NOT the Lovable Cloud project). Publishable values are public.
+      VITE_APP_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      VITE_APP_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_APP_TURNSTILE_SITE_KEY: ${{ vars.E2E_TURNSTILE_SITE_KEY }}
+      TEST_USER_REP_EMAIL: ${{ vars.TEST_USER_REP_EMAIL }}
+      TEST_USER_EXTERNAL_EMAIL: ${{ vars.TEST_USER_EXTERNAL_EMAIL }}
+      TEST_USER_ESTIMATOR_EMAIL: ${{ vars.TEST_USER_ESTIMATOR_EMAIL }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Mints real sessions server-side with the service-role key. The public,
+      # CAPTCHA-gated sign-in endpoints are never called, and the resulting
+      # tokens are masked and scoped to this job only — never committed.
+      - name: Mint E2E sessions
+        env:
+          E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx e2e/scripts/mint-session.ts --github
+
+      - name: Run Playwright
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
