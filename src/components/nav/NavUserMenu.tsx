@@ -22,8 +22,10 @@ export function NavUserMenu({ deactivated = false }: { deactivated?: boolean }) 
   const { profile, user, role, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const name = profile?.full_name ?? null;
+  const name = profile?.full_name?.trim() ? profile.full_name.trim() : null;
   const email = profile?.email ?? user?.email ?? null;
+  // Collapsed trigger shows one identity only: name preferred, email as fallback.
+  const identity = name ?? email ?? null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,7 +38,8 @@ export function NavUserMenu({ deactivated = false }: { deactivated?: boolean }) 
         <Button
           variant="ghost"
           className="h-11 gap-1.5 px-1.5 sm:px-2"
-          aria-label="User menu"
+          aria-label={identity ? `User menu — ${identity}` : "User menu"}
+          title={identity ?? undefined}
         >
           <span className="flex size-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-brand-foreground">
             {initials(name, email)}

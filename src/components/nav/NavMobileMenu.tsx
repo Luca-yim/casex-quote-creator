@@ -27,6 +27,9 @@ export function NavMobileMenu({ deactivated = false }: { deactivated?: boolean }
   const items = deactivated ? [] : navItemsForRole(role);
   const current = activeHref(pathname, items);
   const email = profile?.email ?? user?.email ?? null;
+  const name = profile?.full_name?.trim() ? profile.full_name.trim() : null;
+  // Collapsed trigger shows one identity only: name preferred, email as fallback.
+  const identity = name ?? email ?? null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -35,7 +38,8 @@ export function NavMobileMenu({ deactivated = false }: { deactivated?: boolean }
           variant="ghost"
           size="icon"
           className="min-h-11 min-w-11 md:hidden"
-          aria-label="Open main menu"
+          aria-label={identity ? `Open main menu — ${identity}` : "Open main menu"}
+          title={identity ?? undefined}
           aria-expanded={open}
         >
           <Menu className="size-5" aria-hidden="true" />
