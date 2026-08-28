@@ -14,13 +14,13 @@ const created: string[] = [];
 
 async function newDraft(overrides: Record<string, unknown> = {}): Promise<string | null> {
   const rep = actors.rep!;
-  const { data } = await rep.client
-    .from("quotes")
-    .insert(draftPayload(rep.userId, overrides))
-    .select("id")
-    .single();
-  if (data?.id) created.push(data.id);
-  return data?.id ?? null;
+  // The id is generated client-side; `authenticated` has no SELECT on
+  // `public.quotes`, so the insert cannot read its own row back.
+  const payload = draftPayload(rep.userId, overrides);
+  const { error } = await rep.client.from("quotes").insert(payload);
+  if (error) return null;
+  created.push(payload.id);
+  return payload.id;
 }
 
 beforeAll(async () => {
