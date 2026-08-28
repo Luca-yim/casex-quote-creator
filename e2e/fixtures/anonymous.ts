@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 import { mockSupabaseAuth, realSessionFromEnv, stubTurnstile } from "./supabase-auth-mock";
 
 /** Stable synthetic identity for the anonymous lead-intake journey. */
@@ -19,6 +19,10 @@ export const ANON_USER = {
  * only the client-side flow is exercised.
  */
 export async function prepareAnonymousJourney(page: Page): Promise<void> {
+  test.skip(
+    !process.env["E2E_SESSION_ANON"],
+    "Set E2E_SESSION_ANON to a real anonymous session JSON to run the lead insert.",
+  );
   await stubTurnstile(page);
   await mockSupabaseAuth(page, {
     user: ANON_USER,

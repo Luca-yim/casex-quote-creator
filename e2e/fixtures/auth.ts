@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   mockSupabaseAuth,
   realSessionFromEnv,
@@ -84,8 +84,24 @@ export async function waitForLoginHydration(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
+/**
+ * Skips the current test unless a real session was supplied for the persona.
+ *
+ * The mocked session is enough to exercise the login form itself, but any
+ * assertion past the guard needs a token the real backend accepts (role lookup,
+ * quote reads). Production and test share one backend and the CAPTCHA check is
+ * never short-circuited server-side, so CI cannot mint one itself.
+ */
+export function requireRealSession(persona: Persona): void {
+  test.skip(
+    !process.env[SESSION_ENV_KEY[persona]],
+    `Set ${SESSION_ENV_KEY[persona]} to a real session JSON to run authenticated journeys.`,
+  );
+}
+
 /** Signs a persona in through the login form, with the auth call mocked. */
 export async function signIn(page: Page, persona: Persona): Promise<void> {
+  requireRealSession(persona);
   const { email, password } = credentials(persona);
   await mockAuthFor(page, persona);
 
