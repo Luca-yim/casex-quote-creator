@@ -27,6 +27,9 @@ export function NavMobileMenu({ deactivated = false }: { deactivated?: boolean }
   const items = deactivated ? [] : navItemsForRole(role);
   const current = activeHref(pathname, items);
   const email = profile?.email ?? user?.email ?? null;
+  const name = profile?.full_name?.trim() ? profile.full_name.trim() : null;
+  // Collapsed trigger shows one identity only: name preferred, email as fallback.
+  const identity = name ?? email ?? null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
