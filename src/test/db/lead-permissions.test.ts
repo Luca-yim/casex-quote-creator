@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { signInAs, SKIP_REASON, type TestActor } from "./supabase-clients";
+import { anonClient, signInAs, SKIP_REASON, type TestActor } from "./supabase-clients";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Server-side enforcement of the Lead Queue's action gating.
@@ -8,53 +9,116 @@ import { signInAs, SKIP_REASON, type TestActor } from "./supabase-clients";
  * the actions. This suite proves the DATABASE rejects them, by talking to
  * supabase-js directly and bypassing the UI entirely — the only test that can
  * distinguish a convention from a guarantee.
- *
- * These assertions require `docs/LEAD_QUEUE_PERMISSIONS.sql` to be applied.
- * Against the original broad `internal_updates_lead` policy the two rejection
- * cases fail, which is the correct signal, not a flaky test.
  */
 
 let rep: TestActor | null = null;
 let estimator: TestActor | null = null;
 let admin: TestActor | null = null;
 
+/** The anonymous submitter session — the only role allowed to create leads. */
+let anonSubmitter: { client: SupabaseClient; userId: string } | null = null;
+
 /** Leads created by this suite, cleaned up at the end. */
 const createdLeadIds: string[] = [];
 
-function leadRow(overrides: Record<string, unknown> = {}) {
+/**
+ * Columns the anonymous insert policy deliberately discards (see
+ * `anon-lead-intake-full.probe.mts` step 2c). A submitter can never set these,
+ * so a test needing a pre-claimed lead must have an internal actor apply them
+ * in a second step.
+ */
+const INTERNAL_COLUMNS = new Set([
+  "status",
+  "lead_score",
+  "confidence_pct",
+  "claimed_by",
+  "claimed_at",
+  "assigned_rep_id",
+  "converted_quote_id",
+  "duplicate_of_lead_id",
+]);
+
+/** Signs in the anonymous submitter once, exactly as `/get-a-quote` does. */
+async function initAnonSubmitter(): Promise<void> {
+  const client = anonClient();
+  const { data, error } = await client.auth.signInAnonymously();
+  if (error || !data.user) {
+    console.error(
+      `[seedLead] signInAnonymously failed — message=${error?.message ?? "no user returned"}`,
+    );
+    return;
+  }
+  anonSubmitter = { client, userId: data.user.id };
+}
+
+function leadRow(anonId: string, overrides: Record<string, unknown> = {}) {
   return {
     id: crypto.randomUUID(),
+    submitted_by_anon_id: anonId,
     organization_name: `RLS probe ${Date.now()}`,
     contact_name: "Probe Contact",
-    contact_email: `probe-${Date.now()}@test.local`,
-    status: "new",
+    contact_email: `probe-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`,
     ...overrides,
   };
 }
 
 /**
- * Seeds an unclaimed lead. Inserted by the highest-privilege actor available
- * so seeding never becomes the thing under test.
+ * Seeds a lead through the real submission path: an anonymous session
+ * inserting its own row, matching `submitter_creates_own_lead`'s WITH CHECK.
+ * Internal-workflow overrides are applied afterwards by a privileged actor,
+ * because the insert policy strips them.
  */
 async function seedLead(overrides: Record<string, unknown> = {}): Promise<string | null> {
-  const seeder = admin ?? estimator ?? rep;
-  if (!seeder) {
-    console.error("[seedLead] no authenticated seeder actor available");
+  if (!anonSubmitter) {
+    console.error("[seedLead] no anonymous submitter session available");
     return null;
   }
-  const row = leadRow(overrides);
-  const { error } = await seeder.client.from("lead_intakes").insert(row as never);
+
+  const submitterOverrides: Record<string, unknown> = {};
+  const internalOverrides: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    if (INTERNAL_COLUMNS.has(key)) internalOverrides[key] = value;
+    else submitterOverrides[key] = value;
+  }
+
+  const row = leadRow(anonSubmitter.userId, submitterOverrides);
+  const { error } = await anonSubmitter.client.from("lead_intakes").insert(row as never);
   if (error) {
     console.error(
-      `[seedLead] insert into lead_intakes rejected for role="${seeder.role}" ` +
+      `[seedLead] anonymous insert into lead_intakes rejected — ` +
         `code=${error.code ?? "none"} message=${error.message} ` +
         `details=${error.details ?? "none"} hint=${error.hint ?? "none"}`,
     );
     return null;
   }
   createdLeadIds.push(row.id);
+
+  if (Object.keys(internalOverrides).length > 0) {
+    const escalator = admin ?? estimator;
+    if (!escalator) {
+      console.error(
+        `[seedLead] internal overrides ${Object.keys(internalOverrides).join(", ")} ` +
+          `require an admin or estimator actor; none available`,
+      );
+      return null;
+    }
+    const { error: updateError } = await escalator.client
+      .from("lead_intakes")
+      .update(internalOverrides as never)
+      .eq("id", row.id);
+    if (updateError) {
+      console.error(
+        `[seedLead] internal override update rejected for role="${escalator.role}" ` +
+          `code=${updateError.code ?? "none"} message=${updateError.message} ` +
+          `details=${updateError.details ?? "none"} hint=${updateError.hint ?? "none"}`,
+      );
+      return null;
+    }
+  }
+
   return row.id;
 }
+
 
 /** Reads back the columns this suite asserts on, as an unrestricted reader. */
 async function readLead(id: string): Promise<Record<string, unknown> | null> {
@@ -87,6 +151,7 @@ beforeAll(async () => {
     signInAs("estimator"),
     signInAs("admin"),
   ]);
+  await initAnonSubmitter();
   if (!rep || !estimator) console.warn(SKIP_REASON);
   if (!admin) {
     console.warn(
