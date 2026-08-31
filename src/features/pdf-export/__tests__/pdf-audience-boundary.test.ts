@@ -161,7 +161,7 @@ describe("customer PDF data for a proposal-tier quote", () => {
     await act(async () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "customer");
     });
-    const quote = captured[0]!.quote as Record<string, unknown>;
+    const quote = captured[0]!['quote'] as Record<string, unknown>;
     expect(Object.keys(quote).sort()).toEqual([
       "customerEmail",
       "customerName",
@@ -176,9 +176,9 @@ describe("customer PDF data for a proposal-tier quote", () => {
     await act(async () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "customer");
     });
-    const pricing = captured[0]!.pricing as Record<string, unknown>;
+    const pricing = captured[0]!['pricing'] as Record<string, unknown>;
     expect(Object.keys(pricing).sort()).toEqual(["kind", "totalImplementationFee"]);
-    expect(pricing.kind).toBe("proposal");
+    expect(pricing['kind']).toBe("proposal");
   });
 });
 
@@ -188,20 +188,20 @@ describe("internal PDF data for a proposal-tier quote", () => {
     await act(async () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "internal");
     });
-    const pricing = captured[0]!.pricing as Record<string, unknown>;
+    const pricing = captured[0]!['pricing'] as Record<string, unknown>;
     const cost = grandTotalCost(
       [{ costHours: NAIA_HOURS, costRate: 35, revenueHours: NAIA_HOURS, billRate: 55 }],
       [{ amount: 28_000 }],
     );
     expect(cost).toBeCloseTo(828_800, 2);
-    expect(pricing.grandTotalCost).toBeCloseTo(828_800, 2);
-    expect(pricing.totalImplementationFee).toBeCloseTo(
+    expect(pricing['grandTotalCost']).toBeCloseTo(828_800, 2);
+    expect(pricing['totalImplementationFee']).toBeCloseTo(
       totalImplementationFee(35, cost, 0.05),
       2,
     );
-    expect(pricing.totalImplementationFee).toBeCloseTo(1_338_830.77, 0);
-    expect((pricing.lines as unknown[]).length).toBe(1);
-    expect((pricing.items as unknown[]).length).toBe(1);
+    expect(pricing['totalImplementationFee']).toBeCloseTo(1_338_830.77, 0);
+    expect((pricing['lines'] as unknown[]).length).toBe(1);
+    expect((pricing['items'] as unknown[]).length).toBe(1);
   });
 
   it("agrees with the customer fee for the same quote", async () => {
@@ -210,8 +210,8 @@ describe("internal PDF data for a proposal-tier quote", () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "internal");
       await result.current.generatePdf(PROPOSAL_QUOTE, "customer");
     });
-    const internal = captured[0]!.pricing as Record<string, number>;
-    const customer = captured[1]!.pricing as Record<string, number>;
+    const internal = captured[0]!['pricing'] as Record<string, number>;
+    const customer = captured[1]!['pricing'] as Record<string, number>;
     expect(customer.totalImplementationFee).toBeCloseTo(internal.totalImplementationFee, 2);
   });
 });
@@ -224,9 +224,9 @@ describe("ballpark tier", () => {
       await result.current.generatePdf(BALLPARK_QUOTE, "internal");
     });
     for (const context of captured) {
-      const pricing = context.pricing as Record<string, unknown>;
-      expect(pricing.kind).toBe("ballpark");
-      expect(pricing.breakdown).toBeDefined();
+      const pricing = context['pricing'] as Record<string, unknown>;
+      expect(pricing['kind']).toBe("ballpark");
+      expect(pricing['breakdown']).toBeDefined();
     }
   });
 });
