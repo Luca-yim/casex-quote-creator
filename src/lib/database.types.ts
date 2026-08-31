@@ -484,6 +484,123 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_wbs_lines: {
+        Row: {
+          id: string
+          quote_id: string
+          phase: string
+          area: string | null
+          role: string
+          location: string
+          cost_hours: number
+          revenue_hours: number
+          cost_rate: number
+          bill_rate: number
+          person_days: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          quote_id: string
+          phase: string
+          area?: string | null
+          role: string
+          location: string
+          cost_hours: number
+          revenue_hours: number
+          cost_rate: number
+          bill_rate: number
+        }
+        Update: {
+          phase?: string
+          area?: string | null
+          role?: string
+          location?: string
+          cost_hours?: number
+          revenue_hours?: number
+          cost_rate?: number
+          bill_rate?: number
+        }
+        Relationships: []
+      }
+      quote_cost_items: {
+        Row: {
+          id: string
+          quote_id: string
+          name: string
+          item_type: string
+          amount: number
+          customer_visible: boolean
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          quote_id: string
+          name: string
+          item_type: string
+          amount: number
+          customer_visible?: boolean
+        }
+        Update: {
+          name?: string
+          item_type?: string
+          amount?: number
+          customer_visible?: boolean
+        }
+        Relationships: []
+      }
+      rate_cards: {
+        Row: {
+          id: string
+          program_type: string
+          role: string
+          location: string
+          bill_rate: number
+          cost_rate: number
+          effective_start: string | null
+          effective_end: string | null
+        }
+        Insert: {
+          id?: string
+          program_type: string
+          role: string
+          location: string
+          bill_rate: number
+          cost_rate: number
+          effective_start?: string | null
+          effective_end?: string | null
+        }
+        Update: {
+          program_type?: string
+          role?: string
+          location?: string
+          bill_rate?: number
+          cost_rate?: number
+          effective_start?: string | null
+          effective_end?: string | null
+        }
+        Relationships: []
+      }
+      phase_weight_allocation: {
+        Row: {
+          id: number
+          phase_name: string
+          weight_percent: number | null
+          display_order: number | null
+        }
+        Insert: {
+          id?: number
+          phase_name: string
+          weight_percent?: number | null
+          display_order?: number | null
+        }
+        Update: {
+          phase_name?: string
+          weight_percent?: number | null
+          display_order?: number | null
+        }
+        Relationships: []
+      }
       lead_intakes: {
         Row: {
           id: string
