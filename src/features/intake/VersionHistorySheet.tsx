@@ -25,6 +25,7 @@ const TYPE_VARIANT: Record<VersionChangeType, "default" | "secondary" | "outline
     accept: "default",
     decline: "destructive",
     pdf_generated: "outline",
+    promote: "default",
   };
 
 /**

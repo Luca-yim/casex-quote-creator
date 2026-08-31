@@ -217,3 +217,21 @@ export function externalStateLabel(state: QuoteState): string {
       return "Archived";
   }
 }
+
+/**
+ * Whether the current role may convert this quote from ballpark fidelity to
+ * proposal fidelity.
+ *
+ * Same window as `mark_adjusted`/`approve` (estimator or admin, while the
+ * quote is `under_review`) and one-way: only a `ballpark` quote can be
+ * promoted. There is intentionally no demotion.
+ */
+export function canPromoteToProposal(
+  role: AppRole,
+  state: QuoteState,
+  tier: "ballpark" | "proposal",
+): boolean {
+  if (role !== "estimator" && role !== "admin") return false;
+  if (state !== "under_review") return false;
+  return tier === "ballpark";
+}
