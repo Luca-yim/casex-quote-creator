@@ -16,6 +16,7 @@ import { IntakeForm } from "./IntakeForm";
 import { useQuoteById, quoteDetailKey } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
+import { BallparkRangeCard } from "@/features/estimator-ballpark/BallparkRangeCard";
 import { QuotePdfHistory } from "@/features/pdf-export/QuotePdfHistory";
 
 import type { Quote } from "@/types/quote";
@@ -27,6 +28,11 @@ export interface IntakePageProps {
   mode?: "edit" | "readonly";
   /** Force pricing visibility (estimator review route). */
   forceShowPricing?: boolean;
+  /**
+   * Renders the estimator-only ballpark reference card. Set exclusively by
+   * `/review/$id`, which is gated to estimator/admin.
+   */
+  showBallpark?: boolean;
   title?: string;
   description?: string;
 }
@@ -37,6 +43,7 @@ export function IntakePage({
   roleOverride,
   mode = "edit",
   forceShowPricing = false,
+  showBallpark = false,
   title = "Quote intake",
   description = "",
 }: IntakePageProps) {
@@ -162,7 +169,8 @@ export function IntakePage({
 
           </div>
           <aside className="lg:col-span-2">
-            <div className="lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-24 space-y-6">
+              {showBallpark ? <BallparkRangeCard /> : null}
               <PricingSidebar />
             </div>
           </aside>
