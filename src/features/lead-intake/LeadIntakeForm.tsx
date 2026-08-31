@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
+import { useVerticalLabels, OTHER_VERTICAL } from "@/hooks/useVerticalLabels";
 import {
   B2B_USER_RANGES,
   COMPLIANCE_OPTIONS,
@@ -41,6 +42,7 @@ export const leadIntakeSchema = z.object({
   region: z.string(),
   vertical: z.string(),
   solution: z.string(),
+  vertical_other_detail: z.string().trim().max(500),
   internal_user_range: z.string(),
   external_portal_required: z.boolean(),
   external_portal_monthly_logins_range: z.string(),
@@ -52,6 +54,17 @@ export const leadIntakeSchema = z.object({
   integration_count_range: z.string(),
   integration_difficulty: z.string(),
   additional_notes: z.string().trim().max(2000),
+});
+
+.superRefine((value, ctx) => {
+  // "Something else" replaces the solution dropdown with a free-text answer.
+  if (value.vertical === "other" && value.vertical_other_detail === "") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["vertical_other_detail"],
+      message: "Please describe your area of need",
+    });
+  }
 });
 
 export type LeadIntakeValues = z.infer<typeof leadIntakeSchema>;
@@ -161,6 +174,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
       region: "",
       vertical: "",
       solution: "",
+      vertical_other_detail: "",
       internal_user_range: "",
       external_portal_required: false,
       external_portal_monthly_logins_range: "",
@@ -175,19 +189,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
     },
   });
 
-  const verticals = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const row of verticalSolutions ?? []) {
-      if (!seen.has(row.vertical_l1)) seen.set(row.vertical_l1, row.vertical_l1);
-    }
-    return [...seen.keys()].map((value) => ({ value, label: value }));
-  }, [verticalSolutions]);
+  const { options: verticals } = useVerticalLabels();
 
   const selectedVertical = form.watch("vertical");
   const solutions = useMemo(
     () =>
       (verticalSolutions ?? [])
-        .filter((row) => !selectedVertical || row.vertical_l1 === selectedVertical)
+        .filter((row) => row.is_active && row.vertical_l1 === selectedVertical)
         .map((row) => ({ value: row.solution_l2, label: row.display_label })),
     [verticalSolutions, selectedVertical],
   );
@@ -301,6 +309,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
                   onChange={(next) => {
                     field.onChange(next);
                     form.setValue("solution", "");
+                    if (next !== OTHER_VERTICAL) form.setValue("vertical_other_detail", "");
                   }}
                   options={verticals}
                   placeholder="Select a vertical"
