@@ -50,6 +50,10 @@ export function rowToQuote(row: QuoteRow): Quote {
     supportTier: (r["support_tier"] ?? null) as Quote["supportTier"],
     marginPercent: Number(r["margin_percent"] ?? 20),
     marginJustification: r["margin_justification"] ?? null,
+    contingencyPct:
+      r["contingency_pct"] === null || r["contingency_pct"] === undefined
+        ? null
+        : Number(r["contingency_pct"]),
     repConfidence: (r["rep_confidence"] ?? null) as Quote["repConfidence"],
     tier: (r["tier"] ?? "ballpark") as Quote["tier"],
     migrationRequired: r["migration_required"] ?? null,
@@ -97,6 +101,7 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   supportTier: "support_tier",
   marginPercent: "margin_percent",
   marginJustification: "margin_justification",
+  contingencyPct: "contingency_pct",
   repConfidence: "rep_confidence",
   tier: "tier",
   migrationRequired: "migration_required",

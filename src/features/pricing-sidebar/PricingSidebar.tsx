@@ -13,6 +13,8 @@ import { calculatePricingBreakdown } from "@/lib/calculation-engine";
 import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useWbsLines, useQuoteCostItems } from "@/features/wbs/useWbsData";
+import { ProposalPricingBlock } from "./ProposalPricingBlock";
 
 /** Formats a short relative time such as "2s ago" / "4m ago". */
 function relativeTime(from: Date, now: number): string {
@@ -89,6 +91,29 @@ export function PricingSidebar() {
     setDraftMargin(value);
     updateField("marginPercent", value);
   };
+
+  // Proposal-tier only: WBS-backed cost basis for the real computed price.
+  const isProposal = quote.tier === "proposal";
+  const { data: wbsLines } = useWbsLines(quote.id, isProposal);
+  const { data: wbsItems } = useQuoteCostItems(quote.id, isProposal);
+  const engineLines = useMemo(
+    () =>
+      (wbsLines ?? []).map((l) => ({
+        costHours: l.costHours,
+        costRate: l.costRate,
+        revenueHours: l.revenueHours,
+        billRate: l.billRate,
+      })),
+    [wbsLines],
+  );
+  const engineItems = useMemo(
+    () => (wbsItems ?? []).map((i) => ({ amount: i.amount })),
+    [wbsItems],
+  );
+  const totalHours = useMemo(
+    () => engineLines.reduce((sum, l) => sum + l.revenueHours, 0),
+    [engineLines],
+  );
 
   const handleJustificationChange = (text: string) => {
     updateField("marginJustification", text || null);
@@ -239,6 +264,16 @@ export function PricingSidebar() {
                 onChange={(e) => handleJustificationChange(e.target.value)}
               />
             </div>
+            {isProposal ? (
+              <ProposalPricingBlock
+                quote={quote}
+                lines={engineLines}
+                items={engineItems}
+                totalHours={totalHours}
+                canEdit={canEditMargin}
+                onChange={(pct) => updateField("contingencyPct", pct)}
+              />
+            ) : null}
           </div>
         </>
       ) : null}
