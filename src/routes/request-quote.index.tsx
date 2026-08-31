@@ -74,7 +74,7 @@ function RequestQuoteEntry() {
           />
         </AppLayout>
       )}
-    </ProtectedRoute>
+    </>
   );
 }
 
