@@ -670,6 +670,11 @@ export type Database = {
           region?: string | null
           additional_notes?: string | null
           status?: string
+          assigned_rep_id?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          duplicate_of_lead_id?: string | null
+          converted_quote_id?: string | null
         }
         Relationships: []
       }
