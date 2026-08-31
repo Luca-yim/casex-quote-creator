@@ -93,10 +93,10 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("lead_intakes update permissions", () => {
-  it("blocks a sales rep from assigning a lead to somebody else", async () => {
-    if (!rep || !estimator) return;
+  it("blocks a sales rep from assigning a lead to somebody else", async (ctx) => {
+    if (!rep || !estimator) return ctx.skip();
     const leadId = await seedLead();
-    if (!leadId) return;
+    if (!leadId) return ctx.skip();
 
     const before = await readLead(leadId);
 
@@ -113,11 +113,11 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("lead_intakes update permission
     );
   });
 
-  it("blocks a sales rep from marking a lead as duplicate", async () => {
-    if (!rep) return;
+  it("blocks a sales rep from marking a lead as duplicate", async (ctx) => {
+    if (!rep) return ctx.skip();
     const original = await seedLead();
     const leadId = await seedLead();
-    if (!original || !leadId) return;
+    if (!original || !leadId) return ctx.skip();
 
     const before = await readLead(leadId);
 
@@ -131,10 +131,10 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("lead_intakes update permission
     expect((after as { status?: string } | null)?.status).not.toBe("duplicate");
   });
 
-  it("allows a sales rep to perform the legitimate self-targeted atomic claim", async () => {
-    if (!rep) return;
+  it("allows a sales rep to perform the legitimate self-targeted atomic claim", async (ctx) => {
+    if (!rep) return ctx.skip();
     const leadId = await seedLead();
-    if (!leadId) return;
+    if (!leadId) return ctx.skip();
 
     const claimedAt = new Date().toISOString();
     // Exactly the payload useLeadActions.claim sends: all four fields at once.
@@ -159,11 +159,11 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("lead_intakes update permission
     expect(after?.["claimed_at"]).not.toBeNull();
   });
 
-  it("allows an estimator to mark a lead as duplicate", async () => {
-    if (!estimator) return;
+  it("allows an estimator to mark a lead as duplicate", async (ctx) => {
+    if (!estimator) return ctx.skip();
     const original = await seedLead();
     const leadId = await seedLead();
-    if (!original || !leadId) return;
+    if (!original || !leadId) return ctx.skip();
 
     const { error } = await estimator.client
       .from("lead_intakes")
@@ -176,15 +176,15 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("lead_intakes update permission
     expect(after).toMatchObject({ status: "duplicate", duplicate_of_lead_id: original });
   });
 
-  it("allows an admin to reassign a lead to a different rep", async () => {
-    if (!admin || !rep || !estimator) return;
+  it("allows an admin to reassign a lead to a different rep", async (ctx) => {
+    if (!admin || !rep || !estimator) return ctx.skip();
     const leadId = await seedLead({
       assigned_rep_id: rep.userId,
       claimed_by: rep.userId,
       claimed_at: new Date().toISOString(),
       status: "claimed",
     });
-    if (!leadId) return;
+    if (!leadId) return ctx.skip();
 
     const { error } = await admin.client
       .from("lead_intakes")
