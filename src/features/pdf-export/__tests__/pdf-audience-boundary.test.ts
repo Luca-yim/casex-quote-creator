@@ -212,7 +212,10 @@ describe("internal PDF data for a proposal-tier quote", () => {
     });
     const internal = captured[0]!['pricing'] as Record<string, number>;
     const customer = captured[1]!['pricing'] as Record<string, number>;
-    expect(customer.totalImplementationFee).toBeCloseTo(internal.totalImplementationFee, 2);
+    expect(customer['totalImplementationFee']).toBeCloseTo(
+      internal['totalImplementationFee'] as number,
+      2,
+    );
   });
 });
 
