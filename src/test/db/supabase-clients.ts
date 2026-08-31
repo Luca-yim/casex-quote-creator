@@ -105,8 +105,9 @@ export function actorsReady(actors: TestActors): boolean {
 }
 
 export const SKIP_REASON =
-  "DB tests skipped — set TEST_USER_*_EMAIL / _PASSWORD in .env.test.local " +
-  "with real accounts (see `npm run test:db:setup`).";
+  "DB tests skipped — sessions are minted with the Auth Admin API. Set " +
+  "E2E_SUPABASE_SERVICE_ROLE_KEY (app project's service-role key) and " +
+  "TEST_USER_*_EMAIL in .env.test.local.";
 
 /**
  * Minimal valid draft payload owned by `userId`.
