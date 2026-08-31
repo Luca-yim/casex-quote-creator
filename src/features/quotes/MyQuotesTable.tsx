@@ -67,7 +67,7 @@ export function MyQuotesTable({ tab, quotes, isPending, isError, error }: Props)
             <button
               type="button"
               className="font-medium text-brand underline underline-offset-4"
-              onClick={() => void navigate({ to: "/request-quote", search: { start: true } })}
+              onClick={() => void navigate({ to: "/get-a-quote" })}
             >
               Start a new quote
             </button>
