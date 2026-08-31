@@ -25,12 +25,26 @@ export interface TestActor {
   client: SupabaseClient;
 }
 
-function credentials(role: TestRole): { email: string; password: string } | null {
-  const key = role.toUpperCase();
-  const email = process.env[`TEST_USER_${key}_EMAIL`];
-  const password = process.env[`TEST_USER_${key}_PASSWORD`];
-  if (!email || !password) return null;
-  return { email, password };
+/**
+ * Service-role key for the APP project. Deliberately no fallback to a
+ * differently-scoped key: minting against the wrong project yields tokens
+ * PostgREST rejects.
+ */
+export const SERVICE_ROLE_KEY =
+  process.env["E2E_SUPABASE_SERVICE_ROLE_KEY"] ??
+  process.env["APP_SUPABASE_SERVICE_ROLE_KEY"] ??
+  "";
+
+function personaEmail(role: TestRole): string | null {
+  return process.env[`TEST_USER_${role.toUpperCase()}_EMAIL`] ?? null;
+}
+
+/** Service-role admin client for the app project. */
+function adminClient(): SupabaseClient | null {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return null;
+  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 /** Anonymous (signed-out) client — used to prove RLS denies public reads. */
