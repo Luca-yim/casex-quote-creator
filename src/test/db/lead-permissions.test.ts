@@ -43,17 +43,15 @@ const INTERNAL_COLUMNS = new Set([
   "duplicate_of_lead_id",
 ]);
 
-/** Signs in the anonymous submitter once, exactly as `/get-a-quote` does. */
+/**
+ * Mints the submitter session once, via the Auth Admin API (same mechanism as
+ * mint-session.ts's mintAnonymous), never the CAPTCHA-gated public
+ * signInAnonymously() endpoint. The row shape it inserts is identical to what
+ * `/get-a-quote` sends.
+ */
 async function initAnonSubmitter(): Promise<void> {
-  const client = anonClient();
-  const { data, error } = await client.auth.signInAnonymously();
-  if (error || !data.user) {
-    console.error(
-      `[seedLead] signInAnonymously failed — message=${error?.message ?? "no user returned"}`,
-    );
-    return;
-  }
-  anonSubmitter = { client, userId: data.user.id };
+  anonSubmitter = await mintDisposableSubmitter();
+  if (!anonSubmitter) console.error("[seedLead] submitter session could not be minted");
 }
 
 function leadRow(anonId: string, overrides: Record<string, unknown> = {}) {
