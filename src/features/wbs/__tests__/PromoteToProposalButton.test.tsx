@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
+import { within } from "@testing-library/react";
 import { render, screen } from "@/test/test-utils";
 import { makeQuote } from "@/lib/calculation-engine/__test-fixtures__/catalog";
 import type { Quote } from "@/types/quote";
@@ -85,5 +86,3 @@ describe("PromoteToProposalButton", () => {
     expect(mutate).toHaveBeenCalledTimes(1);
   });
 });
-
-import { within } from "@testing-library/react";
