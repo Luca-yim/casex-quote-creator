@@ -265,6 +265,7 @@ export type Database = {
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
+          vertical_other_detail: string | null
           solution: string | null
           repeatable_activation: string
           module_tier: string | null
@@ -313,6 +314,7 @@ export type Database = {
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
+          vertical_other_detail?: string | null
           solution?: string | null
           repeatable_activation?: string
           module_tier?: string | null
@@ -361,6 +363,7 @@ export type Database = {
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
+          vertical_other_detail?: string | null
           solution?: string | null
           repeatable_activation?: string
           module_tier?: string | null
@@ -426,6 +429,24 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      vertical_labels: {
+        Row: {
+          vertical_l1: string
+          friendly_label: string
+          display_order: number
+        }
+        Insert: {
+          vertical_l1: string
+          friendly_label: string
+          display_order?: number
+        }
+        Update: {
+          vertical_l1?: string
+          friendly_label?: string
+          display_order?: number
+        }
+        Relationships: []
       }
       vertical_solutions: {
         Row: {
@@ -615,6 +636,7 @@ export type Database = {
           contact_phone: string | null
           region: string | null
           vertical: string | null
+          vertical_other_detail: string | null
           solution: string | null
           internal_user_range: string | null
           external_portal_required: boolean | null
@@ -649,6 +671,7 @@ export type Database = {
           contact_phone?: string | null
           region?: string | null
           vertical?: string | null
+          vertical_other_detail?: string | null
           solution?: string | null
           internal_user_range?: string | null
           external_portal_required?: boolean | null
@@ -700,6 +723,7 @@ export type Database = {
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
+          vertical_other_detail: string | null
           solution: string | null
           repeatable_activation: string
           module_tier: string | null
