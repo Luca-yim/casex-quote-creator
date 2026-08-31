@@ -90,8 +90,9 @@ beforeAll(async () => {
   if (!rep || !estimator) console.warn(SKIP_REASON);
   if (!admin) {
     console.warn(
-      "Admin persona missing — set TEST_USER_ADMIN_EMAIL / _PASSWORD to run the " +
-        "reassignment case.",
+      "Admin persona missing — sessions are minted with the Auth Admin API " +
+        "(no password). Set TEST_USER_ADMIN_EMAIL and E2E_SUPABASE_SERVICE_ROLE_KEY " +
+        "to run the reassignment case.",
     );
   }
 });
