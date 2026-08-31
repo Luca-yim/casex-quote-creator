@@ -97,5 +97,7 @@ describe("/get-a-quote anonymous session", () => {
       organization_name: "Acme County",
     });
     expect(signInAnonymously).toHaveBeenCalledTimes(1);
-  });
+  // Six-step typing flow: ~1.1s in isolation, but it exceeds the default 5s
+  // budget when the full suite runs its files in parallel.
+  }, 30_000);
 });
