@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { render, screen } from "@/test/test-utils";
 import { makeQuote } from "@/lib/calculation-engine/__test-fixtures__/catalog";
@@ -107,6 +107,15 @@ function renderPanel() {
 }
 
 const total = () => screen.getByTestId("wbs-grand-total").textContent ?? "";
+
+// jsdom lacks the pointer APIs Radix Select probes on open.
+beforeAll(() => {
+  const proto = window.HTMLElement.prototype as unknown as Record<string, unknown>;
+  proto["hasPointerCapture"] = () => false;
+  proto["setPointerCapture"] = () => {};
+  proto["releasePointerCapture"] = () => {};
+  proto["scrollIntoView"] = () => {};
+});
 
 describe("WbsEditorPanel", () => {
   beforeEach(() => {
