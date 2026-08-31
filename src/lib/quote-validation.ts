@@ -129,36 +129,3 @@ function isFieldFilled(value: unknown): boolean {
   return true;
 }
 
-/** Margin band (inclusive) within which no written justification is required. */
-export const MARGIN_JUSTIFICATION_BAND = { min: 15, max: 25 } as const;
-
-/** Message shown wherever the margin justification rule blocks an action. */
-export const MARGIN_JUSTIFICATION_MESSAGE =
-  "A margin justification is required when the margin is outside the 15–25% band.";
-
-/**
- * True when the quote's margin sits outside the 15–25% band and therefore
- * requires a written justification.
- */
-export function marginJustificationRequired(
-  quote: Pick<Quote, "marginPercent">,
-): boolean {
-  const margin = quote.marginPercent ?? 20;
-  return (
-    margin < MARGIN_JUSTIFICATION_BAND.min || margin > MARGIN_JUSTIFICATION_BAND.max
-  );
-}
-
-/**
- * Mirrors the database `margin_justification_required` check constraint:
- * out-of-band margins must carry a non-empty justification.
- *
- * @returns `null` when valid, otherwise the blocking message.
- */
-export function checkMarginJustification(
-  quote: Pick<Quote, "marginPercent" | "marginJustification">,
-): string | null {
-  if (!marginJustificationRequired(quote)) return null;
-  const text = (quote.marginJustification ?? "").trim();
-  return text.length > 0 ? null : MARGIN_JUSTIFICATION_MESSAGE;
-}

@@ -163,7 +163,7 @@ export const quoteSchema = z.object({
     .nullable()
     .default(null),
   supportTier: z.enum(["standard", "enhanced", "premium"]),
-  marginPercent: z.number().min(10).max(30).default(20),
+  marginPercent: z.number().min(0).max(100).default(20),
   marginJustification: z.string().nullable().default(null),
   repConfidence: z.enum(["high", "medium", "low"]).nullable().default(null),
   tier: z.enum(["ballpark", "proposal"]).default("ballpark"),
