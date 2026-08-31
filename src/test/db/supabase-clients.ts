@@ -65,21 +65,48 @@ export function anonClient(): SupabaseClient {
  * suites skip honestly instead of failing on machines without DB access.
  */
 export async function signInAs(role: TestRole): Promise<TestActor | null> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const tag = `[signInAs:${role}]`;
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn(
+      `${tag} skipped — missing ${!SUPABASE_URL ? "VITE_APP_SUPABASE_URL" : "VITE_APP_SUPABASE_PUBLISHABLE_KEY"}`,
+    );
+    return null;
+  }
   const email = personaEmail(role);
+  if (!email) {
+    console.warn(`${tag} skipped — TEST_USER_${role.toUpperCase()}_EMAIL is not set`);
+    return null;
+  }
   const admin = adminClient();
-  if (!email || !admin) return null;
+  if (!admin) {
+    console.warn(`${tag} skipped — E2E_SUPABASE_SERVICE_ROLE_KEY is not set`);
+    return null;
+  }
 
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
   const hashedToken = data?.properties?.hashed_token;
-  if (error || !hashedToken) return null;
+  if (error || !hashedToken) {
+    console.error(
+      `${tag} generateLink FAILED for ${email} — ` +
+        `status=${(error as { status?: number } | null)?.status ?? "none"} ` +
+        `message=${error?.message ?? "no hashed_token returned"}`,
+    );
+    return null;
+  }
 
   const client = anonClient();
   const { data: verified, error: verifyError } = await client.auth.verifyOtp({
     type: "email",
     token_hash: hashedToken,
   });
-  if (verifyError || !verified.session || !verified.user) return null;
+  if (verifyError || !verified.session || !verified.user) {
+    console.error(
+      `${tag} verifyOtp FAILED for ${email} — ` +
+        `status=${(verifyError as { status?: number } | null)?.status ?? "none"} ` +
+        `message=${verifyError?.message ?? "no session/user returned"}`,
+    );
+    return null;
+  }
   return { role, userId: verified.user.id, email, client };
 }
 
