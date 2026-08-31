@@ -53,7 +53,7 @@ function ConfirmationPage() {
                   <Link to="/request-quote">Return to dashboard</Link>
                 </Button>
                 <Button asChild variant="ghost">
-                  <Link to="/request-quote" search={{ start: true }}>
+                  <Link to="/get-a-quote">
                     Submit another
                   </Link>
                 </Button>
