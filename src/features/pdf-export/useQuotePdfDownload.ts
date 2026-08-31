@@ -163,6 +163,8 @@ function configurationOf(quote: Quote): PdfQuoteConfiguration {
 function buildCustomerData(
   quote: Quote,
   breakdown: PricingBreakdown,
+  /** Pre-computed scalar fee. The cost basis behind it stays out of scope. */
+  implementationFee: number,
   shared: SharedPdfFields,
 ): CustomerVisiblePdfData {
   return {
@@ -177,14 +179,7 @@ function buildCustomerData(
     },
     pricing:
       quote.tier === "proposal"
-        ? {
-            kind: "proposal",
-            totalImplementationFee: totalImplementationFee(
-              quote.marginPercent,
-              grandTotalCost(customerFeeInputsUnavailable(), []),
-              quote.contingencyPct,
-            ),
-          }
+        ? { kind: "proposal", totalImplementationFee: implementationFee }
         : { kind: "ballpark", breakdown },
   };
 }
@@ -284,7 +279,16 @@ export function useQuotePdfDownload() {
       const context: PdfData =
         version === "internal"
           ? buildInternalData(quote, breakdown, lines, items, shared)
-          : buildCustomerData(quote, breakdown, shared);
+          : buildCustomerData(
+              quote,
+              breakdown,
+              totalImplementationFee(
+                quote.marginPercent,
+                grandTotalCost(lines, items),
+                quote.contingencyPct,
+              ),
+              shared,
+            );
 
       // Loaded lazily: @react-pdf/renderer is browser-only and heavy.
       const { pdf } = await import("@react-pdf/renderer");
