@@ -55,25 +55,32 @@ export function anonClient(): SupabaseClient {
 }
 
 /**
- * Signs in one of the seeded test accounts. Returns `null` when credentials
- * are missing or rejected so suites can skip instead of failing the build on
- * machines without database access.
+ * Signs in one of the seeded test accounts using the SAME admin-mint
+ * mechanism as e2e/scripts/mint-session.ts: an Auth Admin one-time
+ * magic-link token redeemed through `verifyOtp`. This never touches the
+ * CAPTCHA-gated public sign-in endpoints, so Turnstile stays fully enforced
+ * for real users while tests still get real, RLS-scoped sessions.
+ *
+ * Returns `null` when the service-role key or persona email is missing, so
+ * suites skip honestly instead of failing on machines without DB access.
  */
 export async function signInAs(role: TestRole): Promise<TestActor | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const creds = credentials(role);
-  if (!creds) return null;
+  const email = personaEmail(role);
+  const admin = adminClient();
+  if (!email || !admin) return null;
+
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !hashedToken) return null;
 
   const client = anonClient();
-  // Auth on this project enforces Turnstile. Supply a token via
-  // TEST_CAPTCHA_TOKEN (or point the project at the always-pass test secret)
-  // when running these suites, otherwise sign-in is rejected and they skip.
-  const captchaToken = process.env["TEST_CAPTCHA_TOKEN"];
-  const { data, error } = await client.auth.signInWithPassword(
-    captchaToken ? { ...creds, options: { captchaToken } } : creds,
-  );
-  if (error || !data.user) return null;
-  return { role, userId: data.user.id, email: creds.email, client };
+  const { data: verified, error: verifyError } = await client.auth.verifyOtp({
+    type: "email",
+    token_hash: hashedToken,
+  });
+  if (verifyError || !verified.session || !verified.user) return null;
+  return { role, userId: verified.user.id, email, client };
 }
 
 export interface TestActors {
