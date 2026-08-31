@@ -15,16 +15,21 @@ import type { BallparkSizingRow } from "@/lib/pricing-engine/ballpark";
 const sizing: BallparkSizingRow[] = [
   {
     tier: 3,
-    program_type: "public_sector",
-    hours_low: 30_000,
-    hours_high: 45_000,
-    rate_low: 70,
-    rate_high: 85,
+    tier_label: "Tier 3",
+    hours_low: 30000,
+    hours_high: 45000,
+    commercial_rate_low: 80,
+    commercial_rate_high: 95,
+    public_sector_rate_low: 70,
+    public_sector_rate_high: 85,
   },
 ];
 
 vi.mock("../useBallparkSizingReference", () => ({
-  useBallparkSizingReference: () => ({ data: sizing, isLoading: false }),
+  useBallparkSizingReference: (tier: number | null) => ({
+    data: tier === 3 ? sizing : [],
+    isLoading: false,
+  }),
 }));
 
 function renderCard(overrides: Partial<Quote>) {

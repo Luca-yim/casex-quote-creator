@@ -14,6 +14,7 @@ import { useIntake } from "@/features/intake/IntakeContext";
 import { useBallparkSizingReference } from "./useBallparkSizingReference";
 import {
   computeBallparkForQuote,
+  resolveBallparkTier,
   type BallparkQuoteInput,
 } from "./computeBallparkForQuote";
 
@@ -39,16 +40,15 @@ const LEVEL_LABEL: Record<string, string> = {
  */
 export function BallparkRangeCard() {
   const { quote } = useIntake();
-  const sizingQuery = useBallparkSizingReference();
+  const quoteInput = quote as unknown as BallparkQuoteInput;
+  const tier = useMemo(() => resolveBallparkTier(quoteInput), [quoteInput]);
+  const sizingQuery = useBallparkSizingReference(tier);
   const [open, setOpen] = useState(false);
 
   const result = useMemo(
     () =>
-      computeBallparkForQuote(
-        quote as unknown as BallparkQuoteInput,
-        sizingQuery.data ?? [],
-      ),
-    [quote, sizingQuery.data],
+      computeBallparkForQuote(quoteInput, sizingQuery.data ?? []),
+    [quoteInput, sizingQuery.data],
   );
 
   return (
