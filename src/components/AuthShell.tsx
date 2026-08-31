@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Calculator } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function AuthShell({
