@@ -6,11 +6,28 @@ import { supabase } from "@/lib/supabase";
 import { buildAssumptions } from "@/lib/assumptions-builder";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
 import { writeVersionSnapshot } from "@/lib/version-snapshot";
+import {
+  KEY as WBS_KEY,
+  fetchQuoteCostItems,
+  fetchWbsLines,
+  type CostItemRow,
+  type WbsLineRow,
+} from "@/features/wbs/useWbsData";
+import { grandTotalCost, totalImplementationFee } from "@/lib/pricing-engine/fullQuote";
+import type { Assumption } from "@/lib/assumptions-builder";
+import type { PricingBreakdown } from "@/types/pricing";
 import type { PricingCatalogRow } from "@/types/pricing";
 import type { Quote } from "@/types/quote";
 import { QuotePdfDocument } from "./QuotePdfDocument";
 import { quotePdfsKey } from "./useQuotePdfHistory";
-import type { PdfContact, PdfContext, PdfVersion } from "./types";
+import type {
+  CustomerVisiblePdfData,
+  InternalPdfData,
+  PdfContact,
+  PdfData,
+  PdfQuoteConfiguration,
+  PdfVersion,
+} from "./types";
 
 const UNKNOWN_CONTACT: PdfContact = { name: "Not assigned", email: "" };
 
@@ -117,6 +134,93 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Shared, audience-neutral fields both builders receive. */
+interface SharedPdfFields {
+  assumptions: Assumption[];
+  configuration: PdfQuoteConfiguration;
+  salesRep: PdfContact;
+  estimator: PdfContact;
+  generatedAt: Date;
+}
+
+/** Non-pricing scope metadata; carries no cost basis. */
+function configurationOf(quote: Quote): PdfQuoteConfiguration {
+  return {
+    vertical: quote.vertical,
+    solution: quote.solution,
+    repeatableActivation: quote.repeatableActivation,
+    compliance: quote.compliance,
+    hostingModel: quote.hostingModel,
+    supportTier: quote.supportTier,
+    targetGoLiveDate: quote.targetGoLiveDate,
+  };
+}
+
+/**
+ * Customer-facing data. Deliberately does NOT accept WBS lines or cost items
+ * as parameters, so no cost basis can reach a customer render even by mistake.
+ */
+function buildCustomerData(
+  quote: Quote,
+  breakdown: PricingBreakdown,
+  shared: SharedPdfFields,
+): CustomerVisiblePdfData {
+  return {
+    ...shared,
+    version: "customer",
+    quote: {
+      id: quote.id,
+      name: quote.name,
+      customerName: quote.customerName,
+      customerEmail: quote.customerEmail,
+      tier: quote.tier,
+    },
+    pricing:
+      quote.tier === "proposal"
+        ? {
+            kind: "proposal",
+            totalImplementationFee: totalImplementationFee(
+              quote.marginPercent,
+              grandTotalCost(customerFeeInputsUnavailable(), []),
+              quote.contingencyPct,
+            ),
+          }
+        : { kind: "ballpark", breakdown },
+  };
+}
+
+/** Internal data: the superset, including full cost basis. */
+function buildInternalData(
+  quote: Quote,
+  breakdown: PricingBreakdown,
+  lines: WbsLineRow[],
+  items: CostItemRow[],
+  shared: SharedPdfFields,
+): InternalPdfData {
+  if (quote.tier !== "proposal") {
+    return { ...shared, version: "internal", quote, pricing: { kind: "ballpark", breakdown } };
+  }
+  const cost = grandTotalCost(lines, items);
+  return {
+    ...shared,
+    version: "internal",
+    quote,
+    pricing: {
+      kind: "proposal",
+      grandTotalCost: cost,
+      marginPercent: quote.marginPercent,
+      contingencyPct: quote.contingencyPct,
+      totalImplementationFee: totalImplementationFee(
+        quote.marginPercent,
+        cost,
+        quote.contingencyPct,
+      ),
+      lines,
+      items,
+    },
+  };
+}
+
 /**
  * Builds and downloads a customer- or internal-facing quote PDF, and records
  * the generation in the quote's audit trail.
@@ -145,15 +249,42 @@ export function useQuotePdfDownload() {
         fetchContact(quote.approvedBy ?? quote.reviewedBy ?? null),
       ]);
 
-      const context: PdfContext = {
-        quote,
-        breakdown,
+      // WBS data is fetched only for proposal-tier quotes, and only ever
+      // reaches the internal builder.
+      let lines: WbsLineRow[] = [];
+      let items: CostItemRow[] = [];
+      if (quote.tier === "proposal") {
+        try {
+          [lines, items] = await Promise.all([
+            queryClient.fetchQuery({
+              queryKey: WBS_KEY.lines(quote.id),
+              queryFn: () => fetchWbsLines(quote.id),
+            }),
+            queryClient.fetchQuery({
+              queryKey: WBS_KEY.items(quote.id),
+              queryFn: () => fetchQuoteCostItems(quote.id),
+            }),
+          ]);
+        } catch (error) {
+          toast.error("Could not load work breakdown data", {
+            description: error instanceof Error ? error.message : undefined,
+          });
+          return;
+        }
+      }
+
+      const shared = {
         assumptions,
+        configuration: configurationOf(quote),
         salesRep,
         estimator,
         generatedAt: new Date(),
-        version,
       };
+
+      const context: PdfData =
+        version === "internal"
+          ? buildInternalData(quote, breakdown, lines, items, shared)
+          : buildCustomerData(quote, breakdown, shared);
 
       // Loaded lazily: @react-pdf/renderer is browser-only and heavy.
       const { pdf } = await import("@react-pdf/renderer");
