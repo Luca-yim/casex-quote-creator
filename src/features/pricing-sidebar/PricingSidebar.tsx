@@ -80,29 +80,18 @@ export function PricingSidebar() {
     (role === "estimator" || role === "admin") && mode === "edit";
   const savedMargin = quote.marginPercent ?? 20;
   // The slider tracks locally while dragging; the write happens on release so
-  // a single adjustment is one save, not twenty.
+  // a single adjustment is one save, not twenty. Margin is full estimator
+  // discretion — any value 0–100 commits immediately, no band, no gate.
   const [draftMargin, setDraftMargin] = useState<number | null>(null);
   const margin = draftMargin ?? savedMargin;
-  const marginJustificationRequired = margin < 15 || margin > 25;
-  const justification = (quote.marginJustification ?? "").trim();
-  // A margin outside 15–25 without a justification violates the database
-  // check constraint, so hold the write back instead of letting it fail.
-  const marginBlocked = marginJustificationRequired && !justification;
 
   const commitMargin = (value: number) => {
     setDraftMargin(value);
-    if (value < 15 || value > 25) {
-      if (!justification) return; // held until a justification is entered
-    }
     updateField("marginPercent", value);
   };
 
   const handleJustificationChange = (text: string) => {
     updateField("marginJustification", text || null);
-    // Releases a margin change that was held back for this justification.
-    if (text.trim() && draftMargin !== null && draftMargin !== savedMargin) {
-      updateField("marginPercent", draftMargin);
-    }
   };
 
   const oneTimeItems = breakdown?.lineItems.filter((i) => i.category === "one_time") ?? [];
@@ -231,8 +220,8 @@ export function PricingSidebar() {
             </div>
             <Slider
               id="margin-slider"
-              min={10}
-              max={30}
+              min={0}
+              max={100}
               step={1}
               value={[margin]}
               onValueChange={(v) => setDraftMargin(v[0] ?? savedMargin)}
@@ -240,10 +229,7 @@ export function PricingSidebar() {
             />
             <div className="space-y-1.5">
               <Label htmlFor="margin-justification" className="text-xs">
-                Margin justification
-                {marginJustificationRequired ? (
-                  <span className="text-destructive"> *</span>
-                ) : null}
+                Margin justification (optional)
               </Label>
               <Textarea
                 id="margin-justification"
@@ -252,12 +238,6 @@ export function PricingSidebar() {
                 value={quote.marginJustification ?? ""}
                 onChange={(e) => handleJustificationChange(e.target.value)}
               />
-              {marginBlocked ? (
-                <p role="alert" className="text-xs text-destructive">
-                  Justification is required outside the 15–25% band. This margin
-                  change is not saved yet — add a justification to apply it.
-                </p>
-              ) : null}
             </div>
           </div>
         </>

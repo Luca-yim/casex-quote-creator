@@ -39,15 +39,20 @@ describe("applyMargin", () => {
     expect(applyMargin(700_000, 30)).toBeCloseTo(1_000_000, 2);
   });
 
-  it("accepts the 10% lower bound", () => {
+  it("accepts a low out-of-legacy-band margin (full estimator discretion)", () => {
     expect(applyMargin(900_000, 10)).toBeCloseTo(1_000_000, 2);
+    expect(applyMargin(1_000, 5)).toBeCloseTo(1_052.6315, 2);
   });
 
-  it("throws when margin is below 10", () => {
-    expect(() => applyMargin(1_000, 9)).toThrow(/between 10% and 30%/);
+  it("accepts a high out-of-legacy-band margin", () => {
+    expect(applyMargin(1_000, 45)).toBeCloseTo(1_818.1818, 2);
   });
 
-  it("throws when margin is above 30", () => {
-    expect(() => applyMargin(1_000, 31)).toThrow(/between 10% and 30%/);
+  it("throws when margin is negative", () => {
+    expect(() => applyMargin(1_000, -1)).toThrow(/between 0% and 100%/);
+  });
+
+  it("throws at 100% margin (undefined price)", () => {
+    expect(() => applyMargin(1_000, 100)).toThrow(/between 0% and 100%/);
   });
 });

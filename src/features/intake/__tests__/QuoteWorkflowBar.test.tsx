@@ -113,48 +113,33 @@ describe("actions per role and state", () => {
   });
 });
 
-describe("margin justification gate", () => {
-  it("blocks approval when the margin is out of band with no justification", () => {
+describe("margin discretion (no justification gate)", () => {
+  it("allows approval at a low margin with no justification", () => {
     setup("estimator", {
       state: "under_review",
       ownerId: "rep-1",
       marginPercent: 12,
       marginJustification: null,
     });
-    expect(screen.getByRole("button", { name: /approve pricing/i })).toBeDisabled();
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-  });
-
-  it("allows approval once a justification is present", () => {
-    setup("estimator", {
-      state: "under_review",
-      ownerId: "rep-1",
-      marginPercent: 12,
-      marginJustification: "Competitive displacement deal approved by VP.",
-    });
-    expect(screen.getByRole("button", { name: /approve pricing/i })).toBeEnabled();
-  });
-
-  it("allows approval inside the 15-25 band without justification", () => {
-    setup("estimator", { state: "under_review", ownerId: "rep-1", marginPercent: 20 });
     expect(screen.getByRole("button", { name: /approve pricing/i })).toBeEnabled();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("blocks a rep submitting an out-of-band draft without justification", () => {
-    setup("sales_rep", {
-      state: "draft",
-      marginPercent: 28,
-      marginJustification: "",
-    });
-    expect(screen.getByRole("button", { name: /submit for review/i })).toBeDisabled();
+  it("allows approval at a mid-band margin", () => {
+    setup("estimator", { state: "under_review", ownerId: "rep-1", marginPercent: 20 });
+    expect(screen.getByRole("button", { name: /approve pricing/i })).toBeEnabled();
   });
 
-  it("does not fire a transition while blocked", async () => {
+  it("lets a rep submit a high-margin draft with no justification", () => {
+    setup("sales_rep", { state: "draft", marginPercent: 45, marginJustification: "" });
+    expect(screen.getByRole("button", { name: /submit for review/i })).toBeEnabled();
+  });
+
+  it("fires the transition on submit", async () => {
     const user = userEvent.setup();
-    setup("sales_rep", { state: "draft", marginPercent: 28, marginJustification: "" });
+    setup("sales_rep", { state: "draft", marginPercent: 45, marginJustification: "" });
     await user.click(screen.getByRole("button", { name: /submit for review/i }));
-    expect(mutate).not.toHaveBeenCalled();
+    expect(mutate).toHaveBeenCalled();
   });
 });
 

@@ -23,15 +23,16 @@ export function applyRepeatableActivationAdjustment(
 /**
  * Grosses the adjusted baseline up to a sell price carrying `marginPercent`:
  * `adjustedBaseline / (1 - marginPercent / 100)`.
- * @throws when `marginPercent` is outside the allowed 10–30% band.
+ * @throws when `marginPercent` is outside 0–100, or is exactly 100 (the
+ * price would be undefined).
  */
 export function applyMargin(
   adjustedBaseline: number,
   marginPercent: number,
 ): number {
-  if (marginPercent < 10 || marginPercent > 30) {
+  if (marginPercent < 0 || marginPercent >= 100) {
     throw new Error(
-      `Margin must be between 10% and 30% (received ${marginPercent}%).`,
+      `Margin must be between 0% and 100% (received ${marginPercent}%).`,
     );
   }
   return adjustedBaseline / (1 - marginPercent / 100);

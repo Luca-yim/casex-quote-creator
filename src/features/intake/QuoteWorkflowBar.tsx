@@ -26,7 +26,6 @@ import {
   stageOwner,
   type WorkflowAction,
 } from "@/lib/quote-workflow";
-import { checkMarginJustification } from "@/lib/quote-validation";
 import { useIntake } from "./IntakeContext";
 import { useQuoteTransition } from "./useQuoteTransition";
 import { ReturnQuoteDialog } from "./ReturnQuoteDialog";
@@ -37,8 +36,6 @@ import { useProfileDirectory } from "@/hooks/useProfileNames";
 import { PromoteToProposalButton } from "@/features/wbs/PromoteToProposalButton";
 
 /** Transitions that persist pricing and therefore must satisfy the margin rule. */
-const MARGIN_GATED_ACTIONS = new Set(["mark_adjusted", "approve", "submit_for_review"]);
-
 /** Stage indicator plus the pipeline actions available to the current role. */
 export function QuoteWorkflowBar() {
   const { quote, quoteId, role } = useIntake();
@@ -71,15 +68,12 @@ export function QuoteWorkflowBar() {
 
   const actorName = profile?.full_name || profile?.email || "a teammate";
   const returnAction = actions.find((a) => a.action === "return_to_sales");
-  const marginError = checkMarginJustification(quote);
   const isBlocked = (action: WorkflowAction) =>
-    (Boolean(marginError) && MARGIN_GATED_ACTIONS.has(action.action)) ||
-    (action.action === "approve" && needsAssignment);
+    action.action === "approve" && needsAssignment;
 
   const blockReason = (action: WorkflowAction) => {
     if (action.action === "approve" && needsAssignment)
       return "Assign a sales rep before approving";
-    if (marginError && MARGIN_GATED_ACTIONS.has(action.action)) return marginError;
     return null;
   };
 
@@ -183,9 +177,6 @@ export function QuoteWorkflowBar() {
                 variant={action.variant}
                 disabled={transition.isPending || isBlocked(action)}
                 title={blockReason(action) ?? action.description}
-                aria-describedby={
-                  isBlocked(action) ? "margin-justification-error" : undefined
-                }
                 onClick={() =>
                   action.action === "return_to_sales"
                     ? setReturnOpen(true)
@@ -199,15 +190,6 @@ export function QuoteWorkflowBar() {
               </Button>
             ))}
           </div>
-          {marginError && actions.some(isBlocked) ? (
-            <p
-              id="margin-justification-error"
-              role="alert"
-              className="text-sm text-destructive"
-            >
-              {marginError}
-            </p>
-          ) : null}
         </CardContent>
       ) : null}
 
