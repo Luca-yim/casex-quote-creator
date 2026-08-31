@@ -112,13 +112,15 @@ describe("complexity", () => {
 describe("ballparkRange", () => {
   const sizing: BallparkSizingRow[] = [
     {
-      tier: 1,
-      program_type: "commercial",
-      hours_low: 2_000,
-      hours_high: 5_000,
-      rate_low: 60,
-      rate_high: 75,
-    },
+    tier: 1,
+    tier_label: "Tier 1",
+    hours_low: 2000,
+    hours_high: 5000,
+    commercial_rate_low: 60,
+    commercial_rate_high: 75,
+    public_sector_rate_low: 55,
+    public_sector_rate_high: 68,
+  },
   ];
 
   it("does not widen at 100% confidence", () => {
