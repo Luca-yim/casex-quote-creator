@@ -201,6 +201,25 @@ export const quoteSchema = z.object({
       message: "Please enter the number of integrations required",
     });
   }
+
+  // "Other" verticals describe their need in free text instead of picking a
+  // catalog solution; every other vertical must pick a solution.
+  if (value.vertical === "other") {
+    if (!value.verticalOtherDetail || value.verticalOtherDetail.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["verticalOtherDetail"],
+        message: "Please describe your area of need",
+      });
+    }
+  } else if (value.vertical && value.solution.trim() === "") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["solution"],
+      message: "Solution is required",
+    });
+  }
 });
+
 
 export type QuoteFormData = z.infer<typeof quoteSchema>;
