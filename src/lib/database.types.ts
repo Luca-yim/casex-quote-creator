@@ -280,6 +280,13 @@ export type Database = {
           has_integrations: boolean
           integration_count: number
           integration_difficulty: string | null
+          migration_required: boolean | null
+          migration_volume_range: string | null
+          migration_cleanup_required: boolean | null
+          external_idp_required: boolean | null
+          worker_idp_required: boolean | null
+          idp_documented: boolean | null
+          portal_form_count_range: string | null
           support_tier: string | null
           margin_percent: number
           margin_justification: string | null
@@ -320,6 +327,13 @@ export type Database = {
           has_integrations?: boolean
           integration_count?: number
           integration_difficulty?: string | null
+          migration_required?: boolean | null
+          migration_volume_range?: string | null
+          migration_cleanup_required?: boolean | null
+          external_idp_required?: boolean | null
+          worker_idp_required?: boolean | null
+          idp_documented?: boolean | null
+          portal_form_count_range?: string | null
           support_tier?: string | null
           margin_percent?: number
           margin_justification?: string | null
@@ -360,6 +374,13 @@ export type Database = {
           has_integrations?: boolean
           integration_count?: number
           integration_difficulty?: string | null
+          migration_required?: boolean | null
+          migration_volume_range?: string | null
+          migration_cleanup_required?: boolean | null
+          external_idp_required?: boolean | null
+          worker_idp_required?: boolean | null
+          idp_documented?: boolean | null
+          portal_form_count_range?: string | null
           support_tier?: string | null
           margin_percent?: number
           margin_justification?: string | null
@@ -536,6 +557,13 @@ export type Database = {
           has_integrations: boolean
           integration_count: number
           integration_difficulty: string | null
+          migration_required: boolean | null
+          migration_volume_range: string | null
+          migration_cleanup_required: boolean | null
+          external_idp_required: boolean | null
+          worker_idp_required: boolean | null
+          idp_documented: boolean | null
+          portal_form_count_range: string | null
           support_tier: string | null
           margin_percent: number | null
           margin_justification: string | null
