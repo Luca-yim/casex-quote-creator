@@ -57,13 +57,15 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("notifications are scoped to their owner", () => {
-  it("seeds a notification owned by another user", () => {
-    if (!ready) return;
+  it("seeds a notification owned by another user", (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     expect(seededNotificationId).not.toBeNull();
   });
 
-  it("does not expose another user's notification to a rep", async () => {
-    if (!ready || !seededNotificationId) return;
+  it("does not expose another user's notification to a rep", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
+    if (!seededNotificationId)
+      return ctx.skip("seed failed: the submit-for-review trigger created no notification");
     const { data, error } = await actors
       .rep!.client.from("notifications")
       .select("id")
@@ -72,8 +74,10 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("notifications are scoped to th
     expect(data ?? []).toHaveLength(0);
   });
 
-  it("does not let a rep mark another user's notification as read", async () => {
-    if (!ready || !seededNotificationId) return;
+  it("does not let a rep mark another user's notification as read", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
+    if (!seededNotificationId)
+      return ctx.skip("seed failed: the submit-for-review trigger created no notification");
     await actors
       .rep!.client.from("notifications")
       .update({ read_at: new Date().toISOString() })
@@ -87,8 +91,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("notifications are scoped to th
     expect((data as { read_at: string | null } | null)?.read_at ?? null).toBeNull();
   });
 
-  it("rejects client-side notification inserts", async () => {
-    if (!ready) return;
+  it("rejects client-side notification inserts", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { error } = await actors.rep!.client.from("notifications").insert({
       user_id: actors.estimator!.userId,
       type: "quote_submitted",

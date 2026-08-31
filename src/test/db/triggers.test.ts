@@ -56,19 +56,19 @@ afterAll(async () => {
 });
 
 describe("database triggers", () => {
-  it("stamps created_at and updated_at on insert", async () => {
-    if (!ready) return;
+  it("stamps created_at and updated_at on insert", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const id = await newDraft();
-    if (!id) return;
+    if (!id) return ctx.skip("seed failed: could not create a draft quote");
     const data = await readQuote(actors.rep!, id, "created_at, updated_at");
     expect(data?.["created_at"]).toBeTruthy();
     expect(data?.["updated_at"]).toBeTruthy();
   });
 
-  it("advances updated_at on every write", async () => {
-    if (!ready) return;
+  it("advances updated_at on every write", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const id = await newDraft();
-    if (!id) return;
+    if (!id) return ctx.skip("seed failed: could not create a draft quote");
     const before = await readQuote(actors.rep!, id, "updated_at");
     await new Promise((r) => setTimeout(r, 1100));
     await actors.rep!.client.from("quotes").update({ name: "renamed" }).eq("id", id);
@@ -78,10 +78,10 @@ describe("database triggers", () => {
     );
   });
 
-  it("notifies on submission for review", async () => {
-    if (!ready) return;
+  it("notifies on submission for review", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const id = await newDraft();
-    if (!id) return;
+    if (!id) return ctx.skip("seed failed: could not create a draft quote");
     await actors.rep!.client
       .from("quotes")
       .update({ submitted_at: new Date().toISOString() })
@@ -91,10 +91,10 @@ describe("database triggers", () => {
     expect(note).not.toBeNull();
   });
 
-  it("notifies the owning rep when a quote is approved", async () => {
-    if (!ready) return;
+  it("notifies the owning rep when a quote is approved", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const id = await newDraft();
-    if (!id) return;
+    if (!id) return ctx.skip("seed failed: could not create a draft quote");
     await transitionQuote(actors.rep!, id, "submitted_for_review");
     await transitionQuote(actors.estimator!, id, "under_review");
     await transitionQuote(actors.estimator!, id, "approved");
@@ -103,18 +103,18 @@ describe("database triggers", () => {
     expect(String(note?.["type"])).toMatch(/approved|state/i);
   });
 
-  it("creates notifications unread by default", async () => {
-    if (!ready) return;
+  it("creates notifications unread by default", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const id = await newDraft();
-    if (!id) return;
+    if (!id) return ctx.skip("seed failed: could not create a draft quote");
     await transitionQuote(actors.rep!, id, "submitted_for_review");
     const note = await waitForNotification("estimator", id);
-    if (!note) return;
+    if (!note) return ctx.skip("seed failed: no notification arrived for the submitted quote");
     expect(note["read_at"] ?? null).toBeNull();
   });
 
-  it("never leaks pricing figures into an external user's notification text", async () => {
-    if (!ready) return;
+  it("never leaks pricing figures into an external user's notification text", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data } = await actors.external!.client
       .from("notifications")
       .select("title, body")
@@ -125,12 +125,12 @@ describe("database triggers", () => {
     }
   });
 
-  it("lets a user mark their own notification read", async () => {
-    if (!ready) return;
+  it("lets a user mark their own notification read", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const rep = actors.rep!;
     const { data: rows } = await rep.client.from("notifications").select("id").limit(1);
     const target = (rows ?? [])[0] as { id: string } | undefined;
-    if (!target) return;
+    if (!target) return ctx.skip("seed failed: no notification available to mark read");
     const { error } = await rep.client
       .from("notifications")
       .update({ read_at: new Date().toISOString() })

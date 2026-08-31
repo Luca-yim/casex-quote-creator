@@ -55,16 +55,16 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("quote_pdfs internal version scope", () => {
-  it("rejects an internal PDF row from a sales rep", async () => {
-    if (!ready) return;
+  it("rejects an internal PDF row from a sales rep", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { error } = await actors
       .rep!.client.from("quote_pdfs")
       .insert(pdfRow(quoteId, "internal", actors.rep!.userId));
     expect(error).not.toBeNull();
   });
 
-  it("accepts an internal PDF row from an estimator", async () => {
-    if (!ready) return;
+  it("accepts an internal PDF row from an estimator", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { error } = await actors
       .estimator!.client.from("quote_pdfs")
       .insert(pdfRow(quoteId, "internal", actors.estimator!.userId));

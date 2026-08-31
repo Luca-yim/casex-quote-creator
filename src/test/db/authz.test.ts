@@ -9,8 +9,8 @@ beforeAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("privilege escalation", () => {
-  it("blocks a sales rep from promoting themselves to admin", async () => {
-    if (!rep) return;
+  it("blocks a sales rep from promoting themselves to admin", async (ctx) => {
+    if (!rep) return ctx.skip(SKIP_REASON);
 
     const { data, error } = await rep.client
       .from("profiles")
@@ -30,8 +30,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("privilege escalation", () => {
     expect((after as { role?: string } | null)?.role).not.toBe("admin");
   });
 
-  it("blocks a sales rep from calling the admin role RPC", async () => {
-    if (!rep) return;
+  it("blocks a sales rep from calling the admin role RPC", async (ctx) => {
+    if (!rep) return ctx.skip(SKIP_REASON);
 
     const { error } = await (rep.client.rpc as unknown as (
       fn: string,
