@@ -29,6 +29,7 @@ export function rowToQuote(row: QuoteRow): Quote {
     compliance: (r["compliance"] ?? []) as Quote["compliance"],
     vertical: r["vertical"] ?? null,
     solution: r["solution"] ?? null,
+    verticalOtherDetail: r["vertical_other_detail"] ?? null,
     repeatableActivation: (r["repeatable_activation"] ??
       "novel") as Quote["repeatableActivation"],
     moduleTier: (r["module_tier"] ?? null) as Quote["moduleTier"],
@@ -81,6 +82,7 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   compliance: "compliance",
   vertical: "vertical",
   solution: "solution",
+  verticalOtherDetail: "vertical_other_detail",
   repeatableActivation: "repeatable_activation",
   moduleTier: "module_tier",
   contractYears: "contract_years",

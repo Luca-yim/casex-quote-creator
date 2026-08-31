@@ -53,6 +53,7 @@ export function IntakeForm() {
       compliance: quote.compliance,
       vertical: quote.vertical ?? "",
       solution: quote.solution ?? "",
+      verticalOtherDetail: quote.verticalOtherDetail ?? null,
       repeatableActivation: quote.repeatableActivation,
       moduleTier: quote.moduleTier ?? undefined,
       contractYears: quote.contractYears,

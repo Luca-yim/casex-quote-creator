@@ -79,6 +79,8 @@ export interface Quote {
   compliance: Compliance[];
   vertical: string | null;
   solution: string | null;
+  /** Free-text area of need, only used when vertical is "other". */
+  verticalOtherDetail: string | null;
   repeatableActivation: RepeatableActivation;
   moduleTier: ModuleTier | null;
   contractYears: number;
