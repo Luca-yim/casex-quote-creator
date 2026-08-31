@@ -54,9 +54,7 @@ export const leadIntakeSchema = z.object({
   integration_count_range: z.string(),
   integration_difficulty: z.string(),
   additional_notes: z.string().trim().max(2000),
-});
-
-.superRefine((value, ctx) => {
+}).superRefine((value, ctx) => {
   // "Something else" replaces the solution dropdown with a free-text answer.
   if (value.vertical === "other" && value.vertical_other_detail === "") {
     ctx.addIssue({
