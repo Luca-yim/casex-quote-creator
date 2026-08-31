@@ -1,12 +1,6 @@
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
@@ -16,7 +10,7 @@ import { FieldError } from "./FieldError";
 import { RadioCardGroup } from "./RadioCardGroup";
 
 const VERTICALS = [
-  { value: "FAMCx", label: "FAMCx", description: "Family Cx" },
+  { value: "FAMCx", label: "FAMCx", description: "Financial Aid Cx" },
   { value: "HealthCx", label: "HealthCx", description: "Health Cx" },
   { value: "JusticeCx", label: "JusticeCx", description: "Justice Cx" },
   { value: "GovCx", label: "GovCx", description: "Government Cx" },
@@ -75,11 +69,7 @@ export function VerticalSolutionSection() {
               disabled={disabled || !vertical || isLoading}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    vertical ? "Select a solution" : "Select a vertical first"
-                  }
-                />
+                <SelectValue placeholder={vertical ? "Select a solution" : "Select a vertical first"} />
               </SelectTrigger>
               <SelectContent>
                 {options.map((row) => (
