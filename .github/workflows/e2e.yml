@@ -48,3 +48,24 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  db-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: "true"
+      VITE_APP_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      VITE_APP_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_PUBLISHABLE_KEY }}
+      E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_USER_REP_EMAIL: ${{ vars.TEST_USER_REP_EMAIL }}
+      TEST_USER_EXTERNAL_EMAIL: ${{ vars.TEST_USER_EXTERNAL_EMAIL }}
+      TEST_USER_ESTIMATOR_EMAIL: ${{ vars.TEST_USER_ESTIMATOR_EMAIL }}
+      TEST_USER_ADMIN_EMAIL: ${{ vars.TEST_USER_ADMIN_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run DB test suite
+        run: bunx vitest run --config vitest.db.config.ts
