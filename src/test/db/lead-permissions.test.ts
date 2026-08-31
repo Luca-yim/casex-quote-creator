@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { anonClient, signInAs, SKIP_REASON, type TestActor } from "./supabase-clients";
+import {
+  mintDisposableSubmitter,
+  signInAs,
+  SKIP_REASON,
+  type TestActor,
+} from "./supabase-clients";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
