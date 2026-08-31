@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -53,15 +53,11 @@ export function ProposalPricingBlock({
   );
 
   const stored = quote.contingencyPct;
-  const [draft, setDraft] = useState<number | null>(null);
-  const contingency = draft ?? stored ?? suggested;
-
-  // First render on a quote that has never had contingency set: seed the
-  // suggestion. It is a suggestion, not a lock — the estimator can move it.
-  useEffect(() => {
-    if (stored === null || stored === undefined) onChange(suggested);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Same commit-on-release pattern as the margin slider: track locally while
+  // dragging, write on release. The suggestion is only a display default —
+  // it is never written on mount, only once the estimator moves the control.
+  const [draftContingency, setDraftContingency] = useState<number | null>(null);
+  const contingency = draftContingency ?? (stored > 0 ? stored : suggested);
 
   if (quote.tier !== "proposal" || cost <= 0) return null;
 
@@ -69,8 +65,8 @@ export function ProposalPricingBlock({
   const price = totalImplementationFee(quote.marginPercent, cost, contingency);
   const displayPct = Math.round(contingency * 1000) / 10;
 
-  const commit = (pct: number) => {
-    setDraft(pct);
+  const commitContingency = (pct: number) => {
+    setDraftContingency(pct);
     onChange(pct);
   };
 
@@ -93,8 +89,8 @@ export function ProposalPricingBlock({
           step={1}
           disabled={!canEdit}
           value={[Math.round(contingency * 100)]}
-          onValueChange={(v) => setDraft((v[0] ?? 0) / 100)}
-          onValueCommit={(v) => commit((v[0] ?? 0) / 100)}
+          onValueChange={(v) => setDraftContingency((v[0] ?? 0) / 100)}
+          onValueCommit={(v) => commitContingency((v[0] ?? 0) / 100)}
         />
         <p className="text-xs text-muted-foreground">
           Suggested {Math.round(suggested * 1000) / 10}% based on migration,

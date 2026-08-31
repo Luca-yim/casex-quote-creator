@@ -76,7 +76,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
     integrationDifficulty: null,
     supportTier: "standard",
     marginPercent: 20,
-    contingencyPct: null,
+    contingencyPct: 0,
     marginJustification: null,
     repConfidence: "medium",
     tier: "ballpark",
