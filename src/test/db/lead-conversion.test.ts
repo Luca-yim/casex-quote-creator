@@ -233,7 +233,7 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
     expect(error).toBeNull();
     expect(quoteId).toBeTruthy();
 
-    const { data, error: readError } = await estimator.client
+    const { data, error: readError } = await rep.client
       .rpc("quote_versions_scoped")
       .select("*")
       .eq("quote_id", quoteId as string)
