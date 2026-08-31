@@ -153,16 +153,27 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quote_versions_scoped snapshot
     if (error) throw new Error(error.message);
     created.push(payload.id);
 
+    // Mirrors writeVersionSnapshot(): max(version_number)+1, no explicit id,
+    // change type carried inside the snapshot as __changeType.
     const snapshot = {
       id: payload.id,
       name: "snapshot visibility check",
       margin_percent: 24,
       margin_justification: "why the margin is 24",
+      __changeType: "submit",
     };
+    const { data: latest, error: latestError } = await actors.rep.client
+      .from("quote_versions")
+      .select("version_number")
+      .eq("quote_id", payload.id)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestError) throw new Error(latestError.message);
+
     const { error: versionError } = await actors.rep.client.from("quote_versions").insert({
-      id: crypto.randomUUID(),
       quote_id: payload.id,
-      version_number: 1,
+      version_number: (latest?.version_number ?? 0) + 1,
       snapshot,
       change_reason: "column exposure check",
       changed_by: actors.rep.userId,
