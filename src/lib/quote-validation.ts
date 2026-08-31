@@ -87,7 +87,11 @@ export function readinessCheck(quote: Quote): ReadinessResult {
   let completedCount = 0;
 
   for (const field of READINESS_REQUIRED_FIELDS) {
-    const value = quote[field];
+    // "Other" verticals answer with free text instead of a catalog solution.
+    const value =
+      field === "solution" && quote.vertical === "other"
+        ? quote.verticalOtherDetail
+        : quote[field];
     const isFilled = isFieldFilled(value);
 
     if (isFilled) {

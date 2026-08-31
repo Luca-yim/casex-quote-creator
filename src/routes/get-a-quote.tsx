@@ -94,6 +94,7 @@ function GetAQuotePage() {
       region: values.region || null,
       vertical: values.vertical || null,
       solution: values.solution || null,
+      vertical_other_detail: values.vertical_other_detail || null,
       internal_user_range: values.internal_user_range || null,
       external_portal_required: values.external_portal_required,
       external_portal_monthly_logins_range:
