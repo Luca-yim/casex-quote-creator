@@ -307,20 +307,42 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
                 />
               )}
             />
-            <Controller
-              control={form.control}
-              name="solution"
-              render={({ field }) => (
-                <SelectField
-                  id="solution"
-                  label="Solution"
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={solutions}
-                  placeholder="Select a solution"
+            {selectedVertical === OTHER_VERTICAL ? (
+              <div className="space-y-2">
+                <Label htmlFor="vertical_other_detail">
+                  Please describe your area of need <span aria-hidden="true">*</span>
+                </Label>
+                <Input
+                  id="vertical_other_detail"
+                  {...form.register("vertical_other_detail")}
                 />
-              )}
-            />
+                <p className="text-xs text-destructive">
+                  {errors.vertical_other_detail?.message}
+                </p>
+              </div>
+            ) : (
+              <Controller
+                control={form.control}
+                name="solution"
+                render={({ field }) => (
+                  <SelectField
+                    id="solution"
+                    label="Solution"
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={solutions}
+                    placeholder={
+                      !selectedVertical
+                        ? "Select a vertical first"
+                        : solutions.length === 0
+                          ? "Loading solutions…"
+                          : "Select a solution"
+                    }
+                  />
+                )}
+              />
+            )}
+
           </>
         )}
 
