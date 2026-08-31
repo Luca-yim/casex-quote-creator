@@ -78,16 +78,16 @@ vi.mock("sonner", () => ({
 }));
 
 const toBlob = vi.fn(async () => new Blob(["%PDF-1.7"], { type: "application/pdf" }));
-vi.mock("@react-pdf/renderer", () => ({ pdf: () => ({ toBlob }) }));
 
 /** Captures the context handed to the document tree. */
 const captured: Record<string, unknown>[] = [];
-vi.mock("../QuotePdfDocument", () => ({
-  QuotePdfDocument: (props: { context: Record<string, unknown> }) => {
-    captured.push(props.context);
-    return null;
+vi.mock("@react-pdf/renderer", () => ({
+  pdf: (element: { props?: { context?: Record<string, unknown> } }) => {
+    if (element?.props?.context) captured.push(element.props.context);
+    return { toBlob };
   },
 }));
+vi.mock("../QuotePdfDocument", () => ({ QuotePdfDocument: () => null }));
 
 import { useQuotePdfDownload } from "../useQuotePdfDownload";
 
