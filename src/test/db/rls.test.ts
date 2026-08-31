@@ -25,20 +25,20 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
-  it("denies anonymous reads of quotes", async () => {
-    if (!ready) return;
+  it("denies anonymous reads of quotes", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data, error } = await anonClient().from("quotes").select("id").limit(1);
     expect(error !== null || (data ?? []).length === 0).toBe(true);
   });
 
-  it("denies anonymous reads of profiles", async () => {
-    if (!ready) return;
+  it("denies anonymous reads of profiles", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data, error } = await anonClient().from("profiles").select("id").limit(1);
     expect(error !== null || (data ?? []).length === 0).toBe(true);
   });
 
-  it("lets any authenticated user read the pricing catalog", async () => {
-    if (!ready) return;
+  it("lets any authenticated user read the pricing catalog", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data, error } = await actors.rep!.client
       .from("pricing_catalog")
       .select("sku_id")
@@ -47,14 +47,14 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     expect((data ?? []).length).toBeGreaterThan(0);
   });
 
-  it("hides the catalog from anonymous callers", async () => {
-    if (!ready) return;
+  it("hides the catalog from anonymous callers", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data, error } = await anonClient().from("pricing_catalog").select("sku_id").limit(1);
     expect(error !== null || (data ?? []).length === 0).toBe(true);
   });
 
-  it("lets a rep create their own draft", async () => {
-    if (!ready) return;
+  it("lets a rep create their own draft", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const rep = actors.rep!;
     const payload = draftPayload(rep.userId);
     const { error } = await rep.client.from("quotes").insert(payload);
@@ -64,8 +64,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     expect(row?.["state"]).toBe("draft");
   });
 
-  it("rejects a rep creating a quote owned by someone else", async () => {
-    if (!ready) return;
+  it("rejects a rep creating a quote owned by someone else", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const rep = actors.rep!;
     const other = actors.estimator!.userId;
     const payload = draftPayload(rep.userId, { requested_by: other, owner_id: other });
@@ -74,16 +74,16 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     expect(error).not.toBeNull();
   });
 
-  it("hides another user's draft from an external user", async () => {
-    if (!ready) return;
+  it("hides another user's draft from an external user", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const repQuote = created[0];
-    if (!repQuote) return;
+    if (!repQuote) return ctx.skip("seed failed: no rep-owned quote was created");
     const data = await readQuote(actors.external!, repQuote, "id");
     expect(data).toBeNull();
   });
 
-  it("lets an estimator read quotes they do not own", async () => {
-    if (!ready) return;
+  it("lets an estimator read quotes they do not own", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { error } = await actors.estimator!.client
       .rpc("quotes_scoped")
       .select("id")
@@ -91,10 +91,10 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     expect(error).toBeNull();
   });
 
-  it("blocks an external user from updating a rep's quote", async () => {
-    if (!ready) return;
+  it("blocks an external user from updating a rep's quote", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const repQuote = created[0];
-    if (!repQuote) return;
+    if (!repQuote) return ctx.skip("seed failed: no rep-owned quote was created");
     const { data, error } = await actors.external!.client
       .from("quotes")
       .update({ name: "hijacked" })
@@ -103,8 +103,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     expect(error !== null || (data ?? []).length === 0).toBe(true);
   });
 
-  it("only returns a user's own notifications", async () => {
-    if (!ready) return;
+  it("only returns a user's own notifications", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const rep = actors.rep!;
     const { data, error } = await rep.client.from("notifications").select("user_id").limit(50);
     expect(error).toBeNull();
@@ -113,14 +113,14 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("row level security", () => {
     }
   });
 
-  it("blocks anonymous access to notifications", async () => {
-    if (!ready) return;
+  it("blocks anonymous access to notifications", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { data, error } = await anonClient().from("notifications").select("id").limit(1);
     expect(error !== null || (data ?? []).length === 0).toBe(true);
   });
 
-  it("prevents a rep from writing another user's notification", async () => {
-    if (!ready) return;
+  it("prevents a rep from writing another user's notification", async (ctx) => {
+    if (!ready) return ctx.skip(SKIP_REASON);
     const { error } = await actors.rep!.client.from("notifications").insert({
       user_id: actors.estimator!.userId,
       type: "quote_submitted",

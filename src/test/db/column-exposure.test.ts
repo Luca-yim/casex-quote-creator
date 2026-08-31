@@ -60,8 +60,8 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure", () => {
-  it("nulls pricing columns for the external requester", async () => {
-    if (!ready || !actors.external) return;
+  it("nulls pricing columns for the external requester", async (ctx) => {
+    if (!ready || !actors.external) return ctx.skip(SKIP_REASON);
     const payload = draftPayload(actors.external.userId, {
       owner_id: null,
       margin_percent: 27,
@@ -77,8 +77,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
     expect(row?.margin_justification).toBeNull();
   });
 
-  it("nulls pricing columns for a rep on their own draft", async () => {
-    if (!ready || !actors.rep) return;
+  it("nulls pricing columns for a rep on their own draft", async (ctx) => {
+    if (!ready || !actors.rep) return ctx.skip(SKIP_REASON);
     const payload = draftPayload(actors.rep.userId, {
       margin_percent: 22,
       margin_justification: "draft stage check",
@@ -93,8 +93,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
     expect(row?.margin_justification).toBeNull();
   });
 
-  it("shows margin_percent but not the justification to a rep once approved", async () => {
-    if (!ready || !actors.rep || !actors.estimator) return;
+  it("shows margin_percent but not the justification to a rep once approved", async (ctx) => {
+    if (!ready || !actors.rep || !actors.estimator) return ctx.skip(SKIP_REASON);
     const payload = draftPayload(actors.rep.userId, {
       margin_percent: 20,
       margin_justification: "approved stage check",
@@ -123,8 +123,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
     expect(row?.margin_justification).toBeNull();
   });
 
-  it("shows both pricing columns to an estimator", async () => {
-    if (!ready || !actors.rep || !actors.estimator) return;
+  it("shows both pricing columns to an estimator", async (ctx) => {
+    if (!ready || !actors.rep || !actors.estimator) return ctx.skip(SKIP_REASON);
     const payload = draftPayload(actors.rep.userId, {
       state: "submitted_for_review",
       submitted_at: new Date().toISOString(),
@@ -143,8 +143,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("quotes_scoped column exposure"
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("quote_versions_scoped snapshot exposure", () => {
-  it("strips pricing keys from a rep's snapshot but keeps them for an estimator", async () => {
-    if (!ready || !actors.rep || !actors.estimator) return;
+  it("strips pricing keys from a rep's snapshot but keeps them for an estimator", async (ctx) => {
+    if (!ready || !actors.rep || !actors.estimator) return ctx.skip(SKIP_REASON);
     const payload = draftPayload(actors.rep.userId, {
       margin_percent: 24,
       margin_justification: "snapshot visibility check",
