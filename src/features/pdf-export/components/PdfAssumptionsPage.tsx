@@ -56,8 +56,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 
 /** Assumption bullets plus the quote configuration metadata block. */
 export function PdfAssumptionsPage({ context }: PdfSectionProps) {
-  const { quote, assumptions, version } = context;
-  const isInternal = version === "internal";
+  const { quote, assumptions, configuration, version } = context;
 
   return (
     <Page size="LETTER" style={styles.page}>
@@ -79,42 +78,51 @@ export function PdfAssumptionsPage({ context }: PdfSectionProps) {
       </PdfSection>
 
       <PdfSection title="Quote Configuration">
-        <MetaRow label="Vertical" value={quote.vertical ?? "Not specified"} />
-        <MetaRow label="Solution" value={quote.solution ?? "Not specified"} />
+        <MetaRow label="Vertical" value={configuration.vertical ?? "Not specified"} />
+        <MetaRow label="Solution" value={configuration.solution ?? "Not specified"} />
         <MetaRow
           label="Repeatable activation"
-          value={ACTIVATION_LABELS[quote.repeatableActivation] ?? "Not specified"}
+          value={ACTIVATION_LABELS[configuration.repeatableActivation] ?? "Not specified"}
         />
         <MetaRow
           label="Compliance"
           value={
-            quote.compliance.length > 0
-              ? quote.compliance.map((c) => COMPLIANCE_LABELS[c] ?? titleCase(c)).join(", ")
+            configuration.compliance.length > 0
+              ? configuration.compliance
+                  .map((c) => COMPLIANCE_LABELS[c] ?? titleCase(c))
+                  .join(", ")
               : "None specified"
           }
         />
         <MetaRow
           label="Hosting"
-          value={quote.hostingModel ? (HOSTING_LABELS[quote.hostingModel] ?? "—") : "Not specified"}
+          value={
+            configuration.hostingModel
+              ? (HOSTING_LABELS[configuration.hostingModel] ?? "—")
+              : "Not specified"
+          }
         />
         <MetaRow
           label="Support tier"
-          value={quote.supportTier ? titleCase(quote.supportTier) : "Not specified"}
+          value={configuration.supportTier ? titleCase(configuration.supportTier) : "Not specified"}
         />
         <MetaRow
           label="Target go-live"
           value={
-            quote.targetGoLiveDate
-              ? format(new Date(quote.targetGoLiveDate), "MMMM d, yyyy")
+            configuration.targetGoLiveDate
+              ? format(new Date(configuration.targetGoLiveDate), "MMMM d, yyyy")
               : "Not specified"
           }
         />
-        {isInternal ? (
+        {context.version === "internal" ? (
           <MetaRow
             label="Rep confidence"
-            value={quote.repConfidence ? titleCase(quote.repConfidence) : "Not specified"}
+            value={
+              context.quote.repConfidence ? titleCase(context.quote.repConfidence) : "Not specified"
+            }
           />
         ) : null}
+
       </PdfSection>
 
       <PdfFooter version={version} />
