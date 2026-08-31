@@ -17,6 +17,7 @@ import { useQuoteById, quoteDetailKey } from "./useQuote";
 import { useDebouncedSave } from "./useDebouncedSave";
 import { PricingSidebar } from "@/features/pricing-sidebar/PricingSidebar";
 import { BallparkRangeCard } from "@/features/estimator-ballpark/BallparkRangeCard";
+import { WbsEditorPanel } from "@/features/wbs/WbsEditorPanel";
 import { QuotePdfHistory } from "@/features/pdf-export/QuotePdfHistory";
 
 import type { Quote } from "@/types/quote";
@@ -165,6 +166,9 @@ export function IntakePage({
               role={contextValue.role}
               state={contextValue.quote.state}
             />
+            {showBallpark && contextValue.quote.tier === "proposal" ? (
+              <WbsEditorPanel />
+            ) : null}
             <IntakeForm />
 
           </div>
