@@ -56,6 +56,14 @@ export const NAV_ITEMS: NavItem[] = [
     order: 10,
   },
   {
+    label: "Lead Queue",
+    href: "/leads",
+    icon: Inbox,
+    roles: ["sales_rep", "estimator", "admin"],
+    order: 15,
+    search: { ...DEFAULT_LEAD_SEARCH },
+  },
+  {
     label: "Review Queue",
     href: "/review",
     icon: ClipboardCheck,
