@@ -430,6 +430,24 @@ export type Database = {
           }
         ]
       }
+      vertical_labels: {
+        Row: {
+          vertical_l1: string
+          friendly_label: string
+          display_order: number
+        }
+        Insert: {
+          vertical_l1: string
+          friendly_label: string
+          display_order?: number
+        }
+        Update: {
+          vertical_l1?: string
+          friendly_label?: string
+          display_order?: number
+        }
+        Relationships: []
+      }
       vertical_solutions: {
         Row: {
           id: number
