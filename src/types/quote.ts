@@ -144,7 +144,11 @@ export const quoteSchema = z.object({
   ]),
   compliance: z.array(z.enum(complianceValues)).default([]),
   vertical: z.string().min(1, "Vertical is required"),
-  solution: z.string().min(1, "Solution is required"),
+  // Solution is required for every real vertical; "other" replaces it with a
+  // free-text description instead (see the superRefine below).
+  solution: z.string().default(""),
+  verticalOtherDetail: z.string().nullable().default(null),
+
   repeatableActivation: z
     .enum(["full_match", "partial_match", "novel"])
     .default("novel"),
