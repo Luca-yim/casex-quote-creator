@@ -323,7 +323,17 @@ export function useQuotePdfDownload() {
         changedBy: userId,
         changeType: "pdf_generated",
       }).catch((error: unknown) => {
-        console.warn("[pdf-export] audit snapshot failed", error);
+        console.error("[pdf-export] audit snapshot failed", {
+          quoteId: quote.id,
+          version,
+          error,
+        });
+        toast.warning("Audit trail incomplete", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "The PDF was generated but the version snapshot was not recorded.",
+        });
       });
 
       await Promise.all([archiving, auditing]);
