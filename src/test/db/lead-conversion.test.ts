@@ -209,7 +209,23 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
     const leadId = await seedLead(qualifiedLeadFields());
     if (!leadId) return ctx.skip();
 
+    // Diagnostic: what did the seed actually persist, as read back privileged?
+    const seeded = await readLead(leadId);
+    console.log(
+      "[lead-conversion] seeded lead row before convert:",
+      JSON.stringify(seeded, null, 2),
+    );
+    console.log(
+      "[lead-conversion] internal_user_range =",
+      JSON.stringify(seeded?.["internal_user_range"]),
+      "| compliance_requirements =",
+      JSON.stringify(seeded?.["compliance_requirements"]),
+      "| status =",
+      JSON.stringify(seeded?.["status"]),
+    );
+
     const { quoteId, error } = await convert(rep, leadId);
+
     expect(error).toBeNull();
     expect(quoteId).toBeTruthy();
 
