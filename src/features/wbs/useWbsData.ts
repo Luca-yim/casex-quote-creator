@@ -95,9 +95,9 @@ export function useQuoteCostItems(quoteId: string, enabled = true) {
       return (data ?? []).map((r) => ({
         id: r.id,
         name: r.name,
-        itemType: r.item_type,
+        itemType: r.cost_type,
         amount: Number(r.amount),
-        customerVisible: Boolean(r.customer_visible),
+        customerVisible: Boolean(r.is_customer_visible),
       }));
     },
   });
@@ -223,9 +223,9 @@ export function useAddCostItem(quoteId: string) {
       const { error } = await supabase.from("quote_cost_items").insert({
         quote_id: quoteId,
         name: item.name,
-        item_type: item.itemType,
+        cost_type: item.itemType,
         amount: item.amount,
-        customer_visible: item.customerVisible,
+        is_customer_visible: item.customerVisible,
       });
       if (error) throw new Error(error.message);
     },

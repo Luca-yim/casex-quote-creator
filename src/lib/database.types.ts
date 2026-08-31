@@ -528,24 +528,24 @@ export type Database = {
           id: string
           quote_id: string
           name: string
-          item_type: string
+          cost_type: string
           amount: number
-          customer_visible: boolean
+          is_customer_visible: boolean
           created_at: string | null
         }
         Insert: {
           id?: string
           quote_id: string
           name: string
-          item_type: string
+          cost_type: string
           amount: number
-          customer_visible?: boolean
+          is_customer_visible?: boolean
         }
         Update: {
           name?: string
-          item_type?: string
+          cost_type?: string
           amount?: number
-          customer_visible?: boolean
+          is_customer_visible?: boolean
         }
         Relationships: []
       }
