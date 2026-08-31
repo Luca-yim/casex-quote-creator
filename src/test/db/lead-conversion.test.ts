@@ -128,13 +128,14 @@ async function readLead(id: string): Promise<Record<string, unknown> | null> {
 }
 
 /**
- * Reads the new quote as an estimator: pricing-bearing columns are NULLed by
- * `quotes_scoped()` for a rep, so the assertions must come from a role that is
- * allowed to see them.
+ * Reads the new quote as the rep who performed the conversion — the actual
+ * converter/requested_by in this flow, and the persona whose visibility
+ * `quotes_scoped()` grants for their own quotes.
  */
 async function readQuoteRow(quoteId: string): Promise<Record<string, unknown> | null> {
-  const reader = estimator ?? admin;
+  const reader = rep;
   if (!reader) return null;
+
   const { data, error } = await reader.client
     .rpc("quotes_scoped")
     .select("*")
@@ -232,7 +233,7 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
     expect(error).toBeNull();
     expect(quoteId).toBeTruthy();
 
-    const { data, error: readError } = await estimator.client
+    const { data, error: readError } = await rep.client
       .rpc("quote_versions_scoped")
       .select("*")
       .eq("quote_id", quoteId as string)
