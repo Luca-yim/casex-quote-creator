@@ -151,6 +151,7 @@ beforeAll(async () => {
     signInAs("estimator"),
     signInAs("admin"),
   ]);
+  await initAnonSubmitter();
   if (!rep || !estimator) console.warn(SKIP_REASON);
   if (!admin) {
     console.warn(
