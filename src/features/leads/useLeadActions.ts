@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import type { Database } from "@/lib/database.types";
 import type { LeadStatus } from "./types";
 
 type LeadUpdate = Database["public"]["Tables"]["lead_intakes"]["Update"];
