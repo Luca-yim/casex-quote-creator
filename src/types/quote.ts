@@ -56,6 +56,13 @@ export type IntegrationComplexity =
 /** Sales rep's confidence in the opportunity. */
 export type RepConfidence = "high" | "medium" | "low";
 
+/** Legacy record volume band for data migration. */
+export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
+
+/** Number of forms expected across the portals. */
+export type PortalFormCountRange = "1-3" | "4-10" | "11-25" | "26+";
+
+
 /** Full quote shape including workflow metadata. */
 export interface Quote {
   id: string;
@@ -91,6 +98,14 @@ export interface Quote {
   marginJustification: string | null;
   repConfidence: RepConfidence | null;
   tier: QuoteTier;
+  migrationRequired: boolean | null;
+  migrationVolumeRange: MigrationVolumeRange | null;
+  migrationCleanupRequired: boolean | null;
+  externalIdpRequired: boolean | null;
+  workerIdpRequired: boolean | null;
+  idpDocumented: boolean | null;
+  portalFormCountRange: PortalFormCountRange | null;
+
   state: QuoteState;
   submittedAt: string | null;
   approvedAt: string | null;
@@ -152,6 +167,21 @@ export const quoteSchema = z.object({
   marginJustification: z.string().nullable().default(null),
   repConfidence: z.enum(["high", "medium", "low"]).nullable().default(null),
   tier: z.enum(["ballpark", "proposal"]).default("ballpark"),
+  // Additive complexity-driver inputs — all optional/nullable.
+  migrationRequired: z.boolean().nullable().default(null),
+  migrationVolumeRange: z
+    .enum(["<100k", "100k-1m", "1m-5m", "5m+"])
+    .nullable()
+    .default(null),
+  migrationCleanupRequired: z.boolean().nullable().default(null),
+  externalIdpRequired: z.boolean().nullable().default(null),
+  workerIdpRequired: z.boolean().nullable().default(null),
+  idpDocumented: z.boolean().nullable().default(null),
+  portalFormCountRange: z
+    .enum(["1-3", "4-10", "11-25", "26+"])
+    .nullable()
+    .default(null),
+
 }).superRefine((value, ctx) => {
   // "Yes, we need integrations" requires a real count — empty is not 0.
   if (

@@ -52,6 +52,16 @@ export function rowToQuote(row: QuoteRow): Quote {
     marginJustification: r["margin_justification"] ?? null,
     repConfidence: (r["rep_confidence"] ?? null) as Quote["repConfidence"],
     tier: (r["tier"] ?? "ballpark") as Quote["tier"],
+    migrationRequired: r["migration_required"] ?? null,
+    migrationVolumeRange: (r["migration_volume_range"] ??
+      null) as Quote["migrationVolumeRange"],
+    migrationCleanupRequired: r["migration_cleanup_required"] ?? null,
+    externalIdpRequired: r["external_idp_required"] ?? null,
+    workerIdpRequired: r["worker_idp_required"] ?? null,
+    idpDocumented: r["idp_documented"] ?? null,
+    portalFormCountRange: (r["portal_form_count_range"] ??
+      null) as Quote["portalFormCountRange"],
+
     state: (r["state"] ?? "draft") as Quote["state"],
     submittedAt: r["submitted_at"] ?? null,
     approvedAt: r["approved_at"] ?? null,
@@ -89,4 +99,12 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   marginJustification: "margin_justification",
   repConfidence: "rep_confidence",
   tier: "tier",
+  migrationRequired: "migration_required",
+  migrationVolumeRange: "migration_volume_range",
+  migrationCleanupRequired: "migration_cleanup_required",
+  externalIdpRequired: "external_idp_required",
+  workerIdpRequired: "worker_idp_required",
+  idpDocumented: "idp_documented",
+  portalFormCountRange: "portal_form_count_range",
 };
+

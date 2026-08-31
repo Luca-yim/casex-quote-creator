@@ -16,7 +16,11 @@ import { HostingSection } from "./sections/HostingSection";
 import { IntegrationsSection } from "./sections/IntegrationsSection";
 import { SupportTierSection } from "./sections/SupportTierSection";
 import { RepConfidenceSection } from "./sections/RepConfidenceSection";
+import { MigrationSection } from "./sections/MigrationSection";
+import { IdentitySection } from "./sections/IdentitySection";
+import { PortalFormsSection } from "./sections/PortalFormsSection";
 import { SubmitBar } from "./SubmitBar";
+
 
 /**
  * Fields that render with a pre-selected default in the UI. If the stored
@@ -68,6 +72,14 @@ export function IntakeForm() {
       marginJustification: quote.marginJustification,
       repConfidence: quote.repConfidence,
       tier: quote.tier,
+      migrationRequired: quote.migrationRequired,
+      migrationVolumeRange: quote.migrationVolumeRange,
+      migrationCleanupRequired: quote.migrationCleanupRequired,
+      externalIdpRequired: quote.externalIdpRequired,
+      workerIdpRequired: quote.workerIdpRequired,
+      idpDocumented: quote.idpDocumented,
+      portalFormCountRange: quote.portalFormCountRange,
+
     } as Partial<QuoteFormData> as QuoteFormData,
   });
 
@@ -128,8 +140,12 @@ export function IntakeForm() {
         <CaseWorkerSection />
         <B2cPortalSection />
         <B2bPortalSection />
+        <PortalFormsSection />
         <HostingSection />
         <IntegrationsSection />
+        <MigrationSection />
+        <IdentitySection />
+
         <SupportTierSection />
         <RepConfidenceSection />
         <SubmitBar />
