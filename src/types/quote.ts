@@ -97,7 +97,7 @@ export interface Quote {
   marginPercent: number;
   marginJustification: string | null;
   /** Contingency stored as a fraction (0–1); null means "never set". */
-  contingencyPct: number | null;
+  contingencyPct: number;
   repConfidence: RepConfidence | null;
   tier: QuoteTier;
   migrationRequired: boolean | null;
@@ -167,7 +167,7 @@ export const quoteSchema = z.object({
   supportTier: z.enum(["standard", "enhanced", "premium"]),
   marginPercent: z.number().min(0).max(100).default(20),
   marginJustification: z.string().nullable().default(null),
-  contingencyPct: z.number().min(0).max(1).nullable().default(null),
+  contingencyPct: z.number().min(0).max(1).default(0),
   repConfidence: z.enum(["high", "medium", "low"]).nullable().default(null),
   tier: z.enum(["ballpark", "proposal"]).default("ballpark"),
   // Additive complexity-driver inputs — all optional/nullable.

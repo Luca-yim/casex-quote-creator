@@ -719,7 +719,7 @@ export type Database = {
           portal_form_count_range: string | null
           support_tier: string | null
           margin_percent: number | null
-          contingency_pct: number | null
+          contingency_pct: number
           margin_justification: string | null
           rep_confidence: string | null
           tier: string
