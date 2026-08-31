@@ -38,10 +38,20 @@ function leadRow(overrides: Record<string, unknown> = {}) {
  */
 async function seedLead(overrides: Record<string, unknown> = {}): Promise<string | null> {
   const seeder = admin ?? estimator ?? rep;
-  if (!seeder) return null;
+  if (!seeder) {
+    console.error("[seedLead] no authenticated seeder actor available");
+    return null;
+  }
   const row = leadRow(overrides);
   const { error } = await seeder.client.from("lead_intakes").insert(row as never);
-  if (error) return null;
+  if (error) {
+    console.error(
+      `[seedLead] insert into lead_intakes rejected for role="${seeder.role}" ` +
+        `code=${error.code ?? "none"} message=${error.message} ` +
+        `details=${error.details ?? "none"} hint=${error.hint ?? "none"}`,
+    );
+    return null;
+  }
   createdLeadIds.push(row.id);
   return row.id;
 }
@@ -80,8 +90,9 @@ beforeAll(async () => {
   if (!rep || !estimator) console.warn(SKIP_REASON);
   if (!admin) {
     console.warn(
-      "Admin persona missing — set TEST_USER_ADMIN_EMAIL / _PASSWORD to run the " +
-        "reassignment case.",
+      "Admin persona missing — sessions are minted with the Auth Admin API " +
+        "(no password). Set TEST_USER_ADMIN_EMAIL and E2E_SUPABASE_SERVICE_ROLE_KEY " +
+        "to run the reassignment case.",
     );
   }
 });
