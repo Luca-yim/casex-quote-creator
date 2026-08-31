@@ -4,7 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import type { LeadStatus } from "./types";
 
-async function updateLead(id: string, patch: Record<string, unknown>): Promise<void> {
+type LeadUpdate = Database["public"]["Tables"]["lead_intakes"]["Update"];
+
+async function updateLead(id: string, patch: LeadUpdate): Promise<void> {
   const { error } = await supabase.from("lead_intakes").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
 }
