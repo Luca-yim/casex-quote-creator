@@ -21,7 +21,7 @@ export function ExternalDashboard({ tab, onTabChange }: Props) {
     <div className="space-y-6">
       <div className="flex justify-end">
         <Button asChild>
-          <Link to="/request-quote" search={{ start: true }}>
+          <Link to="/get-a-quote">
             <Plus className="size-4" aria-hidden="true" />
             New Quote
           </Link>
