@@ -25,12 +25,26 @@ export interface TestActor {
   client: SupabaseClient;
 }
 
-function credentials(role: TestRole): { email: string; password: string } | null {
-  const key = role.toUpperCase();
-  const email = process.env[`TEST_USER_${key}_EMAIL`];
-  const password = process.env[`TEST_USER_${key}_PASSWORD`];
-  if (!email || !password) return null;
-  return { email, password };
+/**
+ * Service-role key for the APP project. Deliberately no fallback to a
+ * differently-scoped key: minting against the wrong project yields tokens
+ * PostgREST rejects.
+ */
+export const SERVICE_ROLE_KEY =
+  process.env["E2E_SUPABASE_SERVICE_ROLE_KEY"] ??
+  process.env["APP_SUPABASE_SERVICE_ROLE_KEY"] ??
+  "";
+
+function personaEmail(role: TestRole): string | null {
+  return process.env[`TEST_USER_${role.toUpperCase()}_EMAIL`] ?? null;
+}
+
+/** Service-role admin client for the app project. */
+function adminClient(): SupabaseClient | null {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return null;
+  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 /** Anonymous (signed-out) client — used to prove RLS denies public reads. */
@@ -41,25 +55,32 @@ export function anonClient(): SupabaseClient {
 }
 
 /**
- * Signs in one of the seeded test accounts. Returns `null` when credentials
- * are missing or rejected so suites can skip instead of failing the build on
- * machines without database access.
+ * Signs in one of the seeded test accounts using the SAME admin-mint
+ * mechanism as e2e/scripts/mint-session.ts: an Auth Admin one-time
+ * magic-link token redeemed through `verifyOtp`. This never touches the
+ * CAPTCHA-gated public sign-in endpoints, so Turnstile stays fully enforced
+ * for real users while tests still get real, RLS-scoped sessions.
+ *
+ * Returns `null` when the service-role key or persona email is missing, so
+ * suites skip honestly instead of failing on machines without DB access.
  */
 export async function signInAs(role: TestRole): Promise<TestActor | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const creds = credentials(role);
-  if (!creds) return null;
+  const email = personaEmail(role);
+  const admin = adminClient();
+  if (!email || !admin) return null;
+
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !hashedToken) return null;
 
   const client = anonClient();
-  // Auth on this project enforces Turnstile. Supply a token via
-  // TEST_CAPTCHA_TOKEN (or point the project at the always-pass test secret)
-  // when running these suites, otherwise sign-in is rejected and they skip.
-  const captchaToken = process.env["TEST_CAPTCHA_TOKEN"];
-  const { data, error } = await client.auth.signInWithPassword(
-    captchaToken ? { ...creds, options: { captchaToken } } : creds,
-  );
-  if (error || !data.user) return null;
-  return { role, userId: data.user.id, email: creds.email, client };
+  const { data: verified, error: verifyError } = await client.auth.verifyOtp({
+    type: "email",
+    token_hash: hashedToken,
+  });
+  if (verifyError || !verified.session || !verified.user) return null;
+  return { role, userId: verified.user.id, email, client };
 }
 
 export interface TestActors {
@@ -84,8 +105,9 @@ export function actorsReady(actors: TestActors): boolean {
 }
 
 export const SKIP_REASON =
-  "DB tests skipped — set TEST_USER_*_EMAIL / _PASSWORD in .env.test.local " +
-  "with real accounts (see `npm run test:db:setup`).";
+  "DB tests skipped — sessions are minted with the Auth Admin API. Set " +
+  "E2E_SUPABASE_SERVICE_ROLE_KEY (app project's service-role key) and " +
+  "TEST_USER_*_EMAIL in .env.test.local.";
 
 /**
  * Minimal valid draft payload owned by `userId`.
