@@ -2,6 +2,7 @@ import {
   Briefcase,
   ClipboardCheck,
   FileText,
+  Inbox,
   LayoutDashboard,
   PlusCircle,
   Settings,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import type { AppRole } from "@/lib/auth-types";
 import { DEFAULT_PIPELINE_SEARCH } from "@/features/pipeline/search";
+import { DEFAULT_LEAD_SEARCH } from "@/features/leads/search";
 
 /**
  * Single source of truth for the authenticated navigation.
