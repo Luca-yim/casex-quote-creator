@@ -49,20 +49,29 @@ function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
 }
 
 describe("ProposalPricingBlock", () => {
-  it("seeds the suggested contingency on first render when unset", () => {
+  it("displays the suggested contingency on first mount without writing it", () => {
     const onChange = vi.fn();
-    renderBlock({ contingencyPct: null }, onChange);
+    renderBlock({ contingencyPct: 0 }, onChange);
     // base 3% + high migration 2% + undocumented integration 2% = 7%
-    expect(onChange).toHaveBeenCalledWith(0.07);
     expect(screen.getByText("7%")).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("does not overwrite an estimator-set contingency", () => {
+  it("does not recompute over an estimator-set contingency across remounts", () => {
     const onChange = vi.fn();
-    renderBlock({ contingencyPct: 0.12 }, onChange);
-    expect(onChange).not.toHaveBeenCalled();
+    // Estimator moves the control; the parent persists it on the quote.
+    const { unmount } = renderBlock({ contingencyPct: 0.12 }, onChange);
     expect(screen.getByText("12%")).toBeInTheDocument();
+    unmount();
+
+    // Remounting must show the stored value, not the 7% suggestion, and
+    // must not write anything back.
+    renderBlock({ contingencyPct: 0.12 }, onChange);
+    expect(screen.getByText("12%")).toBeInTheDocument();
+    expect(screen.queryByText("7%")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
   });
+
 
   it("shows the computed price from margin + contingency, not a scenario", () => {
     renderBlock({ contingencyPct: 0.1, marginPercent: 30 });
