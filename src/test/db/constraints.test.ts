@@ -33,36 +33,37 @@ afterAll(async () => {
 });
 
 describe("check constraints", () => {
-  it("rejects a margin below 10%", async () => {
+  it("rejects a margin below 0%", async () => {
     if (!ready) return;
-    const { error } = await newDraft({ margin_percent: 5 });
+    const { error } = await newDraft({ margin_percent: -5 });
     expect(error).not.toBeNull();
   });
 
-  it("rejects a margin above 30%", async () => {
+  it("rejects a margin above 100%", async () => {
+    if (!ready) return;
+    const { error } = await newDraft({ margin_percent: 105 });
+    expect(error).not.toBeNull();
+  });
+
+  it("accepts any margin within 0–100%", async () => {
     if (!ready) return;
     const { error } = await newDraft({ margin_percent: 45 });
-    expect(error).not.toBeNull();
-  });
-
-  it("accepts a margin inside the 10–30 band", async () => {
-    if (!ready) return;
-    const { error } = await newDraft({ margin_percent: 22 });
     expect(error).toBeNull();
   });
 
-  it("requires a justification outside the 15–25 band", async () => {
+  it("accepts a margin at the 0% and 100% boundaries", async () => {
     if (!ready) return;
-    const { error } = await newDraft({ margin_percent: 12, margin_justification: null });
-    expect(error).not.toBeNull();
-    expect(String(error?.message)).toMatch(/margin_justification|violates check/i);
+    const { error: low } = await newDraft({ margin_percent: 0 });
+    expect(low).toBeNull();
+    const { error: high } = await newDraft({ margin_percent: 100 });
+    expect(high).toBeNull();
   });
 
-  it("accepts an out-of-band margin with a justification", async () => {
+  it("does not require margin_justification for any valid margin", async () => {
     if (!ready) return;
     const { error } = await newDraft({
-      margin_percent: 12,
-      margin_justification: "Strategic displacement pricing signed off by VP Sales.",
+      margin_percent: 45,
+      margin_justification: null,
     });
     expect(error).toBeNull();
   });
