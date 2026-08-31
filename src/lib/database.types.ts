@@ -451,6 +451,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ballpark_sizing_reference: {
+        Row: {
+          tier: number
+          tier_label: string | null
+          hours_low: number
+          hours_high: number
+          commercial_rate_low: number
+          commercial_rate_high: number
+          public_sector_rate_low: number
+          public_sector_rate_high: number
+        }
+        Insert: {
+          tier: number
+          tier_label?: string | null
+          hours_low: number
+          hours_high: number
+          commercial_rate_low: number
+          commercial_rate_high: number
+          public_sector_rate_low: number
+          public_sector_rate_high: number
+        }
+        Update: {
+          tier?: number
+          tier_label?: string | null
+          hours_low?: number
+          hours_high?: number
+          commercial_rate_low?: number
+          commercial_rate_high?: number
+          public_sector_rate_low?: number
+          public_sector_rate_high?: number
+        }
+        Relationships: []
+      }
       lead_intakes: {
         Row: {
           id: string

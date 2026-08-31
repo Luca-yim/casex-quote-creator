@@ -26,7 +26,10 @@ const sizing: BallparkSizingRow[] = [
 ];
 
 vi.mock("../useBallparkSizingReference", () => ({
-  useBallparkSizingReference: () => ({ data: sizing, isLoading: false }),
+  useBallparkSizingReference: (tier: number | null) => ({
+    data: tier === 3 ? sizing : [],
+    isLoading: false,
+  }),
 }));
 
 function renderCard(overrides: Partial<Quote>) {

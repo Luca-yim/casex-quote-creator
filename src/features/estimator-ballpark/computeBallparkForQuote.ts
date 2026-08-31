@@ -85,6 +85,20 @@ function answeredDrivers(q: BallparkQuoteInput) {
  * This is a read-only reference for the estimator: it is never written to the
  * quote and never auto-fills `margin_percent`.
  */
+/**
+ * Resolve just the complexity tier for a quote, so the sizing reference can
+ * be fetched with `where tier = :tier` before the full composition runs.
+ * Returns null when the quote cannot support a ballpark at all.
+ */
+export function resolveBallparkTier(
+  quote: BallparkQuoteInput,
+): ComplexityTier | null {
+  if (!programTypeForCustomerType(quote.customerType)) return null;
+  const answered = answeredDrivers(quote);
+  if (!Object.values(answered).some(Boolean)) return null;
+  return scoreComplexity(mapQuoteToDrivers(quote)).tier;
+}
+
 export function computeBallparkForQuote(
   quote: BallparkQuoteInput,
   sizingRows: BallparkSizingRow[],
