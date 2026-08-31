@@ -16,7 +16,7 @@ export const SUPABASE_KEY =
   process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
   "";
 
-export type TestRole = "external" | "rep" | "estimator";
+export type TestRole = "external" | "rep" | "estimator" | "admin";
 
 export interface TestActor {
   role: TestRole;
@@ -51,7 +51,13 @@ export async function signInAs(role: TestRole): Promise<TestActor | null> {
   if (!creds) return null;
 
   const client = anonClient();
-  const { data, error } = await client.auth.signInWithPassword(creds);
+  // Auth on this project enforces Turnstile. Supply a token via
+  // TEST_CAPTCHA_TOKEN (or point the project at the always-pass test secret)
+  // when running these suites, otherwise sign-in is rejected and they skip.
+  const captchaToken = process.env["TEST_CAPTCHA_TOKEN"];
+  const { data, error } = await client.auth.signInWithPassword(
+    captchaToken ? { ...creds, options: { captchaToken } } : creds,
+  );
   if (error || !data.user) return null;
   return { role, userId: data.user.id, email: creds.email, client };
 }
