@@ -41,7 +41,14 @@ export function ProposalPricingBlock({
 }: ProposalPricingBlockProps) {
   const cost = useMemo(() => grandTotalCost(lines, items), [lines, items]);
   const suggested = useMemo(
-    () => suggestedContingency(mapQuoteToDrivers(quote)),
+    () => {
+      const d = mapQuoteToDrivers(quote);
+      return suggestedContingency({
+        migrationComplexity: d.migration,
+        complianceComplexity: d.compliance,
+        hasUndocumentedIntegration: d.hasUndocumentedIntegration,
+      });
+    },
     [quote],
   );
 
