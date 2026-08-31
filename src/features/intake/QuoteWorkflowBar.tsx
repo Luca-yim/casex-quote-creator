@@ -177,9 +177,6 @@ export function QuoteWorkflowBar() {
                 variant={action.variant}
                 disabled={transition.isPending || isBlocked(action)}
                 title={blockReason(action) ?? action.description}
-                aria-describedby={
-                  isBlocked(action) ? "margin-justification-error" : undefined
-                }
                 onClick={() =>
                   action.action === "return_to_sales"
                     ? setReturnOpen(true)

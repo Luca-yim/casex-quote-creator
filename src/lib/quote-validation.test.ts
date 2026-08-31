@@ -38,19 +38,21 @@ describe("validateQuoteForSubmission", () => {
     expect(result.errors["customerName"]).toBeTruthy();
   });
 
-  it("rejects an out-of-band margin", () => {
-    expect(validateQuoteForSubmission(makeQuote({ marginPercent: 45 })).valid).toBe(
+  it("rejects a margin outside 0-100", () => {
+    expect(validateQuoteForSubmission(makeQuote({ marginPercent: 101 })).valid).toBe(
+      false,
+    );
+    expect(validateQuoteForSubmission(makeQuote({ marginPercent: -1 })).valid).toBe(
       false,
     );
   });
 
-  it("accepts the margin band edges", () => {
-    expect(validateQuoteForSubmission(makeQuote({ marginPercent: 10 })).valid).toBe(
-      true,
-    );
-    expect(validateQuoteForSubmission(makeQuote({ marginPercent: 30 })).valid).toBe(
-      true,
-    );
+  it("accepts any margin 0-100 (full estimator discretion)", () => {
+    for (const m of [0, 10, 30, 45, 100]) {
+      expect(validateQuoteForSubmission(makeQuote({ marginPercent: m })).valid).toBe(
+        true,
+      );
+    }
   });
 });
 
