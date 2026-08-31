@@ -60,6 +60,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
     compliance: [],
     vertical: "Health & Human Services",
     solution: "Eligibility Case Management",
+    verticalOtherDetail: null,
     repeatableActivation: "novel",
     moduleTier: "standard",
     contractYears: 3,
