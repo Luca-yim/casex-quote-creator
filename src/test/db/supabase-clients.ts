@@ -16,7 +16,7 @@ export const SUPABASE_KEY =
   process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
   "";
 
-export type TestRole = "external" | "rep" | "estimator";
+export type TestRole = "external" | "rep" | "estimator" | "admin";
 
 export interface TestActor {
   role: TestRole;
