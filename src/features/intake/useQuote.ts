@@ -65,7 +65,10 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
     mutationKey: ["quote-create", userId],
     mutationFn: async (): Promise<Quote> => {
       if (!userId) throw new Error("Not signed in");
-      const CREATORS: AppRole[] = ["sales_rep", "estimator", "admin", "external"];
+      // Client-side guard only. External users no longer create quotes from
+      // the UI: their real path is lead_intakes -> conversion. This does not
+      // remove `external` as a role anywhere else in the system.
+      const CREATORS: AppRole[] = ["sales_rep", "estimator", "admin"];
       if (!role || !CREATORS.includes(role)) {
         throw new Error("Your role cannot create quotes from this page.");
       }
