@@ -34,12 +34,26 @@ export const Route = createFileRoute("/request-quote/")({
 });
 
 function RequestQuotePage() {
-  const { start, tab } = Route.useSearch();
-  const navigate = useNavigate();
-
   return (
     <ProtectedRoute allow={["external", "sales_rep"]}>
-      {start ? (
+      <RequestQuoteEntry />
+    </ProtectedRoute>
+  );
+}
+
+/** Rendered once AuthGate + RoleGate have settled, so `role` is known. */
+function RequestQuoteEntry() {
+  const { start, tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const { role } = useAuth();
+  // External requesters now create work through the public lead-intake flow
+  // (`/get-a-quote`), so `?start=1` never spawns a draft quote for them — it
+  // just falls through to their dashboard. Sales reps keep the branch.
+  const startIntake = Boolean(start) && role !== "external";
+
+  return (
+    <>
+      {startIntake ? (
         <AppLayout title="Request a quote" description="Starting a new intake">
           <RequestQuoteRunner />
         </AppLayout>
