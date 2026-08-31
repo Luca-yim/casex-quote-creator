@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import { ProposalPricingBlock } from "../ProposalPricingBlock";
 import { makeQuote } from "@/lib/calculation-engine/__test-fixtures__/catalog";
+import { formatCurrency } from "@/lib/utils";
 import {
   grandTotalCost,
   marginScenarios,
@@ -17,8 +18,8 @@ const ITEMS = [{ amount: 25_000 }];
 const COST = grandTotalCost(LINES, ITEMS);
 const HOURS = 1600;
 
-function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
-  const quote = makeQuote({
+function buildQuote(quoteOverrides = {}) {
+  return makeQuote({
     tier: "proposal",
     marginPercent: 30,
     // Known driver inputs: high-volume migration with cleanup + undocumented IdP.
@@ -30,7 +31,11 @@ function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
     idpDocumented: false,
     ...quoteOverrides,
   });
-  render(
+}
+
+function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
+  const quote = buildQuote(quoteOverrides);
+  const utils = render(
     <ProposalPricingBlock
       quote={quote}
       lines={LINES}
@@ -40,7 +45,7 @@ function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
       onChange={onChange}
     />,
   );
-  return { quote, onChange };
+  return { ...utils, quote, onChange };
 }
 
 describe("ProposalPricingBlock", () => {
@@ -63,25 +68,41 @@ describe("ProposalPricingBlock", () => {
     renderBlock({ contingencyPct: 0.1, marginPercent: 30 });
     const expected = totalImplementationFee(30, COST, 0.1);
     expect(screen.getByTestId("computed-price").textContent).toBe(
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
-      }).format(Math.round(expected)),
+      formatCurrency(expected),
     );
   });
 
-  it("updates the displayed price live when margin changes", () => {
-    const { unmount } = { unmount: () => {} };
-    renderBlock({ contingencyPct: 0.1, marginPercent: 30 });
+  it("updates the displayed price live when margin or contingency changes", () => {
+    const onChange = vi.fn();
+    const { rerender } = renderBlock({ contingencyPct: 0.1, marginPercent: 30 }, onChange);
     const first = screen.getByTestId("computed-price").textContent;
-    unmount();
-    screen.getByTestId("computed-price").remove();
-    renderBlock({ contingencyPct: 0.1, marginPercent: 40 });
-    const second = screen.getByTestId("computed-price").textContent;
-    expect(second).not.toBe(first);
-    expect(totalImplementationFee(40, COST, 0.1)).toBeGreaterThan(
-      totalImplementationFee(30, COST, 0.1),
+
+    rerender(
+      <ProposalPricingBlock
+        quote={buildQuote({ contingencyPct: 0.1, marginPercent: 40 })}
+        lines={LINES}
+        items={ITEMS}
+        totalHours={HOURS}
+        canEdit
+        onChange={onChange}
+      />,
+    );
+    const higherMargin = screen.getByTestId("computed-price").textContent;
+    expect(higherMargin).toBe(formatCurrency(totalImplementationFee(40, COST, 0.1)));
+    expect(higherMargin).not.toBe(first);
+
+    rerender(
+      <ProposalPricingBlock
+        quote={buildQuote({ contingencyPct: 0.2, marginPercent: 40 })}
+        lines={LINES}
+        items={ITEMS}
+        totalHours={HOURS}
+        canEdit
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByTestId("computed-price").textContent).toBe(
+      formatCurrency(totalImplementationFee(40, COST, 0.2)),
     );
   });
 
