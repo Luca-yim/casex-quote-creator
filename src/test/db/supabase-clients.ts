@@ -110,6 +110,70 @@ export async function signInAs(role: TestRole): Promise<TestActor | null> {
   return { role, userId: verified.user.id, email, client };
 }
 
+/**
+ * Mints a session for a disposable, freshly-created auth user — the db-test
+ * twin of `mintAnonymous()` in e2e/scripts/mint-session.ts. That script can't
+ * be imported here: it exports nothing, resolves env under CI-only names, and
+ * runs `main()` at module load, so this is a deliberate parallel copy.
+ *
+ * The public `signInAnonymously()` endpoint stays CAPTCHA-gated and untouched.
+ */
+export async function mintDisposableSubmitter(): Promise<{
+  client: SupabaseClient;
+  userId: string;
+} | null> {
+  const tag = "[mintDisposableSubmitter]";
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn(
+      `${tag} skipped — missing ${!SUPABASE_URL ? "VITE_APP_SUPABASE_URL" : "VITE_APP_SUPABASE_PUBLISHABLE_KEY"}`,
+    );
+    return null;
+  }
+  const admin = adminClient();
+  if (!admin) {
+    console.warn(`${tag} skipped — E2E_SUPABASE_SERVICE_ROLE_KEY is not set`);
+    return null;
+  }
+
+  const email = `e2e-anon+${Date.now()}-${Math.random().toString(36).slice(2, 7)}@test.local`;
+  const { error: createError } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { e2e_anonymous_persona: true },
+  });
+  if (createError && !/already/i.test(createError.message)) {
+    console.error(`${tag} createUser FAILED for ${email} — message=${createError.message}`);
+    return null;
+  }
+
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !hashedToken) {
+    console.error(
+      `${tag} generateLink FAILED for ${email} — ` +
+        `status=${(error as { status?: number } | null)?.status ?? "none"} ` +
+        `message=${error?.message ?? "no hashed_token returned"}`,
+    );
+    return null;
+  }
+
+  const client = anonClient();
+  const { data: verified, error: verifyError } = await client.auth.verifyOtp({
+    type: "email",
+    token_hash: hashedToken,
+  });
+  if (verifyError || !verified.session || !verified.user) {
+    console.error(
+      `${tag} verifyOtp FAILED for ${email} — ` +
+        `status=${(verifyError as { status?: number } | null)?.status ?? "none"} ` +
+        `message=${verifyError?.message ?? "no session/user returned"}`,
+    );
+    return null;
+  }
+  return { client, userId: verified.user.id };
+}
+
+
 export interface TestActors {
   external: TestActor | null;
   rep: TestActor | null;
