@@ -27,6 +27,11 @@ export interface IntakePageProps {
   mode?: "edit" | "readonly";
   /** Force pricing visibility (estimator review route). */
   forceShowPricing?: boolean;
+  /**
+   * Renders the estimator-only ballpark reference card. Set exclusively by
+   * `/review/$id`, which is gated to estimator/admin.
+   */
+  showBallpark?: boolean;
   title?: string;
   description?: string;
 }
