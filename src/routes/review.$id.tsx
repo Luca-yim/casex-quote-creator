@@ -22,6 +22,7 @@ function ReviewDetailPage() {
         quoteId={id}
         roleOverride="estimator"
         forceShowPricing
+        showBallpark
         title="Estimator review"
         description="Full pricing detail and margin controls"
       />
