@@ -34,7 +34,7 @@ export interface RateCardOption {
   costRate: number;
 }
 
-const KEY = {
+export const KEY = {
   lines: (quoteId: string) => ["wbs-lines", quoteId] as const,
   items: (quoteId: string) => ["wbs-cost-items", quoteId] as const,
   rates: (programType: string | null) => ["rate-cards", programType] as const,
@@ -50,33 +50,56 @@ function useWbsAllowed() {
   };
 }
 
+/**
+ * Reads WBS labor lines for one quote. Extracted from the hook so non-hook
+ * callers (PDF generation) can prime the exact same query key.
+ */
+export async function fetchWbsLines(quoteId: string): Promise<WbsLineRow[]> {
+  const { data, error } = await supabase
+    .from("quote_wbs_lines")
+    .select("*")
+    .eq("quote_id", quoteId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    phase: r.phase,
+    area: r.area,
+    role: r.role,
+    location: r.location,
+    costHours: Number(r.cost_hours),
+    revenueHours: Number(r.revenue_hours),
+    costRate: Number(r.cost_rate),
+    billRate: Number(r.bill_rate),
+    personDays: r.person_days === null ? null : Number(r.person_days),
+  }));
+}
+
 /** WBS labor lines for one quote. RLS restricts this to estimator/admin. */
 export function useWbsLines(quoteId: string, enabled = true) {
   const { allowed, ready } = useWbsAllowed();
   return useQuery({
     queryKey: KEY.lines(quoteId),
     enabled: enabled && ready && allowed && Boolean(quoteId),
-    queryFn: async (): Promise<WbsLineRow[]> => {
-      const { data, error } = await supabase
-        .from("quote_wbs_lines")
-        .select("*")
-        .eq("quote_id", quoteId)
-        .order("created_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((r) => ({
-        id: r.id,
-        phase: r.phase,
-        area: r.area,
-        role: r.role,
-        location: r.location,
-        costHours: Number(r.cost_hours),
-        revenueHours: Number(r.revenue_hours),
-        costRate: Number(r.cost_rate),
-        billRate: Number(r.bill_rate),
-        personDays: r.person_days === null ? null : Number(r.person_days),
-      }));
-    },
+    queryFn: () => fetchWbsLines(quoteId),
   });
+}
+
+/** Reads non-labor cost items for one quote. Shared with PDF generation. */
+export async function fetchQuoteCostItems(quoteId: string): Promise<CostItemRow[]> {
+  const { data, error } = await supabase
+    .from("quote_cost_items")
+    .select("*")
+    .eq("quote_id", quoteId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    itemType: r.cost_type,
+    amount: Number(r.amount),
+    customerVisible: Boolean(r.is_customer_visible),
+  }));
 }
 
 /** Non-labor cost items for one quote. */
@@ -85,21 +108,7 @@ export function useQuoteCostItems(quoteId: string, enabled = true) {
   return useQuery({
     queryKey: KEY.items(quoteId),
     enabled: enabled && ready && allowed && Boolean(quoteId),
-    queryFn: async (): Promise<CostItemRow[]> => {
-      const { data, error } = await supabase
-        .from("quote_cost_items")
-        .select("*")
-        .eq("quote_id", quoteId)
-        .order("created_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        itemType: r.cost_type,
-        amount: Number(r.amount),
-        customerVisible: Boolean(r.is_customer_visible),
-      }));
-    },
+    queryFn: () => fetchQuoteCostItems(quoteId),
   });
 }
 
