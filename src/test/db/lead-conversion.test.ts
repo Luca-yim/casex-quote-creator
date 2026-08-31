@@ -145,16 +145,23 @@ async function readQuoteRow(quoteId: string): Promise<Record<string, unknown> | 
   return (data as Record<string, unknown> | null) ?? null;
 }
 
-/** Normalises the RPC return (uuid scalar, row, or single-row array). */
-function quoteIdFrom(data: unknown): string | null {
-  if (typeof data === "string") return data;
-  if (Array.isArray(data)) return quoteIdFrom(data[0]);
-  if (data && typeof data === "object") {
-    const rec = data as Record<string, unknown>;
-    const id = rec["id"] ?? rec["quote_id"] ?? rec["convert_lead_to_quote"];
-    return typeof id === "string" ? id : null;
+/**
+ * `convert_lead_to_quote` is declared `returns public.quotes`, so a successful
+ * call always yields a single composite row object with a string `id`. Any
+ * other shape is a contract violation and must fail loudly.
+ */
+function quoteIdFrom(data: unknown): string {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data) ||
+    typeof (data as Record<string, unknown>)["id"] !== "string"
+  ) {
+    throw new Error(
+      `convert_lead_to_quote returned an unexpected shape: ${JSON.stringify(data)}`,
+    );
   }
-  return null;
+  return (data as Record<string, unknown>)["id"] as string;
 }
 
 async function convert(
@@ -164,10 +171,16 @@ async function convert(
   const { data, error } = await actor.client.rpc("convert_lead_to_quote", {
     p_lead_id: leadId,
   });
-  const quoteId = error ? null : quoteIdFrom(data);
-  if (quoteId) createdQuoteIds.push(quoteId);
-  return { quoteId, error: error ? { message: error.message, code: error.code } : null };
+  // A genuine PostgREST error stays a reported error (the rejection tests rely
+  // on it); only a *successful* call with a malformed payload throws.
+  if (error) {
+    return { quoteId: null, error: { message: error.message, code: error.code } };
+  }
+  const quoteId = quoteIdFrom(data);
+  createdQuoteIds.push(quoteId);
+  return { quoteId, error: null };
 }
+
 
 beforeAll(async () => {
   [rep, estimator, admin] = await Promise.all([
