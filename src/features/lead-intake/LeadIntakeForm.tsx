@@ -74,13 +74,26 @@ const STEPS = [
 
 /** Fields validated before leaving each step (only step 1 has requirements). */
 const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
-  ["organization_name", "contact_name", "contact_email", "contact_phone"],
-  [],
-  [],
-  [],
-  [],
-  [],
+  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
+  ["vertical", "solution", "vertical_other_detail"],
+  [
+    "internal_user_count",
+    "external_portal_required",
+    "external_portal_monthly_logins",
+    "b2b_portal_required",
+    "b2b_user_count",
+    "hosting_preference",
+  ],
+  ["compliance_requirements"],
+  ["integration_required", "integration_count", "integration_difficulty"],
+  ["additional_notes"],
 ];
+
+/** First step index that owns a given field name, for error navigation. */
+function stepForField(field: string): number {
+  const index = STEP_FIELDS.findIndex((fields) => (fields as string[]).includes(field));
+  return index === -1 ? 0 : index;
+}
 
 type OptionList = ReadonlyArray<{ value: string; label: string }>;
 
