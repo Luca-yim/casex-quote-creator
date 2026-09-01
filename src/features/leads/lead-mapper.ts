@@ -14,13 +14,15 @@ export interface Lead {
   region: string | null;
   vertical: string | null;
   solution: string | null;
-  internalUserRange: string | null;
+  internalUserCount: number | null;
   externalPortalRequired: boolean | null;
+  externalPortalMonthlyLogins: number | null;
   b2bPortalRequired: boolean | null;
+  b2bUserCount: number | null;
   hostingPreference: string | null;
   complianceRequirements: string[];
   integrationRequired: boolean | null;
-  integrationCountRange: string | null;
+  integrationCount: number | null;
   integrationDifficulty: string | null;
   additionalNotes: string | null;
   status: LeadStatus;
@@ -50,13 +52,15 @@ export function rowToLead(row: LeadRow): Lead {
     region: r["region"] ?? null,
     vertical: r["vertical"] ?? null,
     solution: r["solution"] ?? null,
-    internalUserRange: r["internal_user_range"] ?? null,
+    internalUserCount: r["internal_user_count"] ?? null,
     externalPortalRequired: r["external_portal_required"] ?? null,
+    externalPortalMonthlyLogins: r["external_portal_monthly_logins"] ?? null,
     b2bPortalRequired: r["b2b_portal_required"] ?? null,
+    b2bUserCount: r["b2b_user_count"] ?? null,
     hostingPreference: r["hosting_preference"] ?? null,
     complianceRequirements: (r["compliance_requirements"] ?? []) as string[],
     integrationRequired: r["integration_required"] ?? null,
-    integrationCountRange: r["integration_count_range"] ?? null,
+    integrationCount: r["integration_count"] ?? null,
     integrationDifficulty: r["integration_difficulty"] ?? null,
     additionalNotes: r["additional_notes"] ?? null,
     status: (r["status"] ?? "new_lead") as LeadStatus,

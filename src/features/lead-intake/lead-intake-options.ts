@@ -13,27 +13,6 @@ export const REGION_OPTIONS = [
   { value: "other", label: "Other / global" },
 ] as const;
 
-export const INTERNAL_USER_RANGES = [
-  { value: "1-50", label: "1 – 50" },
-  { value: "51-200", label: "51 – 200" },
-  { value: "201-500", label: "201 – 500" },
-  { value: "501-1000", label: "501 – 1,000" },
-  { value: "1000+", label: "More than 1,000" },
-] as const;
-
-export const EXTERNAL_LOGIN_RANGES = [
-  { value: "0-10k", label: "Up to 10,000 / month" },
-  { value: "10k-50k", label: "10,000 – 50,000 / month" },
-  { value: "50k-250k", label: "50,000 – 250,000 / month" },
-  { value: "250k+", label: "More than 250,000 / month" },
-] as const;
-
-export const B2B_USER_RANGES = [
-  { value: "1-100", label: "1 – 100" },
-  { value: "101-500", label: "101 – 500" },
-  { value: "501-2000", label: "501 – 2,000" },
-  { value: "2000+", label: "More than 2,000" },
-] as const;
 
 export const HOSTING_PREFERENCES = [
   { value: "cloud", label: "Vendor-hosted cloud" },
@@ -53,12 +32,6 @@ export const COMPLIANCE_OPTIONS = [
   { value: "none", label: "None / not sure" },
 ] as const;
 
-export const INTEGRATION_COUNT_RANGES = [
-  { value: "1-2", label: "1 – 2" },
-  { value: "3-5", label: "3 – 5" },
-  { value: "6-10", label: "6 – 10" },
-  { value: "10+", label: "More than 10" },
-] as const;
 
 export const INTEGRATION_DIFFICULTY = [
   { value: "low", label: "Simple — modern APIs" },

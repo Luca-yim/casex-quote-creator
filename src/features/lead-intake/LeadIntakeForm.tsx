@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { useForm, Controller, type SubmitHandler, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
@@ -20,13 +20,9 @@ import { cn } from "@/lib/utils";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { useVerticalLabels, OTHER_VERTICAL } from "@/hooks/useVerticalLabels";
 import {
-  B2B_USER_RANGES,
   COMPLIANCE_OPTIONS,
-  EXTERNAL_LOGIN_RANGES,
   HOSTING_PREFERENCES,
-  INTEGRATION_COUNT_RANGES,
   INTEGRATION_DIFFICULTY,
-  INTERNAL_USER_RANGES,
   REGION_OPTIONS,
 } from "./lead-intake-options";
 
@@ -43,15 +39,15 @@ export const leadIntakeSchema = z.object({
   vertical: z.string(),
   solution: z.string(),
   vertical_other_detail: z.string().trim().max(500),
-  internal_user_range: z.string(),
+  internal_user_count: z.number().int().min(0).nullable().default(null),
   external_portal_required: z.boolean(),
-  external_portal_monthly_logins_range: z.string(),
+  external_portal_monthly_logins: z.number().int().min(0).nullable().default(null),
   b2b_portal_required: z.boolean(),
-  b2b_user_count_range: z.string(),
+  b2b_user_count: z.number().int().min(0).nullable().default(null),
   hosting_preference: z.string(),
   compliance_requirements: z.array(z.string()),
   integration_required: z.boolean(),
-  integration_count_range: z.string(),
+  integration_count: z.number().int().min(0).nullable().default(null),
   integration_difficulty: z.string(),
   additional_notes: z.string().trim().max(2000),
 }).superRefine((value, ctx) => {
@@ -143,6 +139,42 @@ function ToggleRow({
   );
 }
 
+/** Exact non-negative integer input with a reassuring "estimate is fine" hint. */
+function NumberField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number | null;
+  onChange: (next: number | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        min={0}
+        step={1}
+        inputMode="numeric"
+        value={value ?? ""}
+        onChange={(event) => {
+          const raw = event.target.value;
+          onChange(raw === "" ? null : Number(raw));
+        }}
+      />
+      <p className="text-xs text-muted-foreground">
+        A rough estimate is fine — you don't need an exact figure.
+      </p>
+    </div>
+  );
+}
+
+
+
 export interface LeadIntakeFormProps {
   /** Persists the lead. Resolves when the insert completed. */
   onSubmit: (values: LeadIntakeValues) => Promise<void>;
@@ -162,7 +194,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
   const { data: verticalSolutions } = useVerticalSolutions({ enabled: !disabled });
 
   const form = useForm<LeadIntakeValues>({
-    resolver: zodResolver(leadIntakeSchema),
+    resolver: zodResolver(leadIntakeSchema) as Resolver<LeadIntakeValues>,
     mode: "onSubmit",
     defaultValues: {
       organization_name: "",
@@ -173,15 +205,15 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
       vertical: "",
       solution: "",
       vertical_other_detail: "",
-      internal_user_range: "",
+      internal_user_count: null,
       external_portal_required: false,
-      external_portal_monthly_logins_range: "",
+      external_portal_monthly_logins: null,
       b2b_portal_required: false,
-      b2b_user_count_range: "",
+      b2b_user_count: null,
       hosting_preference: "",
       compliance_requirements: [],
       integration_required: false,
-      integration_count_range: "",
+      integration_count: null,
       integration_difficulty: "",
       additional_notes: "",
     },
@@ -357,15 +389,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
           <>
             <Controller
               control={form.control}
-              name="internal_user_range"
+              name="internal_user_count"
               render={({ field }) => (
-                <SelectField
-                  id="internal_user_range"
+                <NumberField
+                  id="internal_user_count"
                   label="Internal users"
                   value={field.value}
                   onChange={field.onChange}
-                  options={INTERNAL_USER_RANGES}
-                  placeholder="Select a range"
                 />
               )}
             />
@@ -384,15 +414,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
             {form.watch("external_portal_required") && (
               <Controller
                 control={form.control}
-                name="external_portal_monthly_logins_range"
+                name="external_portal_monthly_logins"
                 render={({ field }) => (
-                  <SelectField
-                    id="external_portal_monthly_logins_range"
+                  <NumberField
+                    id="external_portal_monthly_logins"
                     label="Monthly portal logins"
                     value={field.value}
                     onChange={field.onChange}
-                    options={EXTERNAL_LOGIN_RANGES}
-                    placeholder="Select a range"
                   />
                 )}
               />
@@ -412,15 +440,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
             {form.watch("b2b_portal_required") && (
               <Controller
                 control={form.control}
-                name="b2b_user_count_range"
+                name="b2b_user_count"
                 render={({ field }) => (
-                  <SelectField
-                    id="b2b_user_count_range"
+                  <NumberField
+                    id="b2b_user_count"
                     label="Partner users"
                     value={field.value}
                     onChange={field.onChange}
-                    options={B2B_USER_RANGES}
-                    placeholder="Select a range"
                   />
                 )}
               />
@@ -499,15 +525,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
               <>
                 <Controller
                   control={form.control}
-                  name="integration_count_range"
+                  name="integration_count"
                   render={({ field }) => (
-                    <SelectField
-                      id="integration_count_range"
+                    <NumberField
+                      id="integration_count"
                       label="How many integrations"
                       value={field.value}
                       onChange={field.onChange}
-                      options={INTEGRATION_COUNT_RANGES}
-                      placeholder="Select a range"
                     />
                   )}
                 />
