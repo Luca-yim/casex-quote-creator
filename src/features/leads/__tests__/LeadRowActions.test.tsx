@@ -141,7 +141,7 @@ describe("LeadRowActions", () => {
   it("assign-and-claim writes all four fields for the selected rep", async () => {
     authState.role = "estimator";
     const user = userEvent.setup({ pointerEventsCheck: 0 });
-    const { container } = render(<LeadRowActions lead={lead()} otherLeads={[]} />);
+    render(<LeadRowActions lead={lead()} otherLeads={[]} />);
     await openMenu();
     await user.click(await screen.findByText(/assign & claim/i));
 
