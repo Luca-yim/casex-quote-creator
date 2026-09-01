@@ -141,14 +141,14 @@ describe("LeadRowActions", () => {
   it("assign-and-claim writes all four fields for the selected rep", async () => {
     authState.role = "estimator";
     const user = userEvent.setup({ pointerEventsCheck: 0 });
-    render(<LeadRowActions lead={lead()} otherLeads={[]} />);
+    const { container } = render(<LeadRowActions lead={lead()} otherLeads={[]} />);
     await openMenu();
     await user.click(await screen.findByText(/assign & claim/i));
 
     const trigger = screen.getByLabelText(/assign and claim to/i);
-    await user.click(trigger);
+    await fireEvent.click(trigger);
     const option = await screen.findByRole("option", { name: "Sarah Lee" });
-    await user.click(option);
+    await fireEvent.click(option);
     await user.click(screen.getByRole("button", { name: /^Assign & claim$/i }));
 
     await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
