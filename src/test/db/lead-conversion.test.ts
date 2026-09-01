@@ -215,8 +215,8 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
       JSON.stringify(seeded, null, 2),
     );
     console.log(
-      "[lead-conversion] internal_user_range =",
-      JSON.stringify(seeded?.["internal_user_range"]),
+      "[lead-conversion] internal_user_count =",
+      JSON.stringify(seeded?.["internal_user_count"]),
       "| compliance_requirements =",
       JSON.stringify(seeded?.["compliance_requirements"]),
       "| status =",
