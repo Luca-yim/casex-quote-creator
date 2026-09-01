@@ -10,7 +10,7 @@ const EMPTY: LeadStats = {
   qualified: 0,
   disqualified: 0,
   duplicate: 0,
-  converted: 0,
+  converted_to_ballpark: 0,
   total: 0,
 };
 
