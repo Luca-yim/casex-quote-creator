@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+import { canConvertLead } from "../permissions";
 
 describe("canConvertLead", () => {
   const lead = (claimedBy: string | null) => ({ claimedBy }) as never;
