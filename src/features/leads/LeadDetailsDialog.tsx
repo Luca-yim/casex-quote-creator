@@ -125,17 +125,25 @@ export function LeadDetailsDialog({
               label="Compliance"
               value={
                 lead.complianceRequirements.length
-                  ? lead.complianceRequirements.join(", ")
+                  ? lead.complianceRequirements
+                      .map((code) => labelFor(COMPLIANCE_OPTIONS, code))
+                      .join(", ")
                   : "—"
               }
             />
-            <Row label="Hosting preference" value={fmt(lead.hostingPreference)} />
+            <Row
+              label="Hosting preference"
+              value={labelFor(HOSTING_PREFERENCES, lead.hostingPreference)}
+            />
           </Group>
 
           <Group title="Integrations">
             <Row label="Integrations needed" value={fmt(lead.integrationRequired)} />
             <Row label="Integration count" value={fmt(lead.integrationCount)} />
-            <Row label="Difficulty" value={fmt(lead.integrationDifficulty)} />
+            <Row
+              label="Difficulty"
+              value={labelFor(INTEGRATION_DIFFICULTY, lead.integrationDifficulty)}
+            />
           </Group>
 
           <Group title="Notes">
