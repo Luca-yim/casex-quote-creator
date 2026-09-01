@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LEAD_STATUS_LABELS } from "./types";
 import type { LeadStats } from "./useLeadStats";
 
-const SHOWN = ["new", "claimed", "qualified", "converted"] as const;
+const SHOWN = ["new_lead", "claimed", "qualified", "converted"] as const;
 
 /** Queue overview cards. Counts are unfiltered, mirroring the pipeline stats. */
 export function LeadStatsCards({

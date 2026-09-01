@@ -5,7 +5,7 @@ import { LEAD_STATUSES, type LeadStatus } from "./types";
 export type LeadStats = Record<LeadStatus, number> & { total: number };
 
 const EMPTY: LeadStats = {
-  new: 0,
+  new_lead: 0,
   claimed: 0,
   qualified: 0,
   disqualified: 0,
