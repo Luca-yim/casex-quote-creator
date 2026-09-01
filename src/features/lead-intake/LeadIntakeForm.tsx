@@ -262,9 +262,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
     }
   };
 
-  const handleFormSubmit = form.handleSubmit(submit, () => {
-    // Required fields all live on step 1 — send the user back to fix them.
-    setStep(0);
+  const handleFormSubmit = form.handleSubmit(submit, (formErrors) => {
+    // Jump to the earliest step that owns an invalid field.
+    const target = Object.keys(formErrors).reduce<number | null>((lowest, key) => {
+      const index = stepForField(key);
+      return lowest === null || index < lowest ? index : lowest;
+    }, null);
+    setStep(target ?? 0);
   });
 
   const errors = form.formState.errors;
