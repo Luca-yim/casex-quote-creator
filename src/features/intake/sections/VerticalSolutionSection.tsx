@@ -58,7 +58,7 @@ export function VerticalSolutionSection() {
                 }}
                 options={verticalOptions.map((option) => ({
                   value: option.value,
-                  label: option.label,
+                  label: option.value,
                 }))}
                 disabled={disabled}
                 className="sm:grid-cols-2"
