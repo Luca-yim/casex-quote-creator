@@ -145,8 +145,10 @@ describe("LeadRowActions", () => {
     await openMenu();
     await user.click(await screen.findByText(/assign & claim/i));
 
-    await user.click(screen.getByLabelText(/assign and claim to/i));
-    await user.click(await screen.findByText("Sarah Lee"));
+    const trigger = screen.getByLabelText(/assign and claim to/i);
+    await user.click(trigger);
+    const option = await screen.findByRole("option", { name: "Sarah Lee" });
+    await user.click(option);
     await user.click(screen.getByRole("button", { name: /^Assign & claim$/i }));
 
     await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
