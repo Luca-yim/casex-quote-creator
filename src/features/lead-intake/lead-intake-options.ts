@@ -32,12 +32,6 @@ export const COMPLIANCE_OPTIONS = [
   { value: "none", label: "None / not sure" },
 ] as const;
 
-export const INTEGRATION_COUNT_RANGES = [
-  { value: "1-2", label: "1 – 2" },
-  { value: "3-5", label: "3 – 5" },
-  { value: "6-10", label: "6 – 10" },
-  { value: "10+", label: "More than 10" },
-] as const;
 
 export const INTEGRATION_DIFFICULTY = [
   { value: "low", label: "Simple — modern APIs" },

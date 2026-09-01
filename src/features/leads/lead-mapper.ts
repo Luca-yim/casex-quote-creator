@@ -14,13 +14,15 @@ export interface Lead {
   region: string | null;
   vertical: string | null;
   solution: string | null;
-  internalUserRange: string | null;
+  internalUserCount: number | null;
   externalPortalRequired: boolean | null;
+  externalPortalMonthlyLogins: number | null;
   b2bPortalRequired: boolean | null;
+  b2bUserCount: number | null;
   hostingPreference: string | null;
   complianceRequirements: string[];
   integrationRequired: boolean | null;
-  integrationCountRange: string | null;
+  integrationCount: number | null;
   integrationDifficulty: string | null;
   additionalNotes: string | null;
   status: LeadStatus;
