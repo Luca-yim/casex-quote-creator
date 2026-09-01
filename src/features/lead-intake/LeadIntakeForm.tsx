@@ -353,15 +353,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
           <>
             <Controller
               control={form.control}
-              name="internal_user_range"
+              name="internal_user_count"
               render={({ field }) => (
-                <SelectField
-                  id="internal_user_range"
+                <NumberField
+                  id="internal_user_count"
                   label="Internal users"
                   value={field.value}
                   onChange={field.onChange}
-                  options={INTERNAL_USER_RANGES}
-                  placeholder="Select a range"
                 />
               )}
             />
@@ -380,15 +378,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
             {form.watch("external_portal_required") && (
               <Controller
                 control={form.control}
-                name="external_portal_monthly_logins_range"
+                name="external_portal_monthly_logins"
                 render={({ field }) => (
-                  <SelectField
-                    id="external_portal_monthly_logins_range"
+                  <NumberField
+                    id="external_portal_monthly_logins"
                     label="Monthly portal logins"
                     value={field.value}
                     onChange={field.onChange}
-                    options={EXTERNAL_LOGIN_RANGES}
-                    placeholder="Select a range"
                   />
                 )}
               />
@@ -408,15 +404,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
             {form.watch("b2b_portal_required") && (
               <Controller
                 control={form.control}
-                name="b2b_user_count_range"
+                name="b2b_user_count"
                 render={({ field }) => (
-                  <SelectField
-                    id="b2b_user_count_range"
+                  <NumberField
+                    id="b2b_user_count"
                     label="Partner users"
                     value={field.value}
                     onChange={field.onChange}
-                    options={B2B_USER_RANGES}
-                    placeholder="Select a range"
                   />
                 )}
               />
@@ -495,15 +489,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
               <>
                 <Controller
                   control={form.control}
-                  name="integration_count_range"
+                  name="integration_count"
                   render={({ field }) => (
-                    <SelectField
-                      id="integration_count_range"
+                    <NumberField
+                      id="integration_count"
                       label="How many integrations"
                       value={field.value}
                       onChange={field.onChange}
-                      options={INTEGRATION_COUNT_RANGES}
-                      placeholder="Select a range"
                     />
                   )}
                 />
