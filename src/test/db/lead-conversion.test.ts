@@ -100,16 +100,15 @@ async function seedLead(overrides: Record<string, unknown> = {}): Promise<string
 }
 
 /**
- * A lead with real band strings taken verbatim from
- * `src/features/lead-intake/lead-intake-options.ts`, plus one compliance value
- * the quote vocabulary has no counterpart for ("none") next to a mappable one.
+ * A lead with exact integer counts, plus one compliance value the quote
+ * vocabulary has no counterpart for ("none") next to a mappable one.
  */
 function qualifiedLeadFields() {
   return {
-    internal_user_range: "1-50",
-    external_portal_monthly_logins_range: "10k-50k",
-    b2b_user_count_range: "1-100",
-    integration_count_range: "1-2",
+    internal_user_count: 1,
+    external_portal_monthly_logins: 25000,
+    b2b_user_count: 100,
+    integration_count: 2,
     compliance_requirements: ["soc2", "none"],
     status: "qualified",
   };
