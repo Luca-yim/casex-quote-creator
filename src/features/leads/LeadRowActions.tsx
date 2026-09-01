@@ -122,6 +122,11 @@ export function LeadRowActions({
               <UserPlus className="mr-2 size-4" /> Claim lead
             </DropdownMenuItem>
           ) : null}
+          {showAssignClaim ? (
+            <DropdownMenuItem onClick={() => setAssignClaimOpen(true)}>
+              <UserPlus className="mr-2 size-4" /> Assign & claim
+            </DropdownMenuItem>
+          ) : null}
           {showAssign ? (
             <DropdownMenuItem onClick={() => setAssignOpen(true)}>
               <UserPlus className="mr-2 size-4" /> Assign to rep
@@ -140,7 +145,9 @@ export function LeadRowActions({
               <ArrowRightLeft className="mr-2 size-4" /> Convert to Ballpark
             </DropdownMenuItem>
           ) : null}
-          {showClaim || showAssign || showConvert ? <DropdownMenuSeparator /> : null}
+          {showClaim || showAssignClaim || showAssign || showConvert ? (
+            <DropdownMenuSeparator />
+          ) : null}
           {showQualify ? (
             <DropdownMenuItem
               disabled={setStatus.isPending || lead.status === "qualified"}
