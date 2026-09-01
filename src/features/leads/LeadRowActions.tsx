@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
+  ArrowRightLeft,
   CheckCircle2,
   Copy,
+  Eye,
   Files,
   MoreHorizontal,
   UserPlus,
@@ -31,10 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useAssignableOwners, ownerOptionLabel } from "@/hooks/useAssignableOwners";
-import { canClaimLead, canPerformLeadAction } from "./permissions";
+import { canClaimLead, canConvertLead, canPerformLeadAction } from "./permissions";
 import { useLeadActions } from "./useLeadActions";
+import { useConvertLeadToQuote } from "./useConvertLeadToQuote";
+import { LeadDetailsDialog } from "./LeadDetailsDialog";
 import type { Lead } from "./lead-mapper";
 
 /**
@@ -51,8 +56,11 @@ export function LeadRowActions({
   /** Candidate originals for "mark duplicate", excluding this lead. */
   otherLeads: Lead[];
 }) {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const navigate = useNavigate();
   const { claim, assign, setStatus, markDuplicate } = useLeadActions();
+  const convert = useConvertLeadToQuote();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [repId, setRepId] = useState("");
@@ -64,6 +72,7 @@ export function LeadRowActions({
   const showQualify = canPerformLeadAction(role, "qualify");
   const showDisqualify = canPerformLeadAction(role, "disqualify");
   const showDuplicate = canPerformLeadAction(role, "duplicate");
+  const showConvert = canConvertLead(role, lead, user?.id ?? null);
 
   const copyId = async () => {
     try {
@@ -88,6 +97,10 @@ export function LeadRowActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
+            <Eye className="mr-2 size-4" /> View details
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           {showClaim ? (
             <DropdownMenuItem
               disabled={claim.isPending}
@@ -101,7 +114,20 @@ export function LeadRowActions({
               <UserPlus className="mr-2 size-4" /> Assign to rep
             </DropdownMenuItem>
           ) : null}
-          {showClaim || showAssign ? <DropdownMenuSeparator /> : null}
+          {showConvert ? (
+            <DropdownMenuItem
+              disabled={convert.isPending}
+              onClick={() =>
+                convert.mutate(lead, {
+                  onSuccess: (quoteId) =>
+                    void navigate({ to: "/quotes/$id", params: { id: quoteId } }),
+                })
+              }
+            >
+              <ArrowRightLeft className="mr-2 size-4" /> Convert to Ballpark
+            </DropdownMenuItem>
+          ) : null}
+          {showClaim || showAssign || showConvert ? <DropdownMenuSeparator /> : null}
           {showQualify ? (
             <DropdownMenuItem
               disabled={setStatus.isPending || lead.status === "qualified"}
@@ -129,6 +155,8 @@ export function LeadRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <LeadDetailsDialog lead={lead} open={detailsOpen} onOpenChange={setDetailsOpen} />
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent>

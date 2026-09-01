@@ -14,6 +14,7 @@ export interface Lead {
   region: string | null;
   vertical: string | null;
   solution: string | null;
+  verticalOtherDetail: string | null;
   internalUserCount: number | null;
   externalPortalRequired: boolean | null;
   externalPortalMonthlyLogins: number | null;
@@ -52,6 +53,7 @@ export function rowToLead(row: LeadRow): Lead {
     region: r["region"] ?? null,
     vertical: r["vertical"] ?? null,
     solution: r["solution"] ?? null,
+    verticalOtherDetail: r["vertical_other_detail"] ?? null,
     internalUserCount: r["internal_user_count"] ?? null,
     externalPortalRequired: r["external_portal_required"] ?? null,
     externalPortalMonthlyLogins: r["external_portal_monthly_logins"] ?? null,

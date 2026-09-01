@@ -22,7 +22,7 @@ const STATUS_TONE: Record<string, string> = {
   qualified: "bg-emerald-100 text-emerald-800",
   disqualified: "bg-destructive/10 text-destructive",
   duplicate: "bg-muted text-muted-foreground",
-  converted: "bg-emerald-600 text-white",
+  converted_to_ballpark: "bg-emerald-600 text-white",
 };
 
 function SortHeader({
