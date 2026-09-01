@@ -36,7 +36,12 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useAssignableOwners, ownerOptionLabel } from "@/hooks/useAssignableOwners";
-import { canClaimLead, canConvertLead, canPerformLeadAction } from "./permissions";
+import {
+  canAssignLead,
+  canClaimLead,
+  canConvertLead,
+  canPerformLeadAction,
+} from "./permissions";
 import { useLeadActions } from "./useLeadActions";
 import { useConvertLeadToQuote } from "./useConvertLeadToQuote";
 import { LeadDetailsDialog } from "./LeadDetailsDialog";
