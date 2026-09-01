@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "@/test/test-utils";
+import { render, screen, fireEvent } from "@/test/test-utils";
 import type { AppRole } from "@/lib/auth-types";
 import { rowToLead, type Lead } from "../lead-mapper";
 
