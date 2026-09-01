@@ -38,7 +38,7 @@ function lead(overrides: Partial<Lead> = {}): Lead {
     organization_name: "Acme County",
     contact_name: "Dana Ruiz",
     contact_email: "dana@acme.gov",
-    status: "new",
+    status: "new_lead",
     created_at: "2026-08-01T00:00:00Z",
     updated_at: "2026-08-01T00:00:00Z",
   } as never);
