@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { useForm, Controller, type SubmitHandler, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
@@ -139,6 +139,39 @@ function ToggleRow({
   );
 }
 
+/** Exact non-negative integer input with a reassuring "estimate is fine" hint. */
+function NumberField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number | null;
+  onChange: (next: number | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        min={0}
+        step={1}
+        inputMode="numeric"
+        value={value ?? ""}
+        onChange={(event) => {
+          const raw = event.target.value;
+          onChange(raw === "" ? null : Number(raw));
+        }}
+      />
+      <p className="text-xs text-muted-foreground">
+        A rough estimate is fine — you don't need an exact figure.
+      </p>
+    </div>
+  );
+
 export interface LeadIntakeFormProps {
   /** Persists the lead. Resolves when the insert completed. */
   onSubmit: (values: LeadIntakeValues) => Promise<void>;
@@ -158,7 +191,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
   const { data: verticalSolutions } = useVerticalSolutions({ enabled: !disabled });
 
   const form = useForm<LeadIntakeValues>({
-    resolver: zodResolver(leadIntakeSchema),
+    resolver: zodResolver(leadIntakeSchema) as Resolver<LeadIntakeValues>,
     mode: "onSubmit",
     defaultValues: {
       organization_name: "",
