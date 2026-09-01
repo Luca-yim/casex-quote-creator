@@ -58,6 +58,22 @@ export function useLeadActions() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const assignAndClaim = useMutation({
+    mutationFn: async ({ leadId, repId }: { leadId: string; repId: string }) => {
+      await updateLead(leadId, {
+        assigned_rep_id: repId,
+        claimed_by: repId,
+        claimed_at: new Date().toISOString(),
+        status: "claimed" satisfies LeadStatus,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Lead assigned and claimed");
+      invalidate();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const setStatus = useMutation({
     mutationFn: async ({ leadId, status }: { leadId: string; status: LeadStatus }) => {
       await updateLead(leadId, { status });
@@ -91,5 +107,5 @@ export function useLeadActions() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  return { claim, assign, setStatus, markDuplicate };
+  return { claim, assign, assignAndClaim, setStatus, markDuplicate };
 }
