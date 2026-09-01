@@ -153,12 +153,21 @@ function GetAQuotePage() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
       <header className="mb-8 space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2"
+          onClick={() => navigate({ to: "/" })}
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" /> Return to homepage
+        </Button>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Get a quote</h1>
         <p className="text-sm text-muted-foreground">
           A few quick questions so our team can prepare the right recommendation. Takes about two
           minutes.
         </p>
       </header>
+
       {sessionReady || (isTurnstileEnabled && !captchaToken) ? null : (
         <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
