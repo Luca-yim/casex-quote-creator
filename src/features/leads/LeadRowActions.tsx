@@ -218,7 +218,48 @@ export function LeadRowActions({
         </DialogContent>
       </Dialog>
 
+      <Dialog open={assignClaimOpen} onOpenChange={setAssignClaimOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign & claim lead</DialogTitle>
+            <DialogDescription>
+              Assigns the lead to the selected rep and claims it in their name.
+              Only available for unclaimed leads.
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={assignClaimRepId} onValueChange={setAssignClaimRepId}>
+            <SelectTrigger aria-label="Assign and claim to">
+              <SelectValue placeholder="Select a rep" />
+            </SelectTrigger>
+            <SelectContent>
+              {assignClaimOptions.map((owner) => (
+                <SelectItem key={owner.id} value={owner.id}>
+                  {ownerOptionLabel(owner)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignClaimOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!assignClaimRepId || assignAndClaim.isPending}
+              onClick={() =>
+                assignAndClaim.mutate(
+                  { leadId: lead.id, repId: assignClaimRepId },
+                  { onSuccess: () => setAssignClaimOpen(false) },
+                )
+              }
+            >
+              Assign & claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={duplicateOpen} onOpenChange={setDuplicateOpen}>
+
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mark as duplicate</DialogTitle>
