@@ -159,7 +159,7 @@ export interface LeadIntakeFormProps {
 export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: LeadIntakeFormProps) {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const { data: verticalSolutions } = useVerticalSolutions();
+  const { data: verticalSolutions } = useVerticalSolutions({ enabled: !disabled });
 
   const form = useForm<LeadIntakeValues>({
     resolver: zodResolver(leadIntakeSchema),
@@ -187,7 +187,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
     },
   });
 
-  const { options: verticals } = useVerticalLabels();
+  const { options: verticals } = useVerticalLabels({ enabled: !disabled });
 
   const selectedVertical = form.watch("vertical");
   const solutions = useMemo(

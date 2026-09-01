@@ -24,11 +24,12 @@ async function fetchVerticalLabels(): Promise<VerticalLabel[]> {
  * Vertical dropdown options sourced from `vertical_labels`. The `other`
  * row lives in the same table and is always sorted last.
  */
-export function useVerticalLabels() {
+export function useVerticalLabels(options: { enabled?: boolean } = {}) {
   const query = useQuery({
     queryKey: ["vertical-labels"],
     queryFn: fetchVerticalLabels,
     staleTime: FIVE_MINUTES,
+    enabled: options.enabled ?? true,
   });
 
   const rows = query.data ?? [];

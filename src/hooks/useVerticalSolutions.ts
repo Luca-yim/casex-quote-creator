@@ -19,10 +19,11 @@ async function fetchVerticalSolutions(): Promise<VerticalSolution[]> {
 }
 
 /** TanStack Query hook exposing vertical/solution options (5 min stale time). */
-export function useVerticalSolutions() {
+export function useVerticalSolutions(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["vertical-solutions"],
     queryFn: fetchVerticalSolutions,
     staleTime: FIVE_MINUTES,
+    enabled: options.enabled ?? true,
   });
 }
