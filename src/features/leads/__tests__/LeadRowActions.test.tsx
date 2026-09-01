@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "@/test/test-utils";
+import { render, screen, fireEvent } from "@/test/test-utils";
 import type { AppRole } from "@/lib/auth-types";
 import { rowToLead, type Lead } from "../lead-mapper";
 
@@ -111,5 +111,51 @@ describe("LeadRowActions", () => {
 
     await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
     expect(updatePayloads[0]).toEqual({ status: "qualified" });
+  });
+
+  it("shows 'Assign & claim' to estimators on unclaimed leads", async () => {
+    authState.role = "estimator";
+    render(<LeadRowActions lead={lead()} otherLeads={[]} />);
+    await openMenu();
+    expect(await screen.findByText(/assign & claim/i)).toBeInTheDocument();
+  });
+
+  it("hides 'Assign & claim' once the lead is claimed", async () => {
+    authState.role = "estimator";
+    render(
+      <LeadRowActions
+        lead={lead({ claimedBy: "other", assignedRepId: "other", status: "claimed" })}
+        otherLeads={[]}
+      />,
+    );
+    await openMenu();
+    expect(screen.queryByText(/assign & claim/i)).not.toBeInTheDocument();
+  });
+
+  it("hides 'Assign & claim' from sales reps", async () => {
+    render(<LeadRowActions lead={lead()} otherLeads={[]} />);
+    await openMenu();
+    expect(screen.queryByText(/assign & claim/i)).not.toBeInTheDocument();
+  });
+
+  it("assign-and-claim writes all four fields for the selected rep", async () => {
+    authState.role = "estimator";
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    render(<LeadRowActions lead={lead()} otherLeads={[]} />);
+    await openMenu();
+    await user.click(await screen.findByText(/assign & claim/i));
+
+    const trigger = screen.getByLabelText(/assign and claim to/i);
+    await fireEvent.click(trigger);
+    const option = await screen.findByRole("option", { name: "Sarah Lee" });
+    await fireEvent.click(option);
+    await user.click(screen.getByRole("button", { name: /^Assign & claim$/i }));
+
+    await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
+    const patch = updatePayloads[0]!;
+    expect(patch["assigned_rep_id"]).toBe("rep-2");
+    expect(patch["claimed_by"]).toBe("rep-2");
+    expect(patch["status"]).toBe("claimed");
+    expect(typeof patch["claimed_at"]).toBe("string");
   });
 });

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canClaimLead, canPerformLeadAction } from "../permissions";
+import {
+  canAssignLead,
+  canClaimLead,
+  canPerformLeadAction,
+} from "../permissions";
 import { rowToLead, isUnclaimed, type Lead } from "../lead-mapper";
 import type { AppRole } from "@/lib/auth-types";
 
@@ -54,5 +58,23 @@ describe("claim availability", () => {
 
   it("is hidden when only assigned_rep_id is set (admin-assigned, unclaimed)", () => {
     expect(canClaimLead("sales_rep", lead({ assignedRepId: "user-3" }))).toBe(false);
+  });
+});
+
+describe("assign-and-claim availability", () => {
+  it("is offered to estimators on unclaimed leads", () => {
+    expect(canAssignLead("estimator", lead())).toBe(true);
+  });
+
+  it("is hidden from sales reps and admins", () => {
+    expect(canAssignLead("sales_rep", lead())).toBe(false);
+    expect(canAssignLead("admin", lead())).toBe(false);
+    expect(canAssignLead("external", lead())).toBe(false);
+    expect(canAssignLead(null, lead())).toBe(false);
+  });
+
+  it("is hidden once the lead is claimed", () => {
+    const held = lead({ claimedBy: "user-9", assignedRepId: "user-9", status: "claimed" });
+    expect(canAssignLead("estimator", held)).toBe(false);
   });
 });

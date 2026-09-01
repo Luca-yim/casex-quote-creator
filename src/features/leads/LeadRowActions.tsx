@@ -36,7 +36,12 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useAssignableOwners, ownerOptionLabel } from "@/hooks/useAssignableOwners";
-import { canClaimLead, canConvertLead, canPerformLeadAction } from "./permissions";
+import {
+  canAssignLead,
+  canClaimLead,
+  canConvertLead,
+  canPerformLeadAction,
+} from "./permissions";
 import { useLeadActions } from "./useLeadActions";
 import { useConvertLeadToQuote } from "./useConvertLeadToQuote";
 import { LeadDetailsDialog } from "./LeadDetailsDialog";
@@ -58,21 +63,29 @@ export function LeadRowActions({
 }) {
   const { role, user } = useAuth();
   const navigate = useNavigate();
-  const { claim, assign, setStatus, markDuplicate } = useLeadActions();
+  const { claim, assign, assignAndClaim, setStatus, markDuplicate } = useLeadActions();
   const convert = useConvertLeadToQuote();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [assignClaimOpen, setAssignClaimOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [repId, setRepId] = useState("");
+  const [assignClaimRepId, setAssignClaimRepId] = useState("");
   const [originalId, setOriginalId] = useState("");
   const owners = useAssignableOwners(assignOpen);
+  const assignClaimOwners = useAssignableOwners(assignClaimOpen);
 
   const showClaim = canClaimLead(role, lead);
   const showAssign = canPerformLeadAction(role, "assign");
+  const showAssignClaim = canAssignLead(role, lead);
   const showQualify = canPerformLeadAction(role, "qualify");
   const showDisqualify = canPerformLeadAction(role, "disqualify");
   const showDuplicate = canPerformLeadAction(role, "duplicate");
   const showConvert = canConvertLead(role, lead, user?.id ?? null);
+
+  const assignClaimOptions = (assignClaimOwners.data ?? []).filter((owner) =>
+    ["sales_rep", "estimator"].includes(owner.role),
+  );
 
   const copyId = async () => {
     try {
@@ -109,6 +122,11 @@ export function LeadRowActions({
               <UserPlus className="mr-2 size-4" /> Claim lead
             </DropdownMenuItem>
           ) : null}
+          {showAssignClaim ? (
+            <DropdownMenuItem onClick={() => setAssignClaimOpen(true)}>
+              <UserPlus className="mr-2 size-4" /> Assign & claim
+            </DropdownMenuItem>
+          ) : null}
           {showAssign ? (
             <DropdownMenuItem onClick={() => setAssignOpen(true)}>
               <UserPlus className="mr-2 size-4" /> Assign to rep
@@ -127,7 +145,9 @@ export function LeadRowActions({
               <ArrowRightLeft className="mr-2 size-4" /> Convert to Ballpark
             </DropdownMenuItem>
           ) : null}
-          {showClaim || showAssign || showConvert ? <DropdownMenuSeparator /> : null}
+          {showClaim || showAssignClaim || showAssign || showConvert ? (
+            <DropdownMenuSeparator />
+          ) : null}
           {showQualify ? (
             <DropdownMenuItem
               disabled={setStatus.isPending || lead.status === "qualified"}
@@ -198,7 +218,48 @@ export function LeadRowActions({
         </DialogContent>
       </Dialog>
 
+      <Dialog open={assignClaimOpen} onOpenChange={setAssignClaimOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign & claim lead</DialogTitle>
+            <DialogDescription>
+              Assigns the lead to the selected rep and claims it in their name.
+              Only available for unclaimed leads.
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={assignClaimRepId} onValueChange={setAssignClaimRepId}>
+            <SelectTrigger aria-label="Assign and claim to">
+              <SelectValue placeholder="Select a rep" />
+            </SelectTrigger>
+            <SelectContent>
+              {assignClaimOptions.map((owner) => (
+                <SelectItem key={owner.id} value={owner.id}>
+                  {ownerOptionLabel(owner)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignClaimOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!assignClaimRepId || assignAndClaim.isPending}
+              onClick={() =>
+                assignAndClaim.mutate(
+                  { leadId: lead.id, repId: assignClaimRepId },
+                  { onSuccess: () => setAssignClaimOpen(false) },
+                )
+              }
+            >
+              Assign & claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={duplicateOpen} onOpenChange={setDuplicateOpen}>
+
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mark as duplicate</DialogTitle>
