@@ -48,3 +48,8 @@ export function canConvertLead(
   if (role === "admin") return true;
   return lead.claimedBy !== null && userId !== null && lead.claimedBy === userId;
 }
+
+/** Estimators can claim an unclaimed lead on behalf of a rep (or themselves). */
+export function canAssignLead(role: AppRole | null, lead: Lead): boolean {
+  return role === "estimator" && isUnclaimed(lead);
+}
