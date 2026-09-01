@@ -20,13 +20,9 @@ import { cn } from "@/lib/utils";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { useVerticalLabels, OTHER_VERTICAL } from "@/hooks/useVerticalLabels";
 import {
-  B2B_USER_RANGES,
   COMPLIANCE_OPTIONS,
-  EXTERNAL_LOGIN_RANGES,
   HOSTING_PREFERENCES,
-  INTEGRATION_COUNT_RANGES,
   INTEGRATION_DIFFICULTY,
-  INTERNAL_USER_RANGES,
   REGION_OPTIONS,
 } from "./lead-intake-options";
 
