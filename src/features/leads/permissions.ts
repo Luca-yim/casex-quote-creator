@@ -35,3 +35,16 @@ export function canPerformLeadAction(role: AppRole | null, action: LeadAction): 
 export function canClaimLead(role: AppRole | null, lead: Lead): boolean {
   return canPerformLeadAction(role, "claim") && isUnclaimed(lead);
 }
+
+/**
+ * Conversion is an ownership act: admins always, otherwise only the person
+ * who actually holds the lead.
+ */
+export function canConvertLead(
+  role: AppRole | null,
+  lead: Lead,
+  userId: string | null,
+): boolean {
+  if (role === "admin") return true;
+  return lead.claimedBy !== null && userId !== null && lead.claimedBy === userId;
+}

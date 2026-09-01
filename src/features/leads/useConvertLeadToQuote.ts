@@ -70,8 +70,7 @@ export function useConvertLeadToQuote() {
         customer_email: lead.contactEmail,
         vertical: lead.vertical,
         solution: lead.solution,
-        vertical_other_detail: (lead as Lead & { verticalOtherDetail?: string | null })
-          .verticalOtherDetail ?? null,
+        vertical_other_detail: lead.verticalOtherDetail,
         case_worker_count: lead.internalUserCount,
         include_b2c: lead.externalPortalRequired,
         b2c_mau: lead.externalPortalMonthlyLogins,

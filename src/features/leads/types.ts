@@ -13,7 +13,7 @@ export const LEAD_STATUSES = [
   "qualified",
   "disqualified",
   "duplicate",
-  "converted",
+  "converted_to_ballpark",
 ] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
@@ -27,7 +27,7 @@ export const LEAD_STATUS_LABELS: Record<string, string> = {
   qualified: "Qualified",
   disqualified: "Disqualified",
   duplicate: "Duplicate",
-  converted: "Converted",
+  converted_to_ballpark: "Converted",
 };
 
 /** `mine` and `unassigned` are resolved against the signed-in user at query time. */
