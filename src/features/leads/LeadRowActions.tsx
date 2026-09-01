@@ -63,21 +63,29 @@ export function LeadRowActions({
 }) {
   const { role, user } = useAuth();
   const navigate = useNavigate();
-  const { claim, assign, setStatus, markDuplicate } = useLeadActions();
+  const { claim, assign, assignAndClaim, setStatus, markDuplicate } = useLeadActions();
   const convert = useConvertLeadToQuote();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [assignClaimOpen, setAssignClaimOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [repId, setRepId] = useState("");
+  const [assignClaimRepId, setAssignClaimRepId] = useState("");
   const [originalId, setOriginalId] = useState("");
   const owners = useAssignableOwners(assignOpen);
+  const assignClaimOwners = useAssignableOwners(assignClaimOpen);
 
   const showClaim = canClaimLead(role, lead);
   const showAssign = canPerformLeadAction(role, "assign");
+  const showAssignClaim = canAssignLead(role, lead);
   const showQualify = canPerformLeadAction(role, "qualify");
   const showDisqualify = canPerformLeadAction(role, "disqualify");
   const showDuplicate = canPerformLeadAction(role, "duplicate");
   const showConvert = canConvertLead(role, lead, user?.id ?? null);
+
+  const assignClaimOptions = (assignClaimOwners.data ?? []).filter((owner) =>
+    ["sales_rep", "estimator"].includes(owner.role),
+  );
 
   const copyId = async () => {
     try {
