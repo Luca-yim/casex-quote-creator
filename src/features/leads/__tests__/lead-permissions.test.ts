@@ -60,3 +60,21 @@ describe("claim availability", () => {
     expect(canClaimLead("sales_rep", lead({ assignedRepId: "user-3" }))).toBe(false);
   });
 });
+
+describe("assign-and-claim availability", () => {
+  it("is offered to estimators on unclaimed leads", () => {
+    expect(canAssignLead("estimator", lead())).toBe(true);
+  });
+
+  it("is hidden from sales reps and admins", () => {
+    expect(canAssignLead("sales_rep", lead())).toBe(false);
+    expect(canAssignLead("admin", lead())).toBe(false);
+    expect(canAssignLead("external", lead())).toBe(false);
+    expect(canAssignLead(null, lead())).toBe(false);
+  });
+
+  it("is hidden once the lead is claimed", () => {
+    const held = lead({ claimedBy: "user-9", assignedRepId: "user-9", status: "claimed" });
+    expect(canAssignLead("estimator", held)).toBe(false);
+  });
+});
