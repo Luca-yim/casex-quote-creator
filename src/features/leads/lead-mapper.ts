@@ -59,7 +59,7 @@ export function rowToLead(row: LeadRow): Lead {
     integrationCountRange: r["integration_count_range"] ?? null,
     integrationDifficulty: r["integration_difficulty"] ?? null,
     additionalNotes: r["additional_notes"] ?? null,
-    status: (r["status"] ?? "new") as LeadStatus,
+    status: (r["status"] ?? "new_lead") as LeadStatus,
     leadScore: r["lead_score"] ?? null,
     leadScoreLabel: r["lead_score_label"] ?? null,
     confidencePct: r["confidence_pct"] ?? null,

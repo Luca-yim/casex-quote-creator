@@ -8,7 +8,7 @@
  */
 
 export const LEAD_STATUSES = [
-  "new",
+  "new_lead",
   "claimed",
   "qualified",
   "disqualified",
@@ -19,10 +19,10 @@ export const LEAD_STATUSES = [
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 /** Statuses shown by default — closed-out leads are opt-in. */
-export const DEFAULT_LEAD_STATUSES: LeadStatus[] = ["new", "claimed", "qualified"];
+export const DEFAULT_LEAD_STATUSES: LeadStatus[] = ["new_lead", "claimed", "qualified"];
 
 export const LEAD_STATUS_LABELS: Record<string, string> = {
-  new: "New",
+  new_lead: "New",
   claimed: "Claimed",
   qualified: "Qualified",
   disqualified: "Disqualified",
