@@ -69,6 +69,16 @@ export function LeadDetailsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { options: verticalOptions } = useVerticalLabels();
+  const { data: verticalSolutions } = useVerticalSolutions();
+
+  const verticalLabel = labelFor(verticalOptions, lead.vertical);
+  const solutionLabel = lead.solution
+    ? ((verticalSolutions ?? []).find(
+        (row) => row.vertical_l1 === lead.vertical && row.solution_l2 === lead.solution,
+      )?.display_label ?? lead.solution)
+    : "—";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
