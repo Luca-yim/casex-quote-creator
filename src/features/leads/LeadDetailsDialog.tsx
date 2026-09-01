@@ -9,6 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { LEAD_STATUS_LABELS } from "./types";
 import type { Lead } from "./lead-mapper";
+import { useVerticalLabels } from "@/hooks/useVerticalLabels";
+import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
+import {
+  COMPLIANCE_OPTIONS,
+  HOSTING_PREFERENCES,
+  INTEGRATION_DIFFICULTY,
+} from "@/features/lead-intake/lead-intake-options";
+
+/** Maps a stored code to its friendly label, falling back to the raw value. */
+function labelFor(
+  options: ReadonlyArray<{ value: string; label: string }>,
+  value: string | null,
+): string {
+  if (!value) return "—";
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
 function fmt(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
