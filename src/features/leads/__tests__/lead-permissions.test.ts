@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canClaimLead, canPerformLeadAction } from "../permissions";
+import {
+  canAssignLead,
+  canClaimLead,
+  canPerformLeadAction,
+} from "../permissions";
 import { rowToLead, isUnclaimed, type Lead } from "../lead-mapper";
 import type { AppRole } from "@/lib/auth-types";
 
