@@ -9,6 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { LEAD_STATUS_LABELS } from "./types";
 import type { Lead } from "./lead-mapper";
+import { useVerticalLabels } from "@/hooks/useVerticalLabels";
+import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
+import {
+  COMPLIANCE_OPTIONS,
+  HOSTING_PREFERENCES,
+  INTEGRATION_DIFFICULTY,
+} from "@/features/lead-intake/lead-intake-options";
+
+/** Maps a stored code to its friendly label, falling back to the raw value. */
+function labelFor(
+  options: ReadonlyArray<{ value: string; label: string }>,
+  value: string | null,
+): string {
+  if (!value) return "—";
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
 function fmt(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
@@ -53,6 +69,16 @@ export function LeadDetailsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { options: verticalOptions } = useVerticalLabels();
+  const { data: verticalSolutions } = useVerticalSolutions();
+
+  const verticalLabel = labelFor(verticalOptions, lead.vertical);
+  const solutionLabel = lead.solution
+    ? ((verticalSolutions ?? []).find(
+        (row) => row.vertical_l1 === lead.vertical && row.solution_l2 === lead.solution,
+      )?.display_label ?? lead.solution)
+    : "—";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -78,9 +104,9 @@ export function LeadDetailsDialog({
 
           <Group title="Region & solution">
             <Row label="Region" value={fmt(lead.region)} />
-            <Row label="Vertical" value={fmt(lead.vertical)} />
+            <Row label="Vertical" value={fmt(verticalLabel)} />
             <Row label="Vertical detail" value={fmt(lead.verticalOtherDetail)} />
-            <Row label="Solution" value={fmt(lead.solution)} />
+            <Row label="Solution" value={fmt(solutionLabel)} />
           </Group>
 
           <Group title="Scope">
@@ -99,17 +125,25 @@ export function LeadDetailsDialog({
               label="Compliance"
               value={
                 lead.complianceRequirements.length
-                  ? lead.complianceRequirements.join(", ")
+                  ? lead.complianceRequirements
+                      .map((code) => labelFor(COMPLIANCE_OPTIONS, code))
+                      .join(", ")
                   : "—"
               }
             />
-            <Row label="Hosting preference" value={fmt(lead.hostingPreference)} />
+            <Row
+              label="Hosting preference"
+              value={labelFor(HOSTING_PREFERENCES, lead.hostingPreference)}
+            />
           </Group>
 
           <Group title="Integrations">
             <Row label="Integrations needed" value={fmt(lead.integrationRequired)} />
             <Row label="Integration count" value={fmt(lead.integrationCount)} />
-            <Row label="Difficulty" value={fmt(lead.integrationDifficulty)} />
+            <Row
+              label="Difficulty"
+              value={labelFor(INTEGRATION_DIFFICULTY, lead.integrationDifficulty)}
+            />
           </Group>
 
           <Group title="Notes">
