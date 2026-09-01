@@ -104,9 +104,9 @@ export function LeadDetailsDialog({
 
           <Group title="Region & solution">
             <Row label="Region" value={fmt(lead.region)} />
-            <Row label="Vertical" value={fmt(lead.vertical)} />
+            <Row label="Vertical" value={fmt(verticalLabel)} />
             <Row label="Vertical detail" value={fmt(lead.verticalOtherDetail)} />
-            <Row label="Solution" value={fmt(lead.solution)} />
+            <Row label="Solution" value={fmt(solutionLabel)} />
           </Group>
 
           <Group title="Scope">
