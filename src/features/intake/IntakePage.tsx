@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -76,6 +77,26 @@ export function IntakePage({
     },
     [queryClient, quoteId, save],
   );
+
+  // Opening the quote is the acknowledgement: clear the hand-off flag once,
+  // silently, and drop it from the cache so the badge disappears immediately.
+  const clearedAttentionRef = useRef(false);
+  useEffect(() => {
+    if (!quote?.needsAttention || clearedAttentionRef.current) return;
+    clearedAttentionRef.current = true;
+    queryClient.setQueriesData(
+      { queryKey: quoteDetailKey(quoteId) },
+      (current: Quote | undefined) =>
+        current ? { ...current, needsAttention: false } : current,
+    );
+    void supabase
+      .from("quotes")
+      .update({ needs_attention: false })
+      .eq("id", quoteId)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      });
+  }, [quote?.needsAttention, queryClient, quoteId]);
 
   const contextValue = useMemo(() => {
     if (!quote) return null;
