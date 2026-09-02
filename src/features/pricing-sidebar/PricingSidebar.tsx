@@ -234,6 +234,17 @@ export function PricingSidebar() {
               <span className="text-muted-foreground">One-time cost</span>
               <span className="font-mono">{formatCurrency(breakdown.oneTimeTotal)}</span>
             </div>
+            {isBallpark && ballpark ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Implementation Fee (Estimated)
+                </span>
+                <span className="font-mono">
+                  {formatCurrency(ballpark.implementationLow)} –{" "}
+                  {formatCurrency(ballpark.implementationHigh)}
+                </span>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monthly recurring</span>
               <span className="font-mono">
