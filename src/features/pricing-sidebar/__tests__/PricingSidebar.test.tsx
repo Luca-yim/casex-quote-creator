@@ -123,7 +123,7 @@ describe("PricingSidebar implementation fee row", () => {
       workerIdpRequired: null,
       includeB2c: null,
       includeB2bPortal: null,
-      compliance: null,
+      compliance: [],
     } as any);
 
     renderSidebar(quote);
