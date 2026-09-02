@@ -67,7 +67,7 @@ export function SalesRepQuoteRow({
             </Badge>
           ) : null}
         </p>
-        {needsAttention && returnNote ? (
+        {quote.state === "estimator_adjusted" && returnNote ? (
           <p className="truncate text-xs text-amber-700 dark:text-amber-300" title={returnNote}>
             “{returnNote.length > 60 ? `${returnNote.slice(0, 60)}…` : returnNote}”
           </p>

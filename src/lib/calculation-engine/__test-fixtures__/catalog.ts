@@ -47,7 +47,8 @@ export const TEST_CATALOG: PricingCatalogRow[] = [
 export function makeQuote(overrides: Partial<Quote> = {}): Quote {
   const base: Quote = {
     id: "quote-1",
-    ownerId: "user-1",
+    needsAttention: false,
+  ownerId: "user-1",
     requestedBy: "user-1",
     reviewedBy: null,
     lastReviewedBy: null,
