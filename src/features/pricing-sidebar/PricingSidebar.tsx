@@ -14,6 +14,12 @@ import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useWbsLines, useQuoteCostItems } from "@/features/wbs/useWbsData";
+import { useBallparkSizingReference } from "@/features/estimator-ballpark/useBallparkSizingReference";
+import {
+  computeBallparkForQuote,
+  resolveBallparkTier,
+  type BallparkQuoteInput,
+} from "@/features/estimator-ballpark/computeBallparkForQuote";
 import { ProposalPricingBlock } from "./ProposalPricingBlock";
 
 /** Formats a short relative time such as "2s ago" / "4m ago". */
