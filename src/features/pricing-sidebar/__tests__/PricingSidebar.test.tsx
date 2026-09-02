@@ -63,7 +63,7 @@ function answeredQuote(overrides = {}) {
     customerType: "state_naspo",
     hasIntegrations: true,
     integrationCount: 4,
-    integrationDifficulty: "medium",
+    integrationDifficulty: "moderate",
     migrationRequired: true,
     compliance: ["soc2_type2"],
     ...overrides,
