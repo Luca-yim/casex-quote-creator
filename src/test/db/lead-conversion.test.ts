@@ -1,10 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  mintDisposableSubmitter,
-  signInAs,
-  SKIP_REASON,
-  type TestActor,
-} from "./supabase-clients";
+import { mintDisposableSubmitter, signInAs, SKIP_REASON, type TestActor } from "./supabase-clients";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -100,17 +95,24 @@ async function seedLead(overrides: Record<string, unknown> = {}): Promise<string
 }
 
 /**
- * A lead with exact integer counts, plus one compliance value the quote
- * vocabulary has no counterpart for ("none") next to a mappable one.
+ * A claimed lead with exact integer counts, plus one compliance value the
+ * quote vocabulary has no counterpart for ("none") next to a mappable one.
+ *
+ * Conversion requires status = 'claimed' (the "qualified"/"unqualified"
+ * statuses were retired from the gate — see enforce_lead_intake_update_rules
+ * and convert_lead_to_quote for the current rule).
  */
-function qualifiedLeadFields() {
+function claimedLeadFields(claimedBy: string) {
   return {
     internal_user_count: 1,
     external_portal_monthly_logins: 25000,
     b2b_user_count: 100,
     integration_count: 2,
     compliance_requirements: ["soc2", "none"],
-    status: "qualified",
+    status: "claimed",
+    claimed_by: claimedBy,
+    claimed_at: new Date().toISOString(),
+    assigned_rep_id: claimedBy,
   };
 }
 
@@ -118,11 +120,7 @@ function qualifiedLeadFields() {
 async function readLead(id: string): Promise<Record<string, unknown> | null> {
   const reader = admin ?? estimator;
   if (!reader) return null;
-  const { data } = await reader.client
-    .from("lead_intakes")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const { data } = await reader.client.from("lead_intakes").select("*").eq("id", id).maybeSingle();
   return (data as Record<string, unknown> | null) ?? null;
 }
 
@@ -135,10 +133,21 @@ async function readQuoteRow(quoteId: string): Promise<Record<string, unknown> | 
   const reader = rep;
   if (!reader) return null;
 
+  const { data, error } = await reader.client.rpc("quotes_scoped").select("*").eq("id", quoteId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Record<string, unknown> | null) ?? null;
+}
+
+/** Latest quote_versions row for a quote, read the same way the UI does. */
+async function readLatestVersion(quoteId: string): Promise<Record<string, unknown> | null> {
+  const reader = rep;
+  if (!reader) return null;
   const { data, error } = await reader.client
-    .rpc("quotes_scoped")
+    .rpc("quote_versions_scoped")
     .select("*")
-    .eq("id", quoteId)
+    .eq("quote_id", quoteId)
+    .order("version_number", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return (data as Record<string, unknown> | null) ?? null;
@@ -156,9 +165,7 @@ function quoteIdFrom(data: unknown): string {
     Array.isArray(data) ||
     typeof (data as Record<string, unknown>)["id"] !== "string"
   ) {
-    throw new Error(
-      `convert_lead_to_quote returned an unexpected shape: ${JSON.stringify(data)}`,
-    );
+    throw new Error(`convert_lead_to_quote returned an unexpected shape: ${JSON.stringify(data)}`);
   }
   return (data as Record<string, unknown>)["id"] as string;
 }
@@ -180,13 +187,8 @@ async function convert(
   return { quoteId, error: null };
 }
 
-
 beforeAll(async () => {
-  [rep, estimator, admin] = await Promise.all([
-    signInAs("rep"),
-    signInAs("estimator"),
-    signInAs("admin"),
-  ]);
+  [rep, estimator, admin] = await Promise.all([signInAs("rep"), signInAs("estimator"), signInAs("admin")]);
   anonSubmitter = await mintDisposableSubmitter();
   if (!rep || !estimator || !anonSubmitter) console.warn(SKIP_REASON);
 });
@@ -203,25 +205,13 @@ afterAll(async () => {
 });
 
 describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => {
-  it("creates a ballpark draft from a qualified lead and marks the lead converted", async (ctx) => {
+  it("creates a ballpark draft from a claimed lead and marks the lead converted", async (ctx) => {
     if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
-    const leadId = await seedLead(qualifiedLeadFields());
+    const leadId = await seedLead(claimedLeadFields(rep.userId));
     if (!leadId) return ctx.skip();
 
-    // Diagnostic: what did the seed actually persist, as read back privileged?
     const seeded = await readLead(leadId);
-    console.log(
-      "[lead-conversion] seeded lead row before convert:",
-      JSON.stringify(seeded, null, 2),
-    );
-    console.log(
-      "[lead-conversion] internal_user_count =",
-      JSON.stringify(seeded?.["internal_user_count"]),
-      "| compliance_requirements =",
-      JSON.stringify(seeded?.["compliance_requirements"]),
-      "| status =",
-      JSON.stringify(seeded?.["status"]),
-    );
+    console.log("[lead-conversion] seeded lead row before convert:", JSON.stringify(seeded, null, 2));
 
     const { quoteId, error } = await convert(rep, leadId);
 
@@ -231,20 +221,21 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
     const quote = await readQuoteRow(quoteId as string);
     expect(quote).not.toBeNull();
 
-    // "1-50" -> band floor.
+    // Exact integer carried through unchanged — no band derivation anymore.
     expect(quote?.["case_worker_count"]).toBe(1);
 
     const compliance = (quote?.["compliance"] ?? []) as string[];
     expect(compliance).toContain("soc2_type2");
     expect(compliance).not.toContain("none");
 
-    const notes = String(quote?.["converted_from_lead_notes"] ?? "");
-    expect(notes).toMatch(/1-50/); // band-derivation note
-    expect(notes).toMatch(/none/); // unmapped-compliance note
-
-    expect(quote?.["converted_from_lead_id"]).toBe(leadId);
+    expect(quote?.["lead_id"]).toBe(leadId);
     expect(quote?.["tier"]).toBe("ballpark");
     expect(quote?.["state"]).toBe("draft");
+
+    // The dropped, unmappable compliance code is recorded in the conversion's
+    // audit trail entry rather than a dedicated notes column.
+    const version = await readLatestVersion(quoteId as string);
+    expect(String(version?.["change_reason"] ?? "")).toMatch(/none/i);
 
     // The lead, read back the way useLeadQueue reads it.
     const lead = await readLead(leadId);
@@ -254,7 +245,7 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
 
   it("writes exactly one convert snapshot for the new quote", async (ctx) => {
     if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
-    const leadId = await seedLead(qualifiedLeadFields());
+    const leadId = await seedLead(claimedLeadFields(rep.userId));
     if (!leadId) return ctx.skip();
 
     const { quoteId, error } = await convert(rep, leadId);
@@ -279,7 +270,7 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
 
   it("rejects a second conversion of the same lead", async (ctx) => {
     if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
-    const leadId = await seedLead(qualifiedLeadFields());
+    const leadId = await seedLead(claimedLeadFields(rep.userId));
     if (!leadId) return ctx.skip();
 
     const first = await convert(rep, leadId);
@@ -295,18 +286,77 @@ describe.runIf(process.env["VITEST_DB"] !== "0")("convert_lead_to_quote", () => 
     expect(lead?.["converted_quote_id"]).toBe(first.quoteId);
   });
 
-  it("rejects conversion of a lead that is not qualified", async (ctx) => {
+  it("rejects conversion of a lead that is not claimed", async (ctx) => {
     if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
-    const leadId = await seedLead({ ...qualifiedLeadFields(), status: "new_lead" });
+    const leadId = await seedLead({ status: "new_lead" });
     if (!leadId) return ctx.skip();
 
     const { quoteId, error } = await convert(rep, leadId);
     expect(error).not.toBeNull();
     expect(quoteId).toBeNull();
-    expect(error?.message).toMatch(/qualif/i);
+    expect(error?.message).toMatch(/claim/i);
 
     const lead = await readLead(leadId);
     expect(lead?.["status"]).toBe("new_lead");
     expect(lead?.["converted_quote_id"]).toBeNull();
+  });
+});
+
+describe.runIf(process.env["VITEST_DB"] !== "0")("estimator_assign_and_convert", () => {
+  it("atomically assigns, claims, and converts an unclaimed lead to the named rep", async (ctx) => {
+    if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
+    const leadId = await seedLead({
+      internal_user_count: 5,
+      compliance_requirements: ["hipaa"],
+      status: "new_lead",
+    });
+    if (!leadId) return ctx.skip();
+
+    const { data, error } = await estimator.client.rpc("estimator_assign_and_convert", {
+      p_lead_id: leadId,
+      p_rep_id: rep.userId,
+    });
+    expect(error).toBeNull();
+    const quoteId = quoteIdFrom(data);
+    createdQuoteIds.push(quoteId);
+
+    const lead = await readLead(leadId);
+    expect(lead?.["status"]).toBe("converted_to_ballpark");
+    expect(lead?.["claimed_by"]).toBe(rep.userId);
+    expect(lead?.["assigned_rep_id"]).toBe(rep.userId);
+    expect(lead?.["converted_quote_id"]).toBe(quoteId);
+
+    // The quote must be visible to the rep as a draft — requires
+    // requested_by (not just owner_id) to be the rep, per quotes_scoped()'s
+    // draft-visibility rule.
+    const quote = await readQuoteRow(quoteId);
+    expect(quote).not.toBeNull();
+    expect(quote?.["needs_attention"]).toBe(true);
+  });
+
+  it("rejects assign-and-convert on an already-claimed lead", async (ctx) => {
+    if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
+    const leadId = await seedLead(claimedLeadFields(rep.userId));
+    if (!leadId) return ctx.skip();
+
+    const { data, error } = await estimator.client.rpc("estimator_assign_and_convert", {
+      p_lead_id: leadId,
+      p_rep_id: rep.userId,
+    });
+    expect(error).not.toBeNull();
+    expect(data).toBeFalsy();
+  });
+
+  it("rejects assign-and-convert from a non-estimator caller", async (ctx) => {
+    if (!rep || !estimator || !anonSubmitter) return ctx.skip(SKIP_REASON);
+    const leadId = await seedLead({ status: "new_lead" });
+    if (!leadId) return ctx.skip();
+
+    const { data, error } = await rep.client.rpc("estimator_assign_and_convert", {
+      p_lead_id: leadId,
+      p_rep_id: rep.userId,
+    });
+    expect(error).not.toBeNull();
+    expect(data).toBeFalsy();
   });
 });
