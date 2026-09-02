@@ -64,6 +64,7 @@ export function rowToQuote(row: QuoteRow): Quote {
     portalFormCountRange: (r["portal_form_count_range"] ??
       null) as Quote["portalFormCountRange"],
 
+    needsAttention: Boolean(r["needs_attention"]),
     state: (r["state"] ?? "draft") as Quote["state"],
     submittedAt: r["submitted_at"] ?? null,
     approvedAt: r["approved_at"] ?? null,
@@ -110,5 +111,6 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   workerIdpRequired: "worker_idp_required",
   idpDocumented: "idp_documented",
   portalFormCountRange: "portal_form_count_range",
+  needsAttention: "needs_attention",
 };
 

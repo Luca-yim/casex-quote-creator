@@ -60,16 +60,18 @@ export function useLeadActions() {
 
   const assignAndClaim = useMutation({
     mutationFn: async ({ leadId, repId }: { leadId: string; repId: string }) => {
-      await updateLead(leadId, {
-        assigned_rep_id: repId,
-        claimed_by: repId,
-        claimed_at: new Date().toISOString(),
-        status: "claimed" satisfies LeadStatus,
+      // One atomic server-side call: assigns, claims, and converts the lead
+      // into a draft ballpark quote owned by the assigned rep.
+      const { error } = await supabase.rpc("estimator_assign_and_convert", {
+        p_lead_id: leadId,
+        p_rep_id: repId,
       });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      toast.success("Lead assigned and claimed");
+      toast.success("Lead assigned, claimed, and converted to a draft ballpark quote");
       invalidate();
+      void queryClient.invalidateQueries({ queryKey: ["quotes"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
