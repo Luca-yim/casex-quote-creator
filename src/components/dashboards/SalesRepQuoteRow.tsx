@@ -26,7 +26,8 @@ export function SalesRepQuoteRow({
   /** Latest estimator return note, shown when the quote came back for edit. */
   returnNote?: string | null;
 }) {
-  const needsAttention = quote.state === "estimator_adjusted";
+  const needsAttention =
+    quote.state === "estimator_adjusted" || quote.needsAttention;
   const { role, user, profile } = useAuth();
   const navigate = useNavigate();
   const actorName = profile?.full_name || profile?.email || "a sales rep";
@@ -66,9 +67,14 @@ export function SalesRepQuoteRow({
             </Badge>
           ) : null}
         </p>
-        {needsAttention && returnNote ? (
+        {quote.state === "estimator_adjusted" && returnNote ? (
           <p className="truncate text-xs text-amber-700 dark:text-amber-300" title={returnNote}>
             “{returnNote.length > 60 ? `${returnNote.slice(0, 60)}…` : returnNote}”
+          </p>
+        ) : null}
+        {quote.needsAttention && quote.state === "draft" ? (
+          <p className="truncate text-xs text-amber-700 dark:text-amber-300">
+            Assigned to you from a converted lead — review and complete this draft.
           </p>
         ) : null}
         <p className="truncate text-xs text-muted-foreground">

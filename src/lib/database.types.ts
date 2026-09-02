@@ -301,6 +301,7 @@ export type Database = {
           sent_at: string | null
           created_at: string
           updated_at: string
+          needs_attention: boolean
         }
         Insert: {
           id?: string
@@ -350,6 +351,7 @@ export type Database = {
           sent_at?: string | null
           created_at?: string
           updated_at?: string
+          needs_attention?: boolean
         }
         Update: {
           id?: string
@@ -399,6 +401,7 @@ export type Database = {
           sent_at?: string | null
           created_at?: string
           updated_at?: string
+          needs_attention?: boolean
         }
         Relationships: [
           {
@@ -759,6 +762,7 @@ export type Database = {
           sent_at: string | null
           created_at: string
           updated_at: string
+          needs_attention: boolean
         }
         Relationships: []
       }
@@ -808,6 +812,14 @@ export type Database = {
        * transition against the caller's role and the current state, and is
        * the only supported way to change `public.quotes.state`.
        */
+      convert_lead_to_quote: {
+        Args: { p_lead_id: string }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
+      estimator_assign_and_convert: {
+        Args: { p_lead_id: string; p_rep_id: string }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
       transition_quote: {
         Args: {
           p_quote_id: string

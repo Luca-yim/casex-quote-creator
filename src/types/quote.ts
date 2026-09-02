@@ -110,6 +110,9 @@ export interface Quote {
   idpDocumented: boolean | null;
   portalFormCountRange: PortalFormCountRange | null;
 
+  /** Flags a draft that was handed to this rep and still needs review. */
+  needsAttention: boolean;
+
   state: QuoteState;
   submittedAt: string | null;
   approvedAt: string | null;

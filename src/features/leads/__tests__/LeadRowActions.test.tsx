@@ -12,8 +12,12 @@ const update = vi.fn((patch: Record<string, unknown>) => {
   return { eq };
 });
 
+const { rpc } = vi.hoisted(() => ({
+  rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
+}));
+
 vi.mock("@/lib/supabase", () => ({
-  supabase: { from: () => ({ update }) },
+  supabase: { from: () => ({ update }), rpc },
 }));
 
 const authState: { role: AppRole } = { role: "sales_rep" };
@@ -52,6 +56,7 @@ async function openMenu() {
 beforeEach(() => {
   updatePayloads.length = 0;
   update.mockClear();
+  rpc.mockClear();
   authState.role = "sales_rep";
 });
 
@@ -138,7 +143,7 @@ describe("LeadRowActions", () => {
     expect(screen.queryByText(/assign & claim/i)).not.toBeInTheDocument();
   });
 
-  it("assign-and-claim writes all four fields for the selected rep", async () => {
+  it("assign-and-claim calls the estimator_assign_and_convert RPC", async () => {
     authState.role = "estimator";
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<LeadRowActions lead={lead()} otherLeads={[]} />);
@@ -151,11 +156,11 @@ describe("LeadRowActions", () => {
     await fireEvent.click(option);
     await user.click(screen.getByRole("button", { name: /^Assign & claim$/i }));
 
-    await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
-    const patch = updatePayloads[0]!;
-    expect(patch["assigned_rep_id"]).toBe("rep-2");
-    expect(patch["claimed_by"]).toBe("rep-2");
-    expect(patch["status"]).toBe("claimed");
-    expect(typeof patch["claimed_at"]).toBe("string");
+    await vi.waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+    expect(rpc).toHaveBeenCalledWith("estimator_assign_and_convert", {
+      p_lead_id: "lead-1",
+      p_rep_id: "rep-2",
+    });
+    expect(updatePayloads).toHaveLength(0);
   });
 });
