@@ -14,6 +14,12 @@ import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useWbsLines, useQuoteCostItems } from "@/features/wbs/useWbsData";
+import { useBallparkSizingReference } from "@/features/estimator-ballpark/useBallparkSizingReference";
+import {
+  computeBallparkForQuote,
+  resolveBallparkTier,
+  type BallparkQuoteInput,
+} from "@/features/estimator-ballpark/computeBallparkForQuote";
 import { ProposalPricingBlock } from "./ProposalPricingBlock";
 
 /** Formats a short relative time such as "2s ago" / "4m ago". */
@@ -115,6 +121,23 @@ export function PricingSidebar() {
     [engineLines],
   );
 
+  // Ballpark-tier only: estimated implementation fee range, reusing the same
+  // pricing-engine composition as the estimator ballpark card.
+  const isBallpark = quote.tier === "ballpark";
+  const ballparkInput = quote as unknown as BallparkQuoteInput;
+  const ballparkTier = useMemo(
+    () => (isBallpark ? resolveBallparkTier(ballparkInput) : null),
+    [isBallpark, ballparkInput],
+  );
+  const { data: sizingRows } = useBallparkSizingReference(ballparkTier);
+  const ballpark = useMemo(
+    () =>
+      isBallpark
+        ? computeBallparkForQuote(ballparkInput, sizingRows ?? [])
+        : null,
+    [isBallpark, ballparkInput, sizingRows],
+  );
+
   const handleJustificationChange = (text: string) => {
     updateField("marginJustification", text || null);
   };
@@ -211,6 +234,17 @@ export function PricingSidebar() {
               <span className="text-muted-foreground">One-time cost</span>
               <span className="font-mono">{formatCurrency(breakdown.oneTimeTotal)}</span>
             </div>
+            {isBallpark && ballpark ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Implementation Fee (Estimated)
+                </span>
+                <span className="font-mono">
+                  {formatCurrency(ballpark.implementationLow)} –{" "}
+                  {formatCurrency(ballpark.implementationHigh)}
+                </span>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monthly recurring</span>
               <span className="font-mono">
