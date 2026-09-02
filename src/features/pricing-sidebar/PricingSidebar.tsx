@@ -121,6 +121,23 @@ export function PricingSidebar() {
     [engineLines],
   );
 
+  // Ballpark-tier only: estimated implementation fee range, reusing the same
+  // pricing-engine composition as the estimator ballpark card.
+  const isBallpark = quote.tier === "ballpark";
+  const ballparkInput = quote as unknown as BallparkQuoteInput;
+  const ballparkTier = useMemo(
+    () => (isBallpark ? resolveBallparkTier(ballparkInput) : null),
+    [isBallpark, ballparkInput],
+  );
+  const { data: sizingRows } = useBallparkSizingReference(ballparkTier);
+  const ballpark = useMemo(
+    () =>
+      isBallpark
+        ? computeBallparkForQuote(ballparkInput, sizingRows ?? [])
+        : null,
+    [isBallpark, ballparkInput, sizingRows],
+  );
+
   const handleJustificationChange = (text: string) => {
     updateField("marginJustification", text || null);
   };
