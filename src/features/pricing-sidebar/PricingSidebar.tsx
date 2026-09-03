@@ -56,10 +56,8 @@ const CONFIDENCE_META = {
  * save status; monetary detail renders only when the role/state allows it.
  */
 export function PricingSidebar() {
-  const { quote, role, mode, showPricing, isSaving, lastSavedAt, updateField } =
-    useIntake();
+  const { quote, role, mode, showPricing, isSaving, lastSavedAt, updateField } = useIntake();
   const { data: catalog } = usePricingCatalog();
-
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -67,15 +65,10 @@ export function PricingSidebar() {
     return () => window.clearInterval(id);
   }, []);
 
-  const breakdown = useMemo(
-    () => (catalog ? calculatePricingBreakdown(quote, catalog) : null),
-    [quote, catalog],
-  );
+  const breakdown = useMemo(() => (catalog ? calculatePricingBreakdown(quote, catalog) : null), [quote, catalog]);
 
   const readiness = readinessCheck(quote);
-  const percent = Math.round(
-    (readiness.completedCount / Math.max(1, readiness.totalRequired)) * 100,
-  );
+  const percent = Math.round((readiness.completedCount / Math.max(1, readiness.totalRequired)) * 100);
 
   const assumptions = useMemo(() => {
     const all = buildAssumptions(quote);
@@ -84,8 +77,7 @@ export function PricingSidebar() {
   }, [quote, role]);
 
   // Margin controls are estimator-only, and never available in read-only mode.
-  const canEditMargin =
-    (role === "estimator" || role === "admin") && mode === "edit";
+  const canEditMargin = (role === "estimator" || role === "admin") && mode === "edit";
   const savedMargin = quote.marginPercent ?? 20;
   // The slider tracks locally while dragging; the write happens on release so
   // a single adjustment is one save, not twenty. Margin is full estimator
@@ -112,14 +104,8 @@ export function PricingSidebar() {
       })),
     [wbsLines],
   );
-  const engineItems = useMemo(
-    () => (wbsItems ?? []).map((i) => ({ amount: i.amount })),
-    [wbsItems],
-  );
-  const totalHours = useMemo(
-    () => engineLines.reduce((sum, l) => sum + l.revenueHours, 0),
-    [engineLines],
-  );
+  const engineItems = useMemo(() => (wbsItems ?? []).map((i) => ({ amount: i.amount })), [wbsItems]);
+  const totalHours = useMemo(() => engineLines.reduce((sum, l) => sum + l.revenueHours, 0), [engineLines]);
 
   // Ballpark-tier only: estimated implementation fee range, reusing the same
   // pricing-engine composition as the estimator ballpark card.
@@ -131,10 +117,7 @@ export function PricingSidebar() {
   );
   const { data: sizingRows } = useBallparkSizingReference(ballparkTier);
   const ballpark = useMemo(
-    () =>
-      isBallpark
-        ? computeBallparkForQuote(ballparkInput, sizingRows ?? [])
-        : null,
+    () => (isBallpark ? computeBallparkForQuote(ballparkInput, sizingRows ?? []) : null),
     [isBallpark, ballparkInput, sizingRows],
   );
 
@@ -148,9 +131,7 @@ export function PricingSidebar() {
 
   const adjustment = breakdown?.repeatableActivationAdjustment ?? 0;
   const adjustmentPercent =
-    breakdown && breakdown.baselineTCV > 0
-      ? Math.round((adjustment / breakdown.baselineTCV) * 1000) / 10
-      : 0;
+    breakdown && breakdown.baselineTCV > 0 ? Math.round((adjustment / breakdown.baselineTCV) * 1000) / 10 : 0;
 
   // External requesters get a status-only panel: no pricing, no readiness,
   // nothing that could imply a price exists for them to see.
@@ -159,8 +140,8 @@ export function PricingSidebar() {
       <aside className="w-full rounded-lg border bg-card p-5">
         <p className="text-sm font-medium">Request received</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Your request has been reviewed. A Speridian sales representative will
-          be in touch shortly to discuss next steps.
+          Your request has been reviewed. A Speridian sales representative will be in touch shortly to discuss next
+          steps.
         </p>
       </aside>
     );
@@ -168,7 +149,6 @@ export function PricingSidebar() {
 
   return (
     <aside className="sticky top-16 max-h-[calc(100vh-4rem)] w-full space-y-5 overflow-y-auto rounded-lg border bg-card p-5">
-
       {/* A — Tier badge */}
       <div>
         <Badge variant="secondary" className="uppercase tracking-wide">
@@ -179,12 +159,8 @@ export function PricingSidebar() {
       {/* B — TCV */}
       {showPricing && breakdown ? (
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
-            Total Contract Value ({breakdown.contractYears}-year)
-          </p>
-          <p className="font-mono text-4xl font-semibold tracking-tight">
-            {formatCurrency(breakdown.finalTCV)}
-          </p>
+          <p className="text-xs text-muted-foreground">Total Contract Value ({breakdown.contractYears}-year)</p>
+          <p className="font-mono text-4xl font-semibold tracking-tight">{formatCurrency(breakdown.finalTCV)}</p>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
@@ -200,8 +176,7 @@ export function PricingSidebar() {
       {/* C — Progress */}
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          {readiness.completedCount} of {readiness.totalRequired} required fields
-          complete
+          {readiness.completedCount} of {readiness.totalRequired} required fields complete
         </p>
         <Progress value={percent} aria-label="Quote completion" />
         {readiness.ready ? (
@@ -234,7 +209,7 @@ export function PricingSidebar() {
               <span className="text-muted-foreground">One-time cost</span>
               <span className="font-mono">{formatCurrency(breakdown.oneTimeTotal)}</span>
             </div>
-            {isBallpark && ballpark ? (
+            {/* {isBallpark && ballpark ? (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
                   Implementation Fee (Estimated)
@@ -244,12 +219,10 @@ export function PricingSidebar() {
                   {formatCurrency(ballpark.implementationHigh)}
                 </span>
               </div>
-            ) : null}
+            ) : null}*/}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monthly recurring</span>
-              <span className="font-mono">
-                {formatCurrency(breakdown.monthlyRecurring)}
-              </span>
+              <span className="font-mono">{formatCurrency(breakdown.monthlyRecurring)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Contract term</span>
@@ -332,15 +305,11 @@ export function PricingSidebar() {
                             {item.category === "one_time" ? "one-time" : "monthly"}
                           </Badge>
                           {item.quantity > 1 ? (
-                            <span className="font-mono text-[10px] text-muted-foreground">
-                              × {item.quantity}
-                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">× {item.quantity}</span>
                           ) : null}
                         </div>
                       </div>
-                      <span className="shrink-0 font-mono text-sm">
-                        {formatCurrency(item.subtotal)}
-                      </span>
+                      <span className="shrink-0 font-mono text-sm">{formatCurrency(item.subtotal)}</span>
                     </div>
                   ))}
                 </div>
@@ -354,9 +323,7 @@ export function PricingSidebar() {
         <>
           <Separator />
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Assumptions
-            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assumptions</p>
             {assumptions.map((a) => {
               const Icon = TONE_ICON[a.tone];
               return (
@@ -398,10 +365,7 @@ export function PricingSidebar() {
             <>💾 Not yet saved</>
           )}
         </p>
-        <p>
-          Ballpark tier — internal estimate. Requires estimator approval before
-          sharing with customer.
-        </p>
+        <p>Ballpark tier — internal estimate. Requires estimator approval before sharing with customer.</p>
       </div>
     </aside>
   );
