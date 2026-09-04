@@ -33,7 +33,7 @@ import {
  */
 export const leadIntakeSchema = z.object({
   organization_name: z.string().trim().min(1, "Organization name is required").max(200),
-  contact_name: z.string().trim().min(1, "Your name is required").max(120),
+  contact_name: z.string().trim().max(120),
   contact_email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(255),
   contact_phone: z.string().trim().max(40),
   region: z.string(),
