@@ -75,7 +75,6 @@ const STEPS = [
 
 /** Fields validated before leaving each step (only step 1 has requirements). */
 const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
-  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
   ["vertical", "solution", "vertical_other_detail"],
   [
     "internal_user_count",
@@ -88,6 +87,7 @@ const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
   ["compliance_requirements"],
   ["integration_required", "integration_count", "integration_difficulty"],
   ["additional_notes"],
+  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
 ];
 
 /** First step index that owns a given field name, for error navigation. */
