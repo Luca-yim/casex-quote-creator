@@ -2,13 +2,14 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useForm, Controller, type SubmitHandler, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -27,12 +28,13 @@ import {
 } from "./lead-intake-options";
 
 /**
- * Only the three NOT NULL columns on `lead_intakes` are required. Everything
- * else is optional so a prospect can submit a partial enquiry.
+ * Only organization and email are required at submission; `vertical_other_detail`
+ * is required only when the "other" vertical is selected. Everything else is
+ * optional so a prospect can submit a partial enquiry.
  */
 export const leadIntakeSchema = z.object({
   organization_name: z.string().trim().min(1, "Organization name is required").max(200),
-  contact_name: z.string().trim().min(1, "Your name is required").max(120),
+  contact_name: z.string().trim().max(120),
   contact_email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(255),
   contact_phone: z.string().trim().max(40),
   region: z.string(),
@@ -64,17 +66,16 @@ export const leadIntakeSchema = z.object({
 export type LeadIntakeValues = z.infer<typeof leadIntakeSchema>;
 
 const STEPS = [
-  { id: "contact", title: "Contact & organization", blurb: "Who should we get back to?" },
   { id: "solution", title: "Vertical & solution", blurb: "What area are you looking at?" },
   { id: "scope", title: "Scope", blurb: "Roughly how big is the deployment?" },
   { id: "compliance", title: "Compliance", blurb: "Any regimes we must meet?" },
   { id: "integrations", title: "Integrations", blurb: "Systems we would connect to." },
   { id: "notes", title: "Anything else", blurb: "Optional context for our team." },
+  { id: "contact", title: "Contact & organization", blurb: "Who should we get back to?" },
 ] as const;
 
-/** Fields validated before leaving each step (only step 1 has requirements). */
+/** Fields validated before leaving each step. */
 const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
-  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
   ["vertical", "solution", "vertical_other_detail"],
   [
     "internal_user_count",
@@ -87,6 +88,7 @@ const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
   ["compliance_requirements"],
   ["integration_required", "integration_count", "integration_difficulty"],
   ["additional_notes"],
+  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
 ];
 
 /** First step index that owns a given field name, for error navigation. */
@@ -186,7 +188,16 @@ function NumberField({
   );
 }
 
-
+function OptionalFieldsBanner() {
+  return (
+    <Alert variant="default" className="bg-muted/50 border-muted">
+      <Info className="size-4" aria-hidden="true" />
+      <AlertDescription>
+        Not sure about any of these? It's okay to leave them blank.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 export interface LeadIntakeFormProps {
   /** Persists the lead. Resolves when the insert completed. */
@@ -300,51 +311,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
       <div className="space-y-4">
         {step === 0 && (
           <>
-            <div className="space-y-2">
-              <Label htmlFor="organization_name">
-                Organization name <span aria-hidden="true">*</span>
-              </Label>
-              <Input id="organization_name" {...form.register("organization_name")} />
-              <p className="text-xs text-destructive">{errors.organization_name?.message}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_name">
-                Your name <span aria-hidden="true">*</span>
-              </Label>
-              <Input id="contact_name" {...form.register("contact_name")} />
-              <p className="text-xs text-destructive">{errors.contact_name?.message}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_email">
-                Work email <span aria-hidden="true">*</span>
-              </Label>
-              <Input id="contact_email" type="email" {...form.register("contact_email")} />
-              <p className="text-xs text-destructive">{errors.contact_email?.message}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact_phone">Phone (optional)</Label>
-              <Input id="contact_phone" type="tel" {...form.register("contact_phone")} />
-            </div>
-            <Controller
-              control={form.control}
-              name="region"
-              render={({ field }) => (
-                <SelectField
-                  id="region"
-                  label="Region"
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={REGION_OPTIONS}
-                  placeholder="Select a region"
-                />
-              )}
-            />
-            {firstStepSlot}
-          </>
-        )}
-
-        {step === 1 && (
-          <>
+            <OptionalFieldsBanner />
             <Controller
               control={form.control}
               name="vertical"
@@ -398,12 +365,13 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
                 )}
               />
             )}
-
+            {firstStepSlot}
           </>
         )}
 
-        {step === 2 && (
+        {step === 1 && (
           <>
+            <OptionalFieldsBanner />
             <Controller
               control={form.control}
               name="internal_user_count"
@@ -485,47 +453,51 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
           </>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <Controller
             control={form.control}
             name="compliance_requirements"
             render={({ field }) => {
               const selected = field.value ?? [];
               return (
-                <div className="grid grid-cols-2 gap-3">
-                  {COMPLIANCE_OPTIONS.map((option) => {
-                    const active = selected.includes(option.value);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() =>
-                          field.onChange(
+                <>
+                  <OptionalFieldsBanner />
+                  <div className="grid grid-cols-2 gap-3">
+                    {COMPLIANCE_OPTIONS.map((option) => {
+                      const active = selected.includes(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() =>
+                            field.onChange(
+                              active
+                                ? selected.filter((v) => v !== option.value)
+                                : [...selected, option.value],
+                            )
+                          }
+                          className={cn(
+                            "rounded-lg border p-3 text-left text-sm transition-colors",
                             active
-                              ? selected.filter((v) => v !== option.value)
-                              : [...selected, option.value],
-                          )
-                        }
-                        className={cn(
-                          "rounded-lg border p-3 text-left text-sm transition-colors",
-                          active
-                            ? "border-brand bg-brand/10 font-medium text-brand"
-                            : "hover:bg-muted",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                              ? "border-brand bg-brand/10 font-medium text-brand"
+                              : "hover:bg-muted",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               );
             }}
           />
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <>
+            <OptionalFieldsBanner />
             <Controller
               control={form.control}
               name="integration_required"
@@ -571,11 +543,56 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
           </>
         )}
 
+        {step === 4 && (
+          <>
+            <OptionalFieldsBanner />
+            <div className="space-y-2">
+              <Label htmlFor="additional_notes">Anything else we should know? (optional)</Label>
+              <Textarea id="additional_notes" rows={6} {...form.register("additional_notes")} />
+            </div>
+          </>
+        )}
+
         {step === 5 && (
-          <div className="space-y-2">
-            <Label htmlFor="additional_notes">Anything else we should know? (optional)</Label>
-            <Textarea id="additional_notes" rows={6} {...form.register("additional_notes")} />
-          </div>
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="organization_name">
+                Organization name <span aria-hidden="true">*</span>
+              </Label>
+              <Input id="organization_name" {...form.register("organization_name")} />
+              <p className="text-xs text-destructive">{errors.organization_name?.message}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_name">Your name (optional)</Label>
+              <Input id="contact_name" {...form.register("contact_name")} />
+              <p className="text-xs text-destructive">{errors.contact_name?.message}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_email">
+                Work email <span aria-hidden="true">*</span>
+              </Label>
+              <Input id="contact_email" type="email" {...form.register("contact_email")} />
+              <p className="text-xs text-destructive">{errors.contact_email?.message}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_phone">Phone (optional)</Label>
+              <Input id="contact_phone" type="tel" {...form.register("contact_phone")} />
+            </div>
+            <Controller
+              control={form.control}
+              name="region"
+              render={({ field }) => (
+                <SelectField
+                  id="region"
+                  label="Region"
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={REGION_OPTIONS}
+                  placeholder="Select a region"
+                />
+              )}
+            />
+          </>
         )}
       </div>
 
