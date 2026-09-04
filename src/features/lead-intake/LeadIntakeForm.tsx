@@ -73,7 +73,7 @@ const STEPS = [
   { id: "contact", title: "Contact & organization", blurb: "Who should we get back to?" },
 ] as const;
 
-/** Fields validated before leaving each step (only step 1 has requirements). */
+/** Fields validated before leaving each step. */
 const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
   ["vertical", "solution", "vertical_other_detail"],
   [
