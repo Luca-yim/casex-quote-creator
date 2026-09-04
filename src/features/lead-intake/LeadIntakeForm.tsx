@@ -591,7 +591,6 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
                 />
               )}
             />
-            {firstStepSlot}
           </>
         )}
       </div>
