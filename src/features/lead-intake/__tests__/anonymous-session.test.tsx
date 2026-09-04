@@ -80,9 +80,8 @@ describe("/get-a-quote anonymous session", () => {
     );
 
     // Contact/organization is now the final step; advance through the first five.
-    await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled());
+    await waitFor(() => expect(signInAnonymously).toHaveBeenCalledTimes(1));
     expect(screen.getByText(/step 1 of 6/i)).toBeInTheDocument();
-    expect(signInAnonymously).toHaveBeenCalledTimes(1);
 
     for (let step = 1; step <= 5; step += 1) {
       await user.click(screen.getByRole("button", { name: /continue/i }));
