@@ -65,12 +65,12 @@ export const leadIntakeSchema = z.object({
 export type LeadIntakeValues = z.infer<typeof leadIntakeSchema>;
 
 const STEPS = [
-  { id: "contact", title: "Contact & organization", blurb: "Who should we get back to?" },
   { id: "solution", title: "Vertical & solution", blurb: "What area are you looking at?" },
   { id: "scope", title: "Scope", blurb: "Roughly how big is the deployment?" },
   { id: "compliance", title: "Compliance", blurb: "Any regimes we must meet?" },
   { id: "integrations", title: "Integrations", blurb: "Systems we would connect to." },
   { id: "notes", title: "Anything else", blurb: "Optional context for our team." },
+  { id: "contact", title: "Contact & organization", blurb: "Who should we get back to?" },
 ] as const;
 
 /** Fields validated before leaving each step (only step 1 has requirements). */
