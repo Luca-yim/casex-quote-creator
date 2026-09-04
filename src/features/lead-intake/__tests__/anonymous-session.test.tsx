@@ -79,11 +79,10 @@ describe("/get-a-quote anonymous session", () => {
       </AuthProvider>,
     );
 
-    await waitFor(() => expect(screen.getByLabelText(/organization name/i)).toBeEnabled());
-
-    await user.type(screen.getByLabelText(/organization name/i), "Acme County");
-    await user.type(screen.getByLabelText(/your name/i), "Dana Rivers");
-    await user.type(screen.getByLabelText(/work email/i), "dana@acme.gov");
+    // Contact/organization is now the final step; advance through the first five.
+    await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled());
+    expect(screen.getByText(/step 1 of 6/i)).toBeInTheDocument();
+    expect(signInAnonymously).toHaveBeenCalledTimes(1);
 
     for (let step = 1; step <= 5; step += 1) {
       await user.click(screen.getByRole("button", { name: /continue/i }));
@@ -91,6 +90,10 @@ describe("/get-a-quote anonymous session", () => {
       // The count must not grow as the visitor moves between steps.
       expect(signInAnonymously).toHaveBeenCalledTimes(1);
     }
+
+    await user.type(screen.getByLabelText(/organization name/i), "Acme County");
+    await user.type(screen.getByLabelText(/your name/i), "Dana Rivers");
+    await user.type(screen.getByLabelText(/work email/i), "dana@acme.gov");
 
     // Once getSession() reports a session, the anon path must not run again.
     getSession.mockResolvedValue({ data: { session: anonSession } });
