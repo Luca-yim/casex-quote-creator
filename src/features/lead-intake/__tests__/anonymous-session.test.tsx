@@ -39,6 +39,11 @@ vi.mock("@/hooks/useVerticalSolutions", () => ({
   useVerticalSolutions: () => ({ data: [] }),
 }));
 
+vi.mock("@/hooks/useVerticalLabels", () => ({
+  useVerticalLabels: () => ({ options: [] }),
+  OTHER_VERTICAL: "other",
+}));
+
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
