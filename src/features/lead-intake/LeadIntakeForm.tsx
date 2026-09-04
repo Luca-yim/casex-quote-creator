@@ -187,7 +187,16 @@ function NumberField({
   );
 }
 
-
+function OptionalFieldsBanner() {
+  return (
+    <Alert variant="default" className="bg-muted/50 border-muted">
+      <Info className="size-4" aria-hidden="true" />
+      <AlertDescription>
+        Not sure about any of these? It's okay to leave them blank.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 export interface LeadIntakeFormProps {
   /** Persists the lead. Resolves when the insert completed. */
