@@ -28,8 +28,9 @@ import {
 } from "./lead-intake-options";
 
 /**
- * Only the three NOT NULL columns on `lead_intakes` are required. Everything
- * else is optional so a prospect can submit a partial enquiry.
+ * Only organization and email are required at submission; `vertical_other_detail`
+ * is required only when the "other" vertical is selected. Everything else is
+ * optional so a prospect can submit a partial enquiry.
  */
 export const leadIntakeSchema = z.object({
   organization_name: z.string().trim().min(1, "Organization name is required").max(200),
