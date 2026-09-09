@@ -1,0 +1,72 @@
+-- Per-Integration Complexity Selection — database side.
+--
+-- NOTE: this file could not be applied from the build environment: the
+-- Supabase project reachable from here exposes only `profiles` and
+-- `user_roles`, not `quotes` / `lead_intakes` / `quotes_scoped()`. Apply it
+-- against the real application database.
+--
+-- Element shape: {"difficulty": "simple"|"moderate"|"complex"|"very_complex"}
+
+-- 1. Column ---------------------------------------------------------------
+alter table public.quotes
+  add column if not exists integrations jsonb not null default '[]'::jsonb;
+
+-- `integration_count` and `integration_difficulty` stay in place, unused.
+-- Do not drop them and do not backfill them from `integrations`.
+
+-- 2. quotes_scoped() ------------------------------------------------------
+-- MANDATORY, same change: any column added to `quotes` must also be added to
+-- every wrapper function's RETURNS TABLE(...) list, or it silently reads back
+-- as missing for every role with no error.
+--
+-- Grab the current definition first, then re-issue it byte-for-byte with
+-- `integrations jsonb` appended to RETURNS TABLE(...) and to the inner
+-- SELECT list:
+--
+--   select pg_get_functiondef('public.quotes_scoped()'::regprocedure);
+--
+--   DROP FUNCTION public.quotes_scoped();
+--   CREATE FUNCTION public.quotes_scoped() ... -- + integrations jsonb
+--
+-- DROP FUNCTION removes existing grants, so re-apply them immediately:
+--
+--   grant execute on function public.quotes_scoped() to authenticated;
+--   grant execute on function public.quotes_scoped() to service_role;
+--
+-- Then reload the API schema cache and wait ~30-60s before verifying:
+--
+--   notify pgrst, 'reload schema';
+--
+-- Verify with a real authenticated read, not just a typecheck:
+--
+--   select integrations from quotes_scoped() limit 1;
+
+-- 3. Conversion RPCs ------------------------------------------------------
+-- Apply identically in BOTH convert_lead_to_quote(p_lead_id) and
+-- estimator_assign_and_convert(p_lead_id, p_rep_id).
+--
+-- In the INSERT INTO public.quotes (...) VALUES (...) statement, add the
+-- `integrations` column with this expression:
+--
+--   case
+--     when v_lead.has_integrations and coalesce(v_lead.integration_count, 0) > 0 then
+--       (
+--         select jsonb_agg(jsonb_build_object('difficulty', v_lead.integration_difficulty))
+--         from generate_series(1, v_lead.integration_count)
+--       )
+--     else '[]'::jsonb
+--   end
+--
+-- And, following the existing lossy-mapping-disclosure pattern used for
+-- band-floor and unmapped-vocabulary conversions, append to the version
+-- snapshot's change_reason text when seeding happened:
+--
+--   if v_lead.has_integrations and coalesce(v_lead.integration_count, 0) > 0 then
+--     v_notes := concat_ws(E'\n', nullif(v_notes, ''), format(
+--       'Seeded %s integration(s) from lead''s single difficulty value (%s) — estimator should review and adjust each integration''s difficulty individually.',
+--       v_lead.integration_count, coalesce(v_lead.integration_difficulty, 'unspecified')
+--     ));
+--   end if;
+--
+-- When has_integrations is false or integration_count is null/zero: seed
+-- '[]'::jsonb and skip the note.
