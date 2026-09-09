@@ -92,7 +92,7 @@ export interface Quote {
   repeatableActivation: RepeatableActivation;
   moduleTier: ModuleTier | null;
   contractYears: number;
-  targetGoLiveDate: string | null;
+  expectedAwardDate: string | null;
   caseWorkerCount: number | null;
   includeB2c: boolean;
   b2cMau: number | null;
@@ -171,7 +171,7 @@ export const quoteSchema = z.object({
     .default("novel"),
   moduleTier: z.enum(["standard", "enterprise"]),
   contractYears: z.number().int().min(1).max(10),
-  targetGoLiveDate: z.string().nullable().default(null),
+  expectedAwardDate: z.string().nullable().default(null),
   caseWorkerCount: z.number().int().min(0).nullable().default(null),
   includeB2c: z.boolean().default(false),
   b2cMau: z.number().int().min(0).nullable().default(null),

@@ -30,7 +30,7 @@ const SAFE_QUOTE_COLUMNS = [
   "repeatable_activation",
   "module_tier",
   "contract_years",
-  "target_go_live_date",
+  "expected_award_date",
   "case_worker_count",
   "include_b2c",
   "b2c_mau",

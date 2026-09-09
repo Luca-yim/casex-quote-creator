@@ -109,8 +109,8 @@ export function PdfAssumptionsPage({ context }: PdfSectionProps) {
         <MetaRow
           label="Target go-live"
           value={
-            configuration.targetGoLiveDate
-              ? format(new Date(configuration.targetGoLiveDate), "MMMM d, yyyy")
+            configuration.expectedAwardDate
+              ? format(new Date(configuration.expectedAwardDate), "MMMM d, yyyy")
               : "Not specified"
           }
         />

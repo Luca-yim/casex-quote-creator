@@ -57,7 +57,7 @@ export function IntakeForm() {
       repeatableActivation: quote.repeatableActivation,
       moduleTier: quote.moduleTier ?? undefined,
       contractYears: quote.contractYears,
-      targetGoLiveDate: quote.targetGoLiveDate,
+      expectedAwardDate: quote.expectedAwardDate,
       caseWorkerCount: quote.caseWorkerCount,
       includeB2c: quote.includeB2c,
       b2cMau: quote.b2cMau,

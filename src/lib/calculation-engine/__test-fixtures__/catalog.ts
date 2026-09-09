@@ -66,7 +66,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
     repeatableActivation: "novel",
     moduleTier: "standard",
     contractYears: 3,
-    targetGoLiveDate: null,
+    expectedAwardDate: null,
     caseWorkerCount: 100,
     includeB2c: false,
     b2cMau: null,

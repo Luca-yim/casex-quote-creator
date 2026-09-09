@@ -34,7 +34,7 @@ export function TargetGoLiveSection() {
     <SectionCard icon="📅" title="Target Go-Live Date">
       <Controller
         control={control}
-        name="targetGoLiveDate"
+        name="expectedAwardDate"
         render={({ field }) => {
           const value = field.value ?? null;
           const timeline = deriveTimeline(value);

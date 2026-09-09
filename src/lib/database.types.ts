@@ -271,7 +271,7 @@ export type Database = {
           repeatable_activation: string
           module_tier: string | null
           contract_years: number
-          target_go_live_date: string | null
+          expected_award_date: string | null
           case_worker_count: number | null
           include_b2c: boolean
           b2c_mau: number | null
@@ -322,7 +322,7 @@ export type Database = {
           repeatable_activation?: string
           module_tier?: string | null
           contract_years?: number
-          target_go_live_date?: string | null
+          expected_award_date?: string | null
           case_worker_count?: number | null
           include_b2c?: boolean
           b2c_mau?: number | null
@@ -373,7 +373,7 @@ export type Database = {
           repeatable_activation?: string
           module_tier?: string | null
           contract_years?: number
-          target_go_live_date?: string | null
+          expected_award_date?: string | null
           case_worker_count?: number | null
           include_b2c?: boolean
           b2c_mau?: number | null
@@ -735,7 +735,7 @@ export type Database = {
           repeatable_activation: string
           module_tier: string | null
           contract_years: number
-          target_go_live_date: string | null
+          expected_award_date: string | null
           case_worker_count: number | null
           include_b2c: boolean
           b2c_mau: number | null

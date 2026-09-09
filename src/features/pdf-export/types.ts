@@ -35,7 +35,7 @@ export interface PdfQuoteConfiguration {
   compliance: string[];
   hostingModel: string | null;
   supportTier: string | null;
-  targetGoLiveDate: string | null;
+  expectedAwardDate: string | null;
 }
 
 /** Ballpark-tier pricing: the legacy catalog-engine breakdown, unchanged. */
