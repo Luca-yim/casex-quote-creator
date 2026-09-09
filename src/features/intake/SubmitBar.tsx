@@ -65,7 +65,12 @@ export function SubmitBar() {
       await form.trigger();
       const firstField = result.missingRequiredFields[0];
       if (firstField) {
-        const el = document.querySelector<HTMLElement>(`[name="${firstField}"]`);
+        // Array/object-shaped error paths (e.g. "integrations") have no
+        // matching literal `name` attribute — fall back to a `data-section`
+        // marker so the scroll never silently no-ops.
+        const el =
+          document.querySelector<HTMLElement>(`[name="${firstField}"]`) ??
+          document.querySelector<HTMLElement>(`[data-section="${firstField}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
         el?.focus?.();
       }

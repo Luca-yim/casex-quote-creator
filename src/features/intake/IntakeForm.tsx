@@ -114,7 +114,11 @@ export function IntakeForm() {
     if (readonly) return;
     const subscription = watch((_values, { name, type }) => {
       if (!name || type !== "change") return;
-      updateField(name, form.getValues(name as never));
+      // Nested/array paths (e.g. "integrations.0.difficulty") must patch the
+      // whole root field, not a literal dotted key — QUOTE_FIELD_COLUMNS and
+      // the Quote domain shape only know about root field names.
+      const root = name.split(".")[0] as string;
+      updateField(root, form.getValues(root as never));
     });
     return () => subscription.unsubscribe();
   }, [watch, form, updateField, readonly]);
