@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useIntake } from "@/features/intake/IntakeContext";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
+import { applyMargin } from "@/lib/calculation-engine/final-price";
 import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -159,8 +160,25 @@ export function PricingSidebar() {
       {/* B — TCV */}
       {showPricing && breakdown ? (
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Total Contract Value ({breakdown.contractYears}-year)</p>
-          <p className="font-mono text-4xl font-semibold tracking-tight">{formatCurrency(breakdown.finalTCV)}</p>
+          {quote.tier === "ballpark" && ballpark ? (
+            <>
+              <p className="text-xs text-muted-foreground">Estimated Total incl. Implementation Fee</p>
+              <p className="font-mono text-4xl font-semibold tracking-tight">
+                {(() => {
+                  const combinedLow = breakdown.adjustedBaseline + ballpark.implementationLow;
+                  const combinedHigh = breakdown.adjustedBaseline + ballpark.implementationHigh;
+                  const newTCVLow = applyMargin(combinedLow, breakdown.marginPercent);
+                  const newTCVHigh = applyMargin(combinedHigh, breakdown.marginPercent);
+                  return `${formatCurrency(newTCVLow)} – ${formatCurrency(newTCVHigh)}`;
+                })()}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Total Contract Value ({breakdown.contractYears}-year)</p>
+              <p className="font-mono text-4xl font-semibold tracking-tight">{formatCurrency(breakdown.finalTCV)}</p>
+            </>
+          )}
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
