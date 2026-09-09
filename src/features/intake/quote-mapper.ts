@@ -44,7 +44,7 @@ export function rowToQuote(row: QuoteRow): Quote {
     environmentCount: Number(r["environment_count"] ?? 1),
     hasIntegrations: Boolean(r["has_integrations"]),
     integrations: Array.isArray(r["integrations"])
-      ? (r["integrations"] as Quote["integrations"])
+      ? (r["integrations"] as unknown as Quote["integrations"])
       : [],
     integrationCount:
       r["integration_count"] === null || r["integration_count"] === undefined
