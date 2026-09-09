@@ -66,6 +66,7 @@ export function IntakeForm() {
       hostingModel: quote.hostingModel ?? undefined,
       environmentCount: quote.environmentCount,
       hasIntegrations: quote.hasIntegrations,
+      integrations: quote.integrations ?? [],
       integrationCount: quote.integrationCount,
       integrationDifficulty: quote.integrationDifficulty,
       supportTier: quote.supportTier ?? undefined,

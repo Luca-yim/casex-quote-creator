@@ -180,6 +180,13 @@ export const quoteSchema = z.object({
   hostingModel: z.enum(["soc2", "fedramp", "customer_hosted"]),
   environmentCount: z.number().int().min(1).default(1),
   hasIntegrations: z.boolean().default(false),
+  integrations: z
+    .array(
+      z.object({
+        difficulty: z.enum(["simple", "moderate", "complex", "very_complex"]),
+      }),
+    )
+    .default([]),
   integrationCount: z.number().int().min(0).nullable().default(null),
   integrationDifficulty: z
     .enum(["simple", "moderate", "complex", "very_complex"])
@@ -207,15 +214,12 @@ export const quoteSchema = z.object({
     .default(null),
 
 }).superRefine((value, ctx) => {
-  // "Yes, we need integrations" requires a real count — empty is not 0.
-  if (
-    value.hasIntegrations &&
-    (value.integrationCount === null || value.integrationCount < 1)
-  ) {
+  // "Yes, we need integrations" requires at least one listed integration.
+  if (value.hasIntegrations && value.integrations.length < 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["integrationCount"],
-      message: "Please enter the number of integrations required",
+      path: ["integrations"],
+      message: "Please add at least one integration",
     });
   }
 

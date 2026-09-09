@@ -39,6 +39,7 @@ const SAFE_QUOTE_COLUMNS = [
   "hosting_model",
   "environment_count",
   "has_integrations",
+  "integrations",
   "integration_count",
   "integration_difficulty",
   "support_tier",
