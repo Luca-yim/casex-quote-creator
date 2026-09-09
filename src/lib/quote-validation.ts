@@ -50,7 +50,7 @@ export interface ReadinessResult {
  */
 export function validateQuoteForSubmission(quote: Quote): QuoteValidationResult {
   const parseResult = quoteSchema.safeParse(quote);
-  if (!result.success) {
+  if (!parseResult.success) {
     console.log(JSON.stringify(result.error.issues, null, 2));
   }
   if (parseResult.success) {
