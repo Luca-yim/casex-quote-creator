@@ -48,23 +48,10 @@ export function ballparkRange(
     throw new Error(`No ballpark sizing row for tier ${tier}`);
   }
 
-  const rateLow =
-    programType === "commercial"
-      ? row.commercial_rate_low
-      : row.public_sector_rate_low;
-  const rateHigh =
-    programType === "commercial"
-      ? row.commercial_rate_high
-      : row.public_sector_rate_high;
-  if (
-    rateLow === null ||
-    rateLow === undefined ||
-    rateHigh === null ||
-    rateHigh === undefined
-  ) {
-    throw new Error(
-      `No ${programType} rate band on ballpark sizing row for tier ${tier}`,
-    );
+  const rateLow = programType === "commercial" ? row.commercial_rate_low : row.public_sector_rate_low;
+  const rateHigh = programType === "commercial" ? row.commercial_rate_high : row.public_sector_rate_high;
+  if (rateLow === null || rateLow === undefined || rateHigh === null || rateHigh === undefined) {
+    throw new Error(`No ${programType} rate band on ballpark sizing row for tier ${tier}`);
   }
 
   const spread = (100 - confidencePct) / 200;
@@ -72,7 +59,7 @@ export function ballparkRange(
   const high = row.hours_high * rateHigh;
 
   return {
-    implementationLow: low * (1 - spread),
-    implementationHigh: high * (1 + spread),
+    implementationLow: (low * (1 - spread)) / 2,
+    implementationHigh: (high * (1 + spread)) / 2,
   };
 }
