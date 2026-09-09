@@ -10,37 +10,26 @@ import {
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { deriveTimeline } from "@/lib/timeline-helper";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { SectionCard } from "./SectionCard";
 
-const CHIP_STYLES: Record<string, string> = {
-  aggressive:
-    "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
-  standard:
-    "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  comfortable:
-    "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300",
-};
-
-/** Section 2 — optional target go-live date with a derived timeline chip. */
-export function TargetGoLiveSection() {
+/** Section 2 — optional expected award date. Does not affect pricing. */
+export function ExpectedAwardDateSection() {
   const { control } = useFormContext<QuoteFormData>();
   const { mode } = useIntake();
   const disabled = mode === "readonly";
 
   return (
-    <SectionCard icon="📅" title="Target Go-Live Date">
+    <SectionCard icon="📅" title="Expected Award Date">
       <Controller
         control={control}
         name="expectedAwardDate"
         render={({ field }) => {
           const value = field.value ?? null;
-          const timeline = deriveTimeline(value);
           return (
             <div className="space-y-3">
-              <Label>Target go-live (optional)</Label>
+              <Label>Expected award date (optional)</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -55,7 +44,7 @@ export function TargetGoLiveSection() {
                     <CalendarIcon className="size-4" />
                     {value
                       ? format(parseISO(value), "PPP")
-                      : "Pick a target date"}
+                      : "Pick an expected award date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -74,17 +63,6 @@ export function TargetGoLiveSection() {
                   />
                 </PopoverContent>
               </Popover>
-
-              {timeline.tier ? (
-                <span
-                  className={cn(
-                    "inline-flex rounded-full border px-3 py-1 text-xs font-medium",
-                    CHIP_STYLES[timeline.tier],
-                  )}
-                >
-                  {timeline.displayLabel}
-                </span>
-              ) : null}
             </div>
           );
         }}
