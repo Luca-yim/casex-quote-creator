@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { quoteSchema, type QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { CustomerInfoSection } from "./sections/CustomerInfoSection";
-import { TargetGoLiveSection } from "./sections/TargetGoLiveSection";
+import { ExpectedAwardDateSection } from "./sections/ExpectedAwardDateSection";
 import { VerticalSolutionSection } from "./sections/VerticalSolutionSection";
 import { RepeatableActivationSection } from "./sections/RepeatableActivationSection";
 import { ComplianceSection } from "./sections/ComplianceSection";
@@ -138,7 +138,7 @@ export function IntakeForm() {
           are required.
         </p>
         <CustomerInfoSection />
-        <TargetGoLiveSection />
+        <ExpectedAwardDateSection />
         <VerticalSolutionSection />
         <RepeatableActivationSection />
         <ComplianceSection />

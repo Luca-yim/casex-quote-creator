@@ -250,7 +250,7 @@ export const QUOTE_COLUMNS: Record<string, QuoteColumn> = {
   }),
   expected_award_date: column({
     key: "expected_award_date",
-    label: "Target go-live",
+    label: "Expected award date",
     type: "date",
     sortable: true,
     accessor: (r) => r.expectedAwardDate,

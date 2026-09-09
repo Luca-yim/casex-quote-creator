@@ -107,7 +107,7 @@ export function PdfAssumptionsPage({ context }: PdfSectionProps) {
           value={configuration.supportTier ? titleCase(configuration.supportTier) : "Not specified"}
         />
         <MetaRow
-          label="Target go-live"
+          label="Expected award date"
           value={
             configuration.expectedAwardDate
               ? format(new Date(configuration.expectedAwardDate), "MMMM d, yyyy")
