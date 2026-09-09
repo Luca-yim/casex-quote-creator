@@ -302,6 +302,7 @@ export type Database = {
           created_at: string
           updated_at: string
           needs_attention: boolean
+          integrations: Json
         }
         Insert: {
           id?: string
@@ -352,6 +353,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
           needs_attention?: boolean
+          integrations?: Json
         }
         Update: {
           id?: string
@@ -402,6 +404,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
           needs_attention?: boolean
+          integrations?: Json
         }
         Relationships: [
           {
@@ -763,6 +766,7 @@ export type Database = {
           created_at: string
           updated_at: string
           needs_attention: boolean
+          integrations: Json
         }
         Relationships: []
       }
