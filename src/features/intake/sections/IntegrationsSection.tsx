@@ -1,12 +1,12 @@
-import { Controller, useFormContext, useWatch } from "react-hook-form";
-import { Input } from "@/components/ui/input";
+import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { InfoNote, SectionCard } from "./SectionCard";
 import { RadioCardGroup } from "./RadioCardGroup";
-import { RequiredLabel } from "./RequiredLabel";
 import { FieldError } from "./FieldError";
 
 const DIFFICULTY = [
@@ -19,12 +19,22 @@ const DIFFICULTY = [
   { value: "very_complex", label: "Very complex (unclear scope)" },
 ];
 
-/** Section 11 — integration count and difficulty. */
+/** Section 11 — a repeatable list of integrations, each with its own difficulty. */
 export function IntegrationsSection() {
   const { control, formState } = useFormContext<QuoteFormData>();
   const { mode } = useIntake();
   const disabled = mode === "readonly";
   const hasIntegrations = useWatch({ control, name: "hasIntegrations" });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "integrations",
+  });
+
+  const showError =
+    formState.touchedFields.integrations || formState.isSubmitted;
+  const listError = (
+    formState.errors.integrations as { message?: string } | undefined
+  )?.message;
 
   return (
     <SectionCard icon="🔗" title="Integrations">
@@ -47,57 +57,54 @@ export function IntegrationsSection() {
       </div>
 
       {hasIntegrations ? (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="integration-count">
-              <RequiredLabel>How many integrations?</RequiredLabel>
-            </Label>
-            <Controller
-              control={control}
-              name="integrationCount"
-              render={({ field }) => (
-                <Input
-                  id="integration-count"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="0"
-                  aria-required="true"
+        <div className="space-y-4">
+          {fields.map((row, index) => (
+            <div key={row.id} className="space-y-2 rounded-md border p-4">
+              <div className="flex items-center justify-between gap-4">
+                <Label>Integration {index + 1}</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   disabled={disabled}
-                  value={field.value ?? ""}
-                  onChange={(event) =>
-                    field.onChange(
-                      event.target.value === ""
-                        ? null
-                        : Number(event.target.value),
-                    )
-                  }
-                />
-              )}
-            />
-            {formState.touchedFields.integrationCount ||
-            formState.isSubmitted ? (
-              <FieldError message={formState.errors.integrationCount?.message} />
-            ) : null}
-          </div>
+                  onClick={() => remove(index)}
+                  aria-label={`Remove integration ${index + 1}`}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                  Remove
+                </Button>
+              </div>
+              <Controller
+                control={control}
+                name={`integrations.${index}.difficulty` as const}
+                render={({ field }) => (
+                  <RadioCardGroup
+                    name={`integration-difficulty-${index}`}
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={DIFFICULTY}
+                    disabled={disabled}
+                  />
+                )}
+              />
+            </div>
+          ))}
 
-          <div className="space-y-2">
-            <Label>Integration difficulty</Label>
-            <Controller
-              control={control}
-              name="integrationDifficulty"
-              render={({ field }) => (
-                <RadioCardGroup
-                  name="integration-difficulty"
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={DIFFICULTY}
-                  disabled={disabled}
-                />
-              )}
-            />
-          </div>
-        </>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            onClick={() =>
+              append({ difficulty: undefined as never }, { shouldFocus: false })
+            }
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Add integration
+          </Button>
+
+          {showError ? <FieldError message={listError} /> : null}
+        </div>
       ) : null}
 
       <InfoNote>

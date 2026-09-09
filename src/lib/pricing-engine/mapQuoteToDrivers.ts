@@ -7,7 +7,12 @@ import type { ComplexityLevel, DriverLevels } from "./complexity";
 /** The subset of a Quote this mapping reads. */
 export interface DriverQuoteInput {
   hasIntegrations?: boolean | null;
+  integrations?:
+    | { difficulty: "simple" | "moderate" | "complex" | "very_complex" }[]
+    | null;
+  /** @deprecated legacy flat count — retained, unused. */
   integrationCount?: number | null;
+  /** @deprecated legacy flat difficulty — retained, unused. */
   integrationDifficulty?:
     | "simple"
     | "moderate"
