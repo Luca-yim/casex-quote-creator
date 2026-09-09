@@ -110,11 +110,11 @@ export function buildAssumptions(quote: Quote): Assumption[] {
     });
   }
 
-  if (quote.hostingModel === "customer_hosted") {
+  if (quote.hostingModel === "regular") {
     assumptions.push({
       id: "customer-hosted",
       tone: "info",
-      text: "Customer-hosted deployment — no monthly hosting fee",
+      text: "Regular hosting — no monthly hosting fee",
     });
   }
 

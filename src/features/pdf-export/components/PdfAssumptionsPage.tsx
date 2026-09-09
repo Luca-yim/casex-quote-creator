@@ -28,7 +28,7 @@ const ACTIVATION_LABELS: Record<string, string> = {
 const HOSTING_LABELS: Record<string, string> = {
   soc2: "SOC 2 cloud",
   fedramp: "FedRAMP cloud",
-  customer_hosted: "Customer hosted",
+  regular: "Regular hosting",
 };
 
 const COMPLIANCE_LABELS: Record<string, string> = {
