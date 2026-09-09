@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 import { makeQuote } from "@/lib/calculation-engine/__test-fixtures__/catalog";
 import { formatCurrency } from "@/lib/utils";
+import { applyMargin } from "@/lib/calculation-engine/final-price";
 import { computeBallparkForQuote } from "@/features/estimator-ballpark/computeBallparkForQuote";
 import type { BallparkSizingRow } from "@/lib/pricing-engine/ballpark";
 
@@ -16,6 +17,26 @@ const SIZING: BallparkSizingRow[] = [1, 2, 3, 4].map((tier) => ({
   public_sector_rate_low: 150,
   public_sector_rate_high: 190,
 }));
+
+const BREAKDOWN = {
+  lineItems: [
+    {
+      id: "module",
+      label: "Module tier",
+      category: "one_time" as const,
+      quantity: 1,
+      subtotal: 100_000,
+    },
+  ],
+  oneTimeTotal: 100_000,
+  monthlyRecurring: 5_000,
+  contractYears: 3,
+  baselineTCV: 280_000,
+  adjustedBaseline: 280_000,
+  marginPercent: 20,
+  finalTCV: 280_000,
+  repeatableActivationAdjustment: 0,
+};
 
 const intakeState = vi.hoisted(() => ({ current: null as any }));
 
@@ -37,23 +58,7 @@ vi.mock("@/features/estimator-ballpark/useBallparkSizingReference", () => ({
 }));
 
 vi.mock("@/lib/calculation-engine", () => ({
-  calculatePricingBreakdown: () => ({
-    lineItems: [
-      {
-        id: "module",
-        label: "Module tier",
-        category: "one_time",
-        quantity: 1,
-        subtotal: 100_000,
-      },
-    ],
-    oneTimeTotal: 100_000,
-    monthlyRecurring: 5_000,
-    contractYears: 3,
-    baselineTCV: 280_000,
-    finalTCV: 280_000,
-    repeatableActivationAdjustment: 0,
-  }),
+  calculatePricingBreakdown: () => BREAKDOWN,
 }));
 
 /** A ballpark quote with enough answered drivers to produce a range. */
@@ -153,5 +158,74 @@ describe("PricingSidebar implementation fee row", () => {
     expect(oneTime).toBeGreaterThanOrEqual(0);
     expect(fee).toBe(oneTime + 1);
     expect(monthly).toBe(fee + 1);
+  });
+});
+
+describe("PricingSidebar headline TCV", () => {
+  beforeEach(() => {
+    intakeState.current = null;
+  });
+
+  it("shows a margin-included range for ballpark quotes with driver info", () => {
+    const quote = answeredQuote();
+    const ballpark = computeBallparkForQuote(quote as any, SIZING);
+    expect(ballpark).not.toBeNull();
+
+    renderSidebar(quote);
+
+    const combinedLow = BREAKDOWN.adjustedBaseline + ballpark!.implementationLow;
+    const combinedHigh =
+      BREAKDOWN.adjustedBaseline + ballpark!.implementationHigh;
+    const expectedLow = applyMargin(combinedLow, BREAKDOWN.marginPercent);
+    const expectedHigh = applyMargin(combinedHigh, BREAKDOWN.marginPercent);
+
+    expect(
+      screen.getByText("Estimated Total incl. Implementation Fee"),
+    ).toBeInTheDocument();
+    const headline = screen
+      .getByText("Estimated Total incl. Implementation Fee")
+      .closest("div")!;
+    expect(headline.textContent).toContain(formatCurrency(expectedLow));
+    expect(headline.textContent).toContain(formatCurrency(expectedHigh));
+  });
+
+  it("falls back to the original TCV headline when ballpark drivers are insufficient", () => {
+    const quote = makeQuote({
+      tier: "ballpark",
+      customerType: null,
+      hasIntegrations: null,
+      migrationRequired: null,
+      externalIdpRequired: null,
+      workerIdpRequired: null,
+      includeB2c: null,
+      includeB2bPortal: null,
+      compliance: [],
+    } as any);
+
+    renderSidebar(quote);
+
+    expect(
+      screen.getByText(`Total Contract Value (${BREAKDOWN.contractYears}-year)`),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Estimated Total incl. Implementation Fee"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(formatCurrency(BREAKDOWN.finalTCV)),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the proposal headline unchanged", () => {
+    renderSidebar(answeredQuote({ tier: "proposal" }));
+
+    expect(
+      screen.getByText(`Total Contract Value (${BREAKDOWN.contractYears}-year)`),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Estimated Total incl. Implementation Fee"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(formatCurrency(BREAKDOWN.finalTCV)),
+    ).toBeInTheDocument();
   });
 });
