@@ -80,7 +80,7 @@ describe("rendering", () => {
     setup("sales_rep");
     for (const title of [
       "Customer Info",
-      "Target Go-Live Date",
+      "Expected Award Date",
       "Vertical & Solution",
       "Compliance Requirements",
       "Module Tier",
