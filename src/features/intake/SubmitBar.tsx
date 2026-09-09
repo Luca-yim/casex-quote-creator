@@ -50,8 +50,6 @@ export function SubmitBar() {
   };
 
   const handleSubmit = async () => {
-    console.log(JSON.stringify(errors, null, 2));
-
     // Auto-name unnamed drafts at the point of persistence (the input keeps
     // "Untitled Quote" as a ghosted placeholder, never a real value).
     if (!quote.name?.trim()) {
