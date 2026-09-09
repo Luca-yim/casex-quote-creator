@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useIntake } from "@/features/intake/IntakeContext";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
+import { applyMargin } from "@/lib/calculation-engine/final-price";
 import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
