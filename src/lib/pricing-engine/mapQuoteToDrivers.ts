@@ -63,13 +63,27 @@ function bump(level: ComplexityLevel): ComplexityLevel {
   return ORDER[Math.min(index + 1, ORDER.length - 1)] as ComplexityLevel;
 }
 
-/** Integration driver: difficulty band, none when integrations are off. */
+/**
+ * Integration driver: max difficulty across the list, none when integrations
+ * are off or the list is empty.
+ *
+ * v1 choice: the single worst integration drives the whole driver's score,
+ * mirroring the old single-value behavior as closely as possible. This is a
+ * deliberate simplification — a future revision may switch to a
+ * weighted/average approach across all integrations instead of taking the
+ * max. Do not treat this as final.
+ */
 export function integrationComplexity(q: DriverQuoteInput): ComplexityLevel {
   if (!q.hasIntegrations) return "none";
-  if (!q.integrationCount || q.integrationCount <= 0) return "none";
-  return q.integrationDifficulty
-    ? (DIFFICULTY_LEVEL[q.integrationDifficulty] as ComplexityLevel)
-    : "low";
+  const list = q.integrations ?? [];
+  if (list.length === 0) return "none";
+  const levels = list.map(
+    (i) => DIFFICULTY_LEVEL[i.difficulty] as ComplexityLevel,
+  );
+  return levels.reduce(
+    (max, level) => (ORDER.indexOf(level) > ORDER.indexOf(max) ? level : max),
+    "none" as ComplexityLevel,
+  );
 }
 
 /** Migration driver: volume band, bumped one step when cleanup is required. */
