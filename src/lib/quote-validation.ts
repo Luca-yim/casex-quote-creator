@@ -50,7 +50,9 @@ export interface ReadinessResult {
  */
 export function validateQuoteForSubmission(quote: Quote): QuoteValidationResult {
   const parseResult = quoteSchema.safeParse(quote);
-
+  if (!result.success) {
+    console.log(JSON.stringify(result.error.issues, null, 2));
+  }
   if (parseResult.success) {
     return {
       valid: true,
@@ -88,10 +90,7 @@ export function readinessCheck(quote: Quote): ReadinessResult {
 
   for (const field of READINESS_REQUIRED_FIELDS) {
     // "Other" verticals answer with free text instead of a catalog solution.
-    const value =
-      field === "solution" && quote.vertical === "other"
-        ? quote.verticalOtherDetail
-        : quote[field];
+    const value = field === "solution" && quote.vertical === "other" ? quote.verticalOtherDetail : quote[field];
     const isFilled = isFieldFilled(value);
 
     if (isFilled) {
@@ -132,4 +131,3 @@ function isFieldFilled(value: unknown): boolean {
 
   return true;
 }
-
