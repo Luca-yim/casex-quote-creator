@@ -46,8 +46,8 @@ export function HostingSection() {
     },
     { value: "fedramp", label: "FedRAMP Hosting" },
     {
-      value: "customer_hosted",
-      label: "Customer-Hosted (no monthly fee)",
+      value: "regular",
+      label: "Regular Hosting (Free)",
       disabled: fedrampRequired,
     },
   ];
@@ -73,7 +73,7 @@ export function HostingSection() {
         <AmberNote>FedRAMP required by your compliance selections.</AmberNote>
       ) : null}
 
-      {hostingModel !== "customer_hosted" ? (
+      {hostingModel !== "regular" ? (
         <div className="space-y-2">
           <Label htmlFor="environment-count">
             How many environments (dev, staging, prod)?

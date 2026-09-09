@@ -17,7 +17,7 @@ export const REGION_OPTIONS = [
 export const HOSTING_PREFERENCES = [
   { value: "cloud", label: "Vendor-hosted cloud" },
   { value: "govcloud", label: "Government cloud (FedRAMP)" },
-  { value: "customer_hosted", label: "We host it ourselves" },
+  { value: "customer_hosted", label: "Regular hosting (self-hosted)" },
   { value: "unsure", label: "Not sure yet" },
 ] as const;
 

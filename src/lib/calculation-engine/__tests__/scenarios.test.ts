@@ -47,7 +47,7 @@ const SCENARIOS: Scenario[] = [
     name: "customer-hosted with B2C portal, full repeatable match",
     // cw 100*97.9=9,790; b2c pack3 4,167; support standard 10,000
     quote: {
-      hostingModel: "customer_hosted",
+      hostingModel: "regular",
       includeB2c: true,
       b2cMau: 25_000,
       repeatableActivation: "full_match",

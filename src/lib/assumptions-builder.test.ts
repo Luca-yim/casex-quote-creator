@@ -80,7 +80,7 @@ describe("buildAssumptions — rules", () => {
   });
 
   it("customer-hosted deployments note the missing hosting fee", () => {
-    expect(ids(makeQuote({ hostingModel: "customer_hosted" }))).toContain(
+    expect(ids(makeQuote({ hostingModel: "regular" }))).toContain(
       "customer-hosted",
     );
   });

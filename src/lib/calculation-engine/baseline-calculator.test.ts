@@ -100,7 +100,7 @@ describe("hosting", () => {
 
   it("customer-hosted adds no hosting line item", () => {
     const result = calculatePricingBreakdown(
-      makeQuote({ hostingModel: "customer_hosted" }),
+      makeQuote({ hostingModel: "regular" }),
       TEST_CATALOG,
     );
     expect(result.lineItems.some((i) => i.id.startsWith("hosting_"))).toBe(false);

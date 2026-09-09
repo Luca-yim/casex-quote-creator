@@ -95,7 +95,7 @@ describe("empty configuration", () => {
     makeQuote({
       moduleTier: null,
       caseWorkerCount: 0,
-      hostingModel: "customer_hosted",
+      hostingModel: "regular",
       supportTier: null,
       includeB2c: false,
       includeB2bPortal: false,

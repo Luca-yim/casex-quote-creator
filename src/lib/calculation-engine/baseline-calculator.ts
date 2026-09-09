@@ -96,7 +96,7 @@ export function calculatePricingBreakdown(
     quote.hostingModel,
     compliance,
   );
-  if (hostingModel && hostingModel !== "customer_hosted") {
+  if (hostingModel && hostingModel !== "regular") {
     const row = findSku(catalog, `hosting_${hostingModel}`);
     if (row) {
       const item = toLineItem(

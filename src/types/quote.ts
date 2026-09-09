@@ -41,7 +41,7 @@ export type RepeatableActivation = "full_match" | "partial_match" | "novel";
 export type ModuleTier = "standard" | "enterprise";
 
 /** Where the solution is hosted. */
-export type HostingModel = "soc2" | "fedramp" | "customer_hosted";
+export type HostingModel = "soc2" | "fedramp" | "regular";
 
 /** Contracted support level. */
 export type SupportTier = "standard" | "enhanced" | "premium";
@@ -177,7 +177,7 @@ export const quoteSchema = z.object({
   b2cMau: z.number().int().min(0).nullable().default(null),
   includeB2bPortal: z.boolean().default(false),
   b2bUserCount: z.number().int().min(0).nullable().default(null),
-  hostingModel: z.enum(["soc2", "fedramp", "customer_hosted"]),
+  hostingModel: z.enum(["soc2", "fedramp", "regular"]),
   environmentCount: z.number().int().min(1).default(1),
   hasIntegrations: z.boolean().default(false),
   integrations: z
