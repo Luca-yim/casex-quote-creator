@@ -3,7 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { QuoteFormData } from "@/types/quote";
+import type { IntegrationItem, QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { InfoNote, SectionCard } from "./SectionCard";
 import { RadioCardGroup } from "./RadioCardGroup";
@@ -22,9 +22,11 @@ const DIFFICULTY = [
 /** Section 11 — a repeatable list of integrations, each with its own difficulty. */
 export function IntegrationsSection() {
   const { control, formState } = useFormContext<QuoteFormData>();
-  const { mode } = useIntake();
+  const { mode, updateField } = useIntake();
   const disabled = mode === "readonly";
   const hasIntegrations = useWatch({ control, name: "hasIntegrations" });
+  const integrationsValue = (useWatch({ control, name: "integrations" }) ??
+    []) as IntegrationItem[];
   const { fields, append, remove } = useFieldArray({
     control,
     name: "integrations",
@@ -35,6 +37,23 @@ export function IntegrationsSection() {
   const listError = (
     formState.errors.integrations as { message?: string } | undefined
   )?.message;
+
+  const handleAppend = () => {
+    const newRow = { difficulty: undefined as never };
+    append(newRow, { shouldFocus: false });
+    // useFieldArray's structural mutations (append/remove) never emit a RHF
+    // "change" watch event, so IntakeForm's global watch subscription never
+    // sees this — push the resulting array explicitly.
+    updateField("integrations", [...integrationsValue, newRow]);
+  };
+
+  const handleRemove = (index: number) => {
+    remove(index);
+    updateField(
+      "integrations",
+      integrationsValue.filter((_, i) => i !== index),
+    );
+  };
 
   return (
     <SectionCard icon="🔗" title="Integrations">
@@ -57,47 +76,56 @@ export function IntegrationsSection() {
       </div>
 
       {hasIntegrations ? (
-        <div className="space-y-4">
-          {fields.map((row, index) => (
-            <div key={row.id} className="space-y-2 rounded-md border p-4">
-              <div className="flex items-center justify-between gap-4">
-                <Label>Integration {index + 1}</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => remove(index)}
-                  aria-label={`Remove integration ${index + 1}`}
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                  Remove
-                </Button>
-              </div>
-              <Controller
-                control={control}
-                name={`integrations.${index}.difficulty` as const}
-                render={({ field }) => (
-                  <RadioCardGroup
-                    name={`integration-difficulty-${index}`}
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={DIFFICULTY}
+        <div className="space-y-4" data-section="integrations" tabIndex={-1}>
+          {fields.map((row, index) => {
+            const rowError = (
+              formState.errors.integrations as
+                | Array<{ difficulty?: { message?: string } }>
+                | undefined
+            )?.[index]?.difficulty?.message;
+
+            return (
+              <div key={row.id} className="space-y-2 rounded-md border p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label>Integration {index + 1}</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     disabled={disabled}
-                  />
-                )}
-              />
-            </div>
-          ))}
+                    onClick={() => handleRemove(index)}
+                    aria-label={`Remove integration ${index + 1}`}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    Remove
+                  </Button>
+                </div>
+                <Controller
+                  control={control}
+                  name={`integrations.${index}.difficulty` as const}
+                  render={({ field }) => (
+                    <RadioCardGroup
+                      name={`integration-difficulty-${index}`}
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={DIFFICULTY}
+                      disabled={disabled}
+                    />
+                  )}
+                />
+                {showError && rowError ? (
+                  <FieldError message={rowError} />
+                ) : null}
+              </div>
+            );
+          })}
 
           <Button
             type="button"
             variant="outline"
             size="sm"
             disabled={disabled}
-            onClick={() =>
-              append({ difficulty: undefined as never }, { shouldFocus: false })
-            }
+            onClick={handleAppend}
           >
             <Plus className="size-4" aria-hidden="true" />
             Add integration
