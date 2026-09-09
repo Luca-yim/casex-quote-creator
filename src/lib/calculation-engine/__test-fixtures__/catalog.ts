@@ -48,6 +48,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
   const base: Quote = {
     id: "quote-1",
     needsAttention: false,
+  integrations: [],
   ownerId: "user-1",
     requestedBy: "user-1",
     reviewedBy: null,

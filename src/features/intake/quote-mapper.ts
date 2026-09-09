@@ -43,6 +43,9 @@ export function rowToQuote(row: QuoteRow): Quote {
     hostingModel: (r["hosting_model"] ?? null) as Quote["hostingModel"],
     environmentCount: Number(r["environment_count"] ?? 1),
     hasIntegrations: Boolean(r["has_integrations"]),
+    integrations: Array.isArray(r["integrations"])
+      ? (r["integrations"] as unknown as Quote["integrations"])
+      : [],
     integrationCount:
       r["integration_count"] === null || r["integration_count"] === undefined
         ? null
@@ -96,6 +99,7 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   hostingModel: "hosting_model",
   environmentCount: "environment_count",
   hasIntegrations: "has_integrations",
+  integrations: "integrations",
   integrationCount: "integration_count",
   integrationDifficulty: "integration_difficulty",
   supportTier: "support_tier",

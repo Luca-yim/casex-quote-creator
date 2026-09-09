@@ -6,36 +6,51 @@ const empty: DriverQuoteInput = {};
 
 describe("mapQuoteToDrivers — integration driver", () => {
   it("is none when integrations are off", () => {
-    expect(mapQuoteToDrivers({ hasIntegrations: false }).integration).toBe(
-      "none",
-    );
+    expect(
+      mapQuoteToDrivers({
+        hasIntegrations: false,
+        integrations: [{ difficulty: "very_complex" }],
+      }).integration,
+    ).toBe("none");
   });
 
-  it("is none when the count is zero even if the toggle is on", () => {
+  it("is none when the list is empty even if the toggle is on", () => {
     expect(
-      mapQuoteToDrivers({ hasIntegrations: true, integrationCount: 0 })
+      mapQuoteToDrivers({ hasIntegrations: true, integrations: [] })
         .integration,
     ).toBe("none");
   });
 
-  it("maps simple to low", () => {
+  it("maps a single simple integration to low", () => {
     expect(
       mapQuoteToDrivers({
         hasIntegrations: true,
-        integrationCount: 2,
-        integrationDifficulty: "simple",
+        integrations: [{ difficulty: "simple" }],
       }).integration,
     ).toBe("low");
   });
 
-  it("maps very_complex to very_high", () => {
+  it("takes the worst difficulty across the list", () => {
+    expect(
+      mapQuoteToDrivers({
+        hasIntegrations: true,
+        integrations: [
+          { difficulty: "simple" },
+          { difficulty: "very_complex" },
+          { difficulty: "moderate" },
+        ],
+      }).integration,
+    ).toBe("very_high");
+  });
+
+  it("ignores the legacy count/difficulty fields", () => {
     expect(
       mapQuoteToDrivers({
         hasIntegrations: true,
         integrationCount: 12,
         integrationDifficulty: "very_complex",
       }).integration,
-    ).toBe("very_high");
+    ).toBe("none");
   });
 });
 
@@ -154,8 +169,7 @@ describe("mapQuoteToDrivers — not-collected safe defaults", () => {
     expect(
       mapQuoteToDrivers({
         hasIntegrations: true,
-        integrationCount: 5,
-        integrationDifficulty: "very_complex",
+        integrations: [{ difficulty: "very_complex" }],
       }).hasUndocumentedIntegration,
     ).toBe(false);
   });
