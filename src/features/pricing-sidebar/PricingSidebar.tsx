@@ -165,8 +165,8 @@ export function PricingSidebar() {
               <p className="text-xs text-muted-foreground">Estimated Total incl. Implementation Fee</p>
               <p className="font-mono text-4xl font-semibold tracking-tight">
                 {(() => {
-                  const combinedLow = breakdown.adjustedBaseline + ballpark.implementationLow;
-                  const combinedHigh = breakdown.adjustedBaseline + ballpark.implementationHigh;
+                  const combinedLow = (breakdown.adjustedBaseline + ballpark.implementationLow) / 2;
+                  const combinedHigh = (breakdown.adjustedBaseline + ballpark.implementationHigh) / 2;
                   const newTCVLow = applyMargin(combinedLow, breakdown.marginPercent);
                   const newTCVHigh = applyMargin(combinedHigh, breakdown.marginPercent);
                   return `${formatCurrency(newTCVLow)} – ${formatCurrency(newTCVHigh)}`;
