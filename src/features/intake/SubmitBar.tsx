@@ -5,10 +5,7 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth, homeRouteForRole } from "@/lib/auth";
-import {
-  readinessCheck,
-  validateQuoteForSubmission,
-} from "@/lib/quote-validation";
+import { readinessCheck, validateQuoteForSubmission } from "@/lib/quote-validation";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { SaveStatus } from "./SaveStatus";
@@ -32,13 +29,11 @@ export function SubmitBar() {
   const editable = mode === "edit";
   const isResubmit = quote.state === "estimator_adjusted";
   const canSubmit =
-    ((role === "external" || role === "sales_rep" || role === "admin") &&
-      quote.state === "draft") ||
+    ((role === "external" || role === "sales_rep" || role === "admin") && quote.state === "draft") ||
     // Estimators submit the drafts they authored themselves.
     (role === "estimator" && quote.state === "draft" && quote.ownerId === user?.id) ||
     // A returned quote is resubmitted by the rep it was assigned to.
-    (isResubmit &&
-      (role === "admin" || (role === "sales_rep" && quote.ownerId === user?.id)));
+    (isResubmit && (role === "admin" || (role === "sales_rep" && quote.ownerId === user?.id)));
 
   if (!editable && !canSubmit) return null;
 
@@ -55,6 +50,8 @@ export function SubmitBar() {
   };
 
   const handleSubmit = async () => {
+    console.log(JSON.stringify(errors, null, 2));
+
     // Auto-name unnamed drafts at the point of persistence (the input keeps
     // "Untitled Quote" as a ghosted placeholder, never a real value).
     if (!quote.name?.trim()) {
@@ -96,8 +93,8 @@ export function SubmitBar() {
       <div className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">
           {readiness.ready
-              ? "All required details are complete."
-              : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
+            ? "All required details are complete."
+            : `${readiness.completedCount} of ${readiness.totalRequired} required details complete.`}
         </p>
         {editable ? <SaveStatus /> : null}
       </div>
@@ -108,13 +105,7 @@ export function SubmitBar() {
           onDeleted={() => void navigate({ to: homeRouteForRole(role) })}
         />
         {editable ? (
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={savingDraft}
-            onClick={() => void handleSaveDraft()}
-          >
+          <Button type="button" variant="outline" disabled={savingDraft} onClick={() => void handleSaveDraft()}>
             {savingDraft ? (
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : (
@@ -124,14 +115,8 @@ export function SubmitBar() {
           </Button>
         ) : null}
         {canSubmit ? (
-          <Button
-            type="button"
-            disabled={!readiness.ready || submit.isPending}
-            onClick={() => void handleSubmit()}
-          >
-            {submit.isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            ) : null}
+          <Button type="button" disabled={!readiness.ready || submit.isPending} onClick={() => void handleSubmit()}>
+            {submit.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
             {isResubmit ? "Resubmit for review" : "Submit for Review"}
           </Button>
         ) : null}
@@ -139,4 +124,3 @@ export function SubmitBar() {
     </div>
   );
 }
-
