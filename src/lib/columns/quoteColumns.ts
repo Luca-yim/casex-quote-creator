@@ -248,12 +248,12 @@ export const QUOTE_COLUMNS: Record<string, QuoteColumn> = {
     accessor: (r) => r.updatedAt,
     format: (v) => formatQuoteDateTime(v),
   }),
-  target_go_live_date: column({
-    key: "target_go_live_date",
-    label: "Target go-live",
+  expected_award_date: column({
+    key: "expected_award_date",
+    label: "Expected award date",
     type: "date",
     sortable: true,
-    accessor: (r) => r.targetGoLiveDate,
+    accessor: (r) => r.expectedAwardDate,
     format: (v) => formatQuoteDate(v),
   }),
   customer_name: column({

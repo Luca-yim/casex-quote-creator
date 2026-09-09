@@ -1,7 +1,7 @@
 import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -24,7 +24,6 @@ const CUSTOMER_TYPES: Array<{ value: string; label: string }> = [
   { value: "commercial", label: "Commercial" },
 ];
 
-const CONTRACT_YEARS = [1, 3, 5, 7, 10];
 
 /** Section 1 — quote name, customer identity, type and contract length. */
 export function CustomerInfoSection() {
@@ -111,22 +110,19 @@ export function CustomerInfoSection() {
           control={control}
           name="contractYears"
           render={({ field }) => (
-            <RadioGroup
-              className="flex flex-wrap gap-4"
-              value={String(field.value ?? 3)}
-              onValueChange={(value) => field.onChange(Number(value))}
-              disabled={disabled}
-            >
-              {CONTRACT_YEARS.map((years) => (
-                <div key={years} className="flex items-center gap-2">
-                  <RadioGroupItem
-                    value={String(years)}
-                    id={`contract-years-${years}`}
-                  />
-                  <Label htmlFor={`contract-years-${years}`}>{years}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <div className="space-y-2">
+              <Slider
+                min={1}
+                max={10}
+                step={1}
+                disabled={disabled}
+                value={[field.value ?? 3]}
+                onValueChange={(vals: number[]) => field.onChange(vals[0])}
+              />
+              <p className="text-sm font-medium">
+                {field.value ?? 3} {(field.value ?? 3) === 1 ? "year" : "years"}
+              </p>
+            </div>
           )}
         />
         <p className="text-xs text-muted-foreground">

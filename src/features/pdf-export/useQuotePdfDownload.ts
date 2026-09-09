@@ -152,7 +152,7 @@ function configurationOf(quote: Quote): PdfQuoteConfiguration {
     compliance: quote.compliance,
     hostingModel: quote.hostingModel,
     supportTier: quote.supportTier,
-    targetGoLiveDate: quote.targetGoLiveDate,
+    expectedAwardDate: quote.expectedAwardDate,
   };
 }
 

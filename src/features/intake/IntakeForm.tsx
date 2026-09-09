@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { quoteSchema, type QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { CustomerInfoSection } from "./sections/CustomerInfoSection";
-import { TargetGoLiveSection } from "./sections/TargetGoLiveSection";
+import { ExpectedAwardDateSection } from "./sections/ExpectedAwardDateSection";
 import { VerticalSolutionSection } from "./sections/VerticalSolutionSection";
 import { RepeatableActivationSection } from "./sections/RepeatableActivationSection";
 import { ComplianceSection } from "./sections/ComplianceSection";
@@ -57,7 +57,7 @@ export function IntakeForm() {
       repeatableActivation: quote.repeatableActivation,
       moduleTier: quote.moduleTier ?? undefined,
       contractYears: quote.contractYears,
-      targetGoLiveDate: quote.targetGoLiveDate,
+      expectedAwardDate: quote.expectedAwardDate,
       caseWorkerCount: quote.caseWorkerCount,
       includeB2c: quote.includeB2c,
       b2cMau: quote.b2cMau,
@@ -138,7 +138,7 @@ export function IntakeForm() {
           are required.
         </p>
         <CustomerInfoSection />
-        <TargetGoLiveSection />
+        <ExpectedAwardDateSection />
         <VerticalSolutionSection />
         <RepeatableActivationSection />
         <ComplianceSection />
