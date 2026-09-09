@@ -53,6 +53,14 @@ export type IntegrationComplexity =
   | "complex"
   | "very_complex";
 
+/**
+ * One integration in scope. Display numbering ("Integration 1", ...) is
+ * computed from the array index and never persisted.
+ */
+export interface IntegrationItem {
+  difficulty: IntegrationComplexity;
+}
+
 /** Sales rep's confidence in the opportunity. */
 export type RepConfidence = "high" | "medium" | "low";
 
@@ -93,7 +101,11 @@ export interface Quote {
   hostingModel: HostingModel | null;
   environmentCount: number;
   hasIntegrations: boolean;
+  /** Per-integration difficulty list; supersedes the two legacy fields below. */
+  integrations: IntegrationItem[];
+  /** @deprecated legacy flat count — retained, unused. */
   integrationCount: number | null;
+  /** @deprecated legacy flat difficulty — retained, unused. */
   integrationDifficulty: IntegrationComplexity | null;
   supportTier: SupportTier | null;
   marginPercent: number;
