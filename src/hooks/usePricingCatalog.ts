@@ -26,6 +26,8 @@ async function fetchPricingCatalog(hidePricing = false): Promise<PricingCatalogR
     name: row.name,
     category: row.category as PricingCatalogRow["category"],
     unit_price: hidePricing ? 0 : Number(row.unit_price),
+    naspo_discount_price:
+      hidePricing || row.naspo_discount_price == null ? null : Number(row.naspo_discount_price),
     unit_type: row.unit_type as PricingCatalogRow["unit_type"],
     tier_range: Array.isArray(row.tier_range)
       ? ([Number(row.tier_range[0]), Number(row.tier_range[1])] as [
