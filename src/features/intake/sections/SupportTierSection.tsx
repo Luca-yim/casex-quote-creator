@@ -22,12 +22,19 @@ export function SupportTierSection() {
 
   const caseWorkers = useWatch({ control, name: "caseWorkerCount" }) ?? 0;
   const b2bUsers = useWatch({ control, name: "b2bUserCount" }) ?? 0;
+  const customerType = useWatch({ control, name: "customerType" });
+  const useNaspoDiscount = customerType === "state_naspo";
   const recommended = recommendSupportTier(caseWorkers + b2bUsers);
 
   const priceFor = (tier: SupportTier) => {
     if (!showPricing) return "";
     const row = catalog.find((item) => item.sku_id === `support_${tier}`);
-    return row ? ` — ${formatCurrency(row.unit_price)}/mo` : "";
+    if (!row) return "";
+    const price =
+      useNaspoDiscount && row.naspo_discount_price != null
+        ? row.naspo_discount_price
+        : row.unit_price;
+    return ` — ${formatCurrency(price)}/mo`;
   };
 
   const options = [
