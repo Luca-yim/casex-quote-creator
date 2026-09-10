@@ -20,8 +20,9 @@ export function recommendSupportTier(totalUserCount: number): SupportTier {
 export function calculateSupportLineItem(
   tier: SupportTier,
   catalog: PricingCatalogRow[],
+  useNaspoDiscount?: boolean,
 ): LineItem | null {
   const row = findSku(catalog, `support_${tier}`);
   if (!row) return null;
-  return toLineItem(row, 1, `${tier} support`);
+  return toLineItem(row, 1, `${tier} support`, useNaspoDiscount);
 }

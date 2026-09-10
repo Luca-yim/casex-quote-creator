@@ -15,6 +15,7 @@ function row(
     name,
     category,
     unit_price,
+    naspo_discount_price: null,
     unit_type,
     tier_range,
     effective_date: "2026-01-01",

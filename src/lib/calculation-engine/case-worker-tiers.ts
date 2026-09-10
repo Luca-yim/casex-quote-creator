@@ -22,8 +22,9 @@ export function selectCaseWorkerTier(
 export function calculateCaseWorkerLineItem(
   userCount: number,
   catalog: PricingCatalogRow[],
+  useNaspoDiscount?: boolean,
 ): LineItem | null {
   const tier = selectCaseWorkerTier(userCount, catalog);
   if (!tier) return null;
-  return toLineItem(tier, userCount, `${userCount} case workers`);
+  return toLineItem(tier, userCount, `${userCount} case workers`, useNaspoDiscount);
 }

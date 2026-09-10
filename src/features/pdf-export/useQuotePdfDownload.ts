@@ -86,6 +86,10 @@ async function fetchCatalog(): Promise<PricingCatalogRow[]> {
     name: row.name,
     category: row.category as PricingCatalogRow["category"],
     unit_price: Number(row.unit_price),
+    naspo_discount_price:
+      (row as { naspo_discount_price?: number | null }).naspo_discount_price == null
+        ? null
+        : Number((row as { naspo_discount_price?: number | null }).naspo_discount_price),
     unit_type: row.unit_type as PricingCatalogRow["unit_type"],
     tier_range: Array.isArray(row.tier_range)
       ? ([Number(row.tier_range[0]), Number(row.tier_range[1])] as [number, number])

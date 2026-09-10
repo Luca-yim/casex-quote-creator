@@ -28,6 +28,7 @@ export type PricingQuoteInput = Pick<
   | "environmentCount"
   | "supportTier"
   | "marginPercent"
+  | "customerType"
 > & { compliance?: Compliance[] };
 
 /** Compliance regimes that force a FedRAMP hosting posture. */
@@ -61,24 +62,25 @@ export function calculatePricingBreakdown(
 ): PricingBreakdown {
   const compliance = quote.compliance ?? [];
   const lineItems: LineItem[] = [];
+  const useNaspoDiscount = quote.customerType === "state_naspo";
 
   // Module tier — one-time platform fee.
   if (quote.moduleTier) {
     const row = findSku(catalog, `module_${quote.moduleTier}`);
     if (row) {
-      const item = toLineItem(row, 1, `${quote.moduleTier} module tier`);
+      const item = toLineItem(row, 1, `${quote.moduleTier} module tier`, useNaspoDiscount);
       if (item) lineItems.push(item);
     }
   }
 
   // Case worker licensing — monthly, tiered by headcount.
   const caseWorkerCount = quote.caseWorkerCount ?? 0;
-  const caseWorkers = calculateCaseWorkerLineItem(caseWorkerCount, catalog);
+  const caseWorkers = calculateCaseWorkerLineItem(caseWorkerCount, catalog, useNaspoDiscount);
   if (caseWorkers) lineItems.push(caseWorkers);
 
   // B2C portal pack — monthly, sized by MAU.
   const b2cMau = quote.includeB2c ? (quote.b2cMau ?? 0) : 0;
-  const b2c = calculateB2cLineItem(b2cMau, catalog);
+  const b2c = calculateB2cLineItem(b2cMau, catalog, useNaspoDiscount);
   if (b2c) lineItems.push(b2c);
 
   // B2B portal users — monthly, per user.
@@ -86,7 +88,7 @@ export function calculatePricingBreakdown(
   if (b2bUsers > 0) {
     const row = findSku(catalog, "b2b_user");
     if (row) {
-      const item = toLineItem(row, b2bUsers, `${b2bUsers} B2B portal users`);
+      const item = toLineItem(row, b2bUsers, `${b2bUsers} B2B portal users`, useNaspoDiscount);
       if (item) lineItems.push(item);
     }
   }
@@ -105,6 +107,7 @@ export function calculatePricingBreakdown(
         forced
           ? "FedRAMP hosting required by compliance selection"
           : `${quote.environmentCount} environments`,
+        useNaspoDiscount,
       );
       if (item) lineItems.push(item);
     }
@@ -113,7 +116,7 @@ export function calculatePricingBreakdown(
   // Support — monthly; auto-recommended when the quote has no explicit tier.
   const supportTier =
     quote.supportTier ?? recommendSupportTier(caseWorkerCount + b2bUsers);
-  const support = calculateSupportLineItem(supportTier, catalog);
+  const support = calculateSupportLineItem(supportTier, catalog, useNaspoDiscount);
   if (support) lineItems.push(support);
 
   const oneTimeTotal = lineItems
@@ -148,5 +151,6 @@ export function calculatePricingBreakdown(
     adjustedBaseline,
     marginPercent: quote.marginPercent,
     finalTCV,
+    naspoDiscountApplied: useNaspoDiscount,
   };
 }

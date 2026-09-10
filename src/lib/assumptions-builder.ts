@@ -57,6 +57,14 @@ export function buildAssumptions(quote: Quote): Assumption[] {
     });
   }
 
+  if (quote.customerType === "state_naspo") {
+    assumptions.push({
+      id: "naspo-discount",
+      tone: "success",
+      text: "NASPO cooperative contract pricing applied to eligible line items",
+    });
+  }
+
   const complianceRequiringFedRamp = ["fedramp_high", "cjis", "irs_1075"] as const;
   if (
     quote.compliance.some((c) =>

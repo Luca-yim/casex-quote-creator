@@ -21,9 +21,10 @@ export function selectB2cPack(
 export function calculateB2cLineItem(
   mau: number,
   catalog: PricingCatalogRow[],
+  useNaspoDiscount?: boolean,
 ): LineItem | null {
   const pack = selectB2cPack(mau, catalog);
   if (!pack) return null;
   const quantity = pack.unit_type === "per_user" ? mau : 1;
-  return toLineItem(pack, quantity, `${mau.toLocaleString()} MAU`);
+  return toLineItem(pack, quantity, `${mau.toLocaleString()} MAU`, useNaspoDiscount);
 }
