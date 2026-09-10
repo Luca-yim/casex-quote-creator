@@ -15,6 +15,8 @@ export interface PricingCatalogRow {
   name: string;
   category: PricingCategory;
   unit_price: number;
+  /** NASPO cooperative contract price, when the SKU has one. */
+  naspo_discount_price: number | null;
   /** Inclusive [min, max] band this SKU applies to, when tiered. */
   tier_range: [number, number] | null;
   unit_type: PricingUnitType;
@@ -51,6 +53,8 @@ export interface PricingBreakdown {
   /** `baselineTCV + repeatableActivationAdjustment` */
   adjustedBaseline: number;
   marginPercent: number;
+  /** True when NASPO cooperative pricing was used for eligible line items. */
+  naspoDiscountApplied: boolean;
   /** `adjustedBaseline / (1 - marginPercent / 100)` */
   finalTCV: number;
 }

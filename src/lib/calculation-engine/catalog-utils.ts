@@ -44,15 +44,20 @@ export function toLineItem(
   row: PricingCatalogRow,
   quantity: number,
   notes?: string,
+  useNaspoDiscount?: boolean,
 ): LineItem | null {
   if (quantity <= 0) return null;
+  const unitPrice =
+    useNaspoDiscount && row.naspo_discount_price != null
+      ? row.naspo_discount_price
+      : row.unit_price;
   return {
     id: row.sku_id,
     label: row.name,
     category: row.category,
-    unitPrice: row.unit_price,
+    unitPrice,
     quantity,
-    subtotal: row.unit_price * quantity,
+    subtotal: unitPrice * quantity,
     ...(notes ? { notes } : {}),
   };
 }
