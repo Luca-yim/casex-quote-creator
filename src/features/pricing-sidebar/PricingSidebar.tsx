@@ -247,6 +247,13 @@ export function PricingSidebar() {
         </>
       ) : null}
 
+      {/* D2 — NASPO cooperative pricing callout */}
+      {showPricing && breakdown?.naspoDiscountApplied ? (
+        <span className="inline-flex rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
+          NASPO cooperative pricing applied
+        </span>
+      ) : null}
+
       {/* E — Repeatable activation adjustment */}
       {showPricing && breakdown && adjustment !== 0 ? (
         <span className="inline-flex rounded-full border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-xs font-medium text-teal-700">
