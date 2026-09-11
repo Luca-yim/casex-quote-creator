@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Calculator } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function AuthShell({
@@ -23,9 +23,7 @@ export function AuthShell({
             <span aria-hidden="true">←</span>
             <span className="ml-1">Back to home</span>
           </Link>
-          <span className="flex size-10 items-center justify-center rounded-lg bg-brand text-brand-foreground">
-            <Calculator className="size-5" />
-          </span>
+          <BrandLogo className="size-10" />
           <CardTitle className="font-brand text-2xl tracking-tight">{title}</CardTitle>
           <CardDescription>{subtitle}</CardDescription>
         </CardHeader>

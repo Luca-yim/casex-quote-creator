@@ -84,6 +84,13 @@ export const styles = StyleSheet.create({
     color: theme.colors.brand,
     letterSpacing: 1.5,
   },
+  pdfBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  headerLogo: { width: 18, height: 18, objectFit: "contain" },
+  coverLogo: { width: 30, height: 30, objectFit: "contain" },
 
   // Layout helpers
   row: { flexDirection: "row", alignItems: "center" },

@@ -1,4 +1,5 @@
-import { Text, View } from "@react-pdf/renderer";
+import { Image, Text, View } from "@react-pdf/renderer";
+import logoAsset from "@/assets/casex-logo.png.asset.json";
 import { styles } from "../styles/styles";
 
 function truncate(value: string, max = 42): string {
@@ -9,8 +10,10 @@ function truncate(value: string, max = 42): string {
 export function PdfHeader({ quoteName }: { quoteName: string }) {
   return (
     <View style={styles.header} fixed>
-      {/* TODO: replace with logo asset */}
-      <Text style={styles.wordmark}>CaseXellence</Text>
+      <View style={styles.pdfBrand}>
+        <Image src={logoAsset.url} style={styles.headerLogo} />
+        <Text style={styles.wordmark}>CaseXellence</Text>
+      </View>
       <Text
         style={styles.caption}
         render={({ pageNumber }) => `${truncate(quoteName)} · Page ${pageNumber}`}
