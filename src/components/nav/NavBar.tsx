@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Calculator } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
@@ -45,9 +45,7 @@ export function NavBar({ deactivated = false }: { deactivated?: boolean }) {
           
           className="flex items-center gap-2 rounded-md px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="flex size-8 items-center justify-center rounded-md bg-brand text-brand-foreground">
-            <Calculator className="size-4" aria-hidden="true" />
-          </span>
+          <BrandLogo className="size-8" />
           <span className="font-brand text-sm font-semibold tracking-tight text-brand-navy">
             Speridian · CaseX
           </span>

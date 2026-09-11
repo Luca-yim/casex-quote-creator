@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ArrowRight, Calculator, ShieldCheck, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth, homeRouteForRole } from "@/lib/auth";
 
@@ -38,9 +39,7 @@ function Landing() {
       <header className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-brand text-brand-foreground">
-              <Calculator className="size-4" />
-            </span>
+            <BrandLogo className="size-8" />
             <span className="font-brand text-sm font-semibold text-brand-navy">
               Speridian · CaseX
             </span>

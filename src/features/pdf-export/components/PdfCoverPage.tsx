@@ -1,5 +1,6 @@
-import { Page, Text, View } from "@react-pdf/renderer";
+import { Image, Page, Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
+import logoAsset from "@/assets/casex-logo.png.asset.json";
 import { styles } from "../styles/styles";
 import type { PdfSectionProps } from "../types";
 import { PdfBadge } from "./PdfBadge";
@@ -22,8 +23,10 @@ export function PdfCoverPage({ context }: PdfSectionProps) {
       ) : null}
 
       <View style={styles.coverBody}>
-        {/* TODO: replace with logo asset */}
-        <Text style={styles.coverWordmark}>CaseXellence</Text>
+        <View style={styles.pdfBrand}>
+          <Image src={logoAsset.url} style={styles.coverLogo} />
+          <Text style={styles.coverWordmark}>CaseXellence</Text>
+        </View>
         <View style={styles.spacerLg} />
 
         <Text style={styles.h1}>Pricing Estimate</Text>
