@@ -1,5 +1,5 @@
 import { Image, Text, View } from "@react-pdf/renderer";
-import logoAsset from "@/assets/casex-logo.png.asset.json";
+import { CASEX_LOGO_DATA_URI } from "@/assets/casex-logo";
 import { styles } from "../styles/styles";
 
 function truncate(value: string, max = 42): string {
@@ -11,7 +11,7 @@ export function PdfHeader({ quoteName }: { quoteName: string }) {
   return (
     <View style={styles.header} fixed>
       <View style={styles.pdfBrand}>
-        <Image src={logoAsset.url} style={styles.headerLogo} />
+        <Image src={CASEX_LOGO_DATA_URI} style={styles.headerLogo} />
         <Text style={styles.wordmark}>CaseXellence</Text>
       </View>
       <Text
