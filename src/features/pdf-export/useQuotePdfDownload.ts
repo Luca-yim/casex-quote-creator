@@ -196,6 +196,7 @@ function buildCustomerData(
   breakdown: PricingBreakdown,
   /** Pre-computed scalar fee. The cost basis behind it stays out of scope. */
   implementationFee: number,
+  ballpark: BallparkForQuote | null,
   shared: SharedPdfFields,
 ): CustomerVisiblePdfData {
   return {
@@ -211,7 +212,17 @@ function buildCustomerData(
     pricing:
       quote.tier === "proposal"
         ? { kind: "proposal", totalImplementationFee: implementationFee }
-        : { kind: "ballpark", breakdown },
+        : {
+            kind: "ballpark",
+            breakdown,
+            ballpark: ballpark
+              ? {
+                  implementationLow: ballpark.implementationLow,
+                  implementationHigh: ballpark.implementationHigh,
+                  confidencePct: ballpark.confidencePct,
+                }
+              : undefined,
+          },
   };
 }
 
@@ -221,10 +232,26 @@ function buildInternalData(
   breakdown: PricingBreakdown,
   lines: WbsLineRow[],
   items: CostItemRow[],
+  ballpark: BallparkForQuote | null,
   shared: SharedPdfFields,
 ): InternalPdfData {
   if (quote.tier !== "proposal") {
-    return { ...shared, version: "internal", quote, pricing: { kind: "ballpark", breakdown } };
+    return {
+      ...shared,
+      version: "internal",
+      quote,
+      pricing: {
+        kind: "ballpark",
+        breakdown,
+        ballpark: ballpark
+          ? {
+              implementationLow: ballpark.implementationLow,
+              implementationHigh: ballpark.implementationHigh,
+              confidencePct: ballpark.confidencePct,
+            }
+          : undefined,
+      },
+    };
   }
   const cost = grandTotalCost(lines, items);
   return {
