@@ -44,7 +44,7 @@ function Landing() {
             <span className="font-brand text-sm font-semibold text-brand-navy">Speridian · CaseX</span>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild size="sm">
               <Link to="/login">Sign in</Link>
             </Button>
           </div>
