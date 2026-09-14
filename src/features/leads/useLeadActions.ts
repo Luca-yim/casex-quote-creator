@@ -26,15 +26,20 @@ export function useLeadActions() {
   };
 
   const claim = useMutation({
-    mutationFn: async (leadId: string) => {
+    mutationFn: async (leadId: string): Promise<string> => {
       const userId = user?.id;
       if (!userId) throw new Error("You must be signed in to claim a lead");
       // One atomic server-side call: claims the lead for the current rep
       // and immediately converts it into a draft ballpark quote they own.
-      const { error } = await supabase.rpc("claim_and_convert_lead", {
+      const { data, error } = await supabase.rpc("claim_and_convert_lead", {
         p_lead_id: leadId,
       });
       if (error) throw new Error(error.message);
+      const quoteId = (data as { id: string } | null)?.id;
+      if (!quoteId) {
+        throw new Error("claim_and_convert_lead returned an unexpected result");
+      }
+      return quoteId;
     },
     onSuccess: () => {
       toast.success("Lead claimed and converted to a draft ballpark quote");
@@ -43,6 +48,7 @@ export function useLeadActions() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
 
   const assign = useMutation({
     mutationFn: async ({ leadId, repId }: { leadId: string; repId: string }) => {

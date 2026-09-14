@@ -120,11 +120,17 @@ export function LeadRowActions({
           {showClaim ? (
             <DropdownMenuItem
               disabled={claim.isPending}
-              onClick={() => claim.mutate(lead.id)}
+              onClick={() =>
+                claim.mutate(lead.id, {
+                  onSuccess: (quoteId) =>
+                    void navigate({ to: "/quotes/$id", params: { id: quoteId } }),
+                })
+              }
             >
               <UserPlus className="mr-2 size-4" /> Claim & convert
             </DropdownMenuItem>
           ) : null}
+
           {showAssignClaim ? (
             <DropdownMenuItem onClick={() => setAssignClaimOpen(true)}>
               <UserPlus className="mr-2 size-4" /> Assign & claim
