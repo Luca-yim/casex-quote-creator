@@ -20,7 +20,7 @@ const FIVE_MINUTES = 5 * 60 * 1000;
  */
 export function useBallparkSizingReference(tier: ComplexityTier | null) {
   const { role, loading, profileLoading } = useAuth();
-  const allowed = role === "estimator" || role === "admin";
+  const allowed = role === "estimator" || role === "admin" || role === "sales_rep";
   return useQuery({
     queryKey: ["ballpark-sizing-reference", tier],
     enabled: !loading && !profileLoading && allowed && tier !== null,
