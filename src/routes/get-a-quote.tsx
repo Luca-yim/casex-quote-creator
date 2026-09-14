@@ -154,9 +154,34 @@ function GetAQuotePage() {
     );
   }
 
+  if (!sessionReady) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-6 px-4 py-12">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Get a quote</h1>
+          <p className="text-sm text-muted-foreground">
+            Quick check to confirm you're human before we open the form.
+          </p>
+          {isTurnstileEnabled ? (
+            <TurnstileWidget onToken={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+          ) : null}
+          {!isTurnstileEnabled || captchaToken ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
+            </p>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>
+            <ArrowLeft className="size-4" aria-hidden="true" /> Return to homepage
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
       <header className="mb-8 space-y-2">
+
         <Button
           variant="ghost"
           size="sm"
