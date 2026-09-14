@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useForm, Controller, type SubmitHandler, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -204,15 +204,10 @@ export interface LeadIntakeFormProps {
   onSubmit: (values: LeadIntakeValues) => Promise<void>;
   /** Disables the submit button while the anonymous session is still resolving. */
   disabled?: boolean;
-  /**
-   * Rendered at the bottom of the first step only — used for the CAPTCHA
-   * challenge that gates the anonymous session.
-   */
-  firstStepSlot?: ReactNode;
 }
 
 /** Mobile-first, one-group-per-screen public lead intake form. */
-export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: LeadIntakeFormProps) {
+export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormProps) {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const { data: verticalSolutions } = useVerticalSolutions({ enabled: !disabled });
@@ -365,7 +360,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false, firstStepSlot }: Le
                 )}
               />
             )}
-            {firstStepSlot}
+            
           </>
         )}
 

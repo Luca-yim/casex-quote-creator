@@ -34,7 +34,7 @@ export const Route = createFileRoute("/get-a-quote")({
 });
 
 function GetAQuotePage() {
-  const { session, role, anonymousSignIn } = useAuth();
+  const { session, role, anonymousSignIn, signOut } = useAuth();
   const navigate = useNavigate();
   const isInternal = role !== null && (INTERNAL_ROLES as readonly string[]).includes(role);
   const [sessionReady, setSessionReady] = useState(Boolean(session));
@@ -48,7 +48,7 @@ function GetAQuotePage() {
   }, [isInternal, navigate]);
 
   useEffect(() => {
-    if (isInternal) return;
+    if (isInternal || leadNumber) return;
     let active = true;
     if (session) {
       setSessionReady(true);
@@ -72,7 +72,7 @@ function GetAQuotePage() {
     };
     // anonymousSignIn is stable for the provider's lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, captchaToken, isInternal]);
+  }, [session, captchaToken, isInternal, leadNumber]);
 
   const handleSubmit = async (values: LeadIntakeValues) => {
     const { data: current } = await supabase.auth.getSession();
@@ -121,6 +121,11 @@ function GetAQuotePage() {
       .maybeSingle();
 
     setLeadNumber(data?.lead_number ?? id.slice(0, 8).toUpperCase());
+
+    // Only end anonymous sessions — a real signed-in visitor keeps theirs.
+    if (current.session?.user.is_anonymous) {
+      await signOut();
+    }
   };
 
   if (leadNumber) {
@@ -149,9 +154,34 @@ function GetAQuotePage() {
     );
   }
 
+  if (!sessionReady) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-6 px-4 py-12">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Get a quote</h1>
+          <p className="text-sm text-muted-foreground">
+            Quick check to confirm you're human before we open the form.
+          </p>
+          {isTurnstileEnabled ? (
+            <TurnstileWidget onToken={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+          ) : null}
+          {!isTurnstileEnabled || captchaToken ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
+            </p>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>
+            <ArrowLeft className="size-4" aria-hidden="true" /> Return to homepage
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
       <header className="mb-8 space-y-2">
+
         <Button
           variant="ghost"
           size="sm"
@@ -167,23 +197,8 @@ function GetAQuotePage() {
         </p>
       </header>
 
-      {sessionReady || (isTurnstileEnabled && !captchaToken) ? null : (
-        <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
-        </p>
-      )}
-      <LeadIntakeForm
-        onSubmit={handleSubmit}
-        disabled={!sessionReady}
-        firstStepSlot={
-          sessionReady ? null : (
-            <TurnstileWidget
-              onToken={setCaptchaToken}
-              onExpire={() => setCaptchaToken(null)}
-            />
-          )
-        }
-      />
+      <LeadIntakeForm onSubmit={handleSubmit} disabled={!sessionReady} />
+
     </main>
   );
 }

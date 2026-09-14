@@ -49,6 +49,7 @@ vi.mock("@/lib/supabase", () => ({
     auth: {
       getSession: (...args: unknown[]) => getSession(...args),
       signInAnonymously: (...args: unknown[]) => signInAnonymously(...args),
+      signOut: async () => ({ error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     from: () => ({
