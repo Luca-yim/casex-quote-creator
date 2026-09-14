@@ -61,17 +61,16 @@ beforeEach(() => {
 });
 
 describe("LeadRowActions", () => {
-  it("claim writes all four fields in a single update", async () => {
+  it("claim calls the claim_and_convert_lead RPC", async () => {
     render(<LeadRowActions lead={lead()} otherLeads={[]} />);
     await openMenu();
-    await userEvent.click(await screen.findByText(/claim lead/i));
+    await userEvent.click(await screen.findByText(/claim & convert/i));
 
-    await vi.waitFor(() => expect(updatePayloads).toHaveLength(1));
-    const patch = updatePayloads[0]!;
-    expect(patch["claimed_by"]).toBe("me-1");
-    expect(patch["assigned_rep_id"]).toBe("me-1");
-    expect(patch["status"]).toBe("claimed");
-    expect(typeof patch["claimed_at"]).toBe("string");
+    await vi.waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+    expect(rpc).toHaveBeenCalledWith("claim_and_convert_lead", {
+      p_lead_id: "lead-1",
+    });
+    expect(updatePayloads).toHaveLength(0);
   });
 
   it("hides claim once the lead is already claimed by someone", async () => {
