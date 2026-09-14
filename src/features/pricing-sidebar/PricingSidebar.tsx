@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useIntake } from "@/features/intake/IntakeContext";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
-import { applyMargin } from "@/lib/calculation-engine/final-price";
+
 import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -19,6 +19,7 @@ import { useBallparkSizingReference } from "@/features/estimator-ballpark/useBal
 import {
   computeBallparkForQuote,
   resolveBallparkTier,
+  combinedBallparkTCVRange,
   type BallparkQuoteInput,
 } from "@/features/estimator-ballpark/computeBallparkForQuote";
 import { ProposalPricingBlock } from "./ProposalPricingBlock";
@@ -165,11 +166,9 @@ export function PricingSidebar() {
               <p className="text-xs text-muted-foreground">Estimated Total incl. Implementation Fee</p>
               <p className="font-mono text-4xl font-semibold tracking-tight">
                 {(() => {
-                  const combinedLow = breakdown.adjustedBaseline + ballpark.implementationLow;
-                  const combinedHigh = breakdown.adjustedBaseline + ballpark.implementationHigh;
-                  const newTCVLow = applyMargin(combinedLow, breakdown.marginPercent);
-                  const newTCVHigh = applyMargin(combinedHigh, breakdown.marginPercent);
-                  return `${formatCurrency(newTCVLow)} – ${formatCurrency(newTCVHigh)}`;
+                  if (!breakdown || !ballpark) return null;
+                  const { low, high } = combinedBallparkTCVRange(breakdown, ballpark);
+                  return `${formatCurrency(low)} – ${formatCurrency(high)}`;
                 })()}
               </p>
             </>

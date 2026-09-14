@@ -14,6 +14,14 @@ import {
   type WbsLineRow,
 } from "@/features/wbs/useWbsData";
 import { grandTotalCost, totalImplementationFee } from "@/lib/pricing-engine/fullQuote";
+import {
+  computeBallparkForQuote,
+  resolveBallparkTier,
+  type BallparkQuoteInput,
+  type BallparkForQuote,
+} from "@/features/estimator-ballpark/computeBallparkForQuote";
+import type { BallparkSizingRow } from "@/lib/pricing-engine/ballpark";
+import type { ComplexityTier } from "@/lib/pricing-engine/complexity";
 import type { Assumption } from "@/lib/assumptions-builder";
 import type { PricingBreakdown } from "@/types/pricing";
 import type { PricingCatalogRow } from "@/types/pricing";
@@ -100,6 +108,25 @@ async function fetchCatalog(): Promise<PricingCatalogRow[]> {
   }));
 }
 
+/** Loads ballpark_sizing_reference for one tier, mirroring useBallparkSizingReference. */
+async function fetchBallparkSizingRows(tier: ComplexityTier): Promise<BallparkSizingRow[]> {
+  const { data, error } = await supabase
+    .from("ballpark_sizing_reference")
+    .select("*")
+    .eq("tier", tier);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    tier: Number(row.tier) as ComplexityTier,
+    tier_label: row.tier_label,
+    hours_low: Number(row.hours_low),
+    hours_high: Number(row.hours_high),
+    commercial_rate_low: Number(row.commercial_rate_low),
+    commercial_rate_high: Number(row.commercial_rate_high),
+    public_sector_rate_low: Number(row.public_sector_rate_low),
+    public_sector_rate_high: Number(row.public_sector_rate_high),
+  }));
+}
+
 /** Best-effort profile lookup; falls back to the email (or a placeholder). */
 async function fetchContact(userId: string | null): Promise<PdfContact> {
   if (!userId) return UNKNOWN_CONTACT;
@@ -169,6 +196,7 @@ function buildCustomerData(
   breakdown: PricingBreakdown,
   /** Pre-computed scalar fee. The cost basis behind it stays out of scope. */
   implementationFee: number,
+  ballpark: BallparkForQuote | null,
   shared: SharedPdfFields,
 ): CustomerVisiblePdfData {
   return {
@@ -184,7 +212,17 @@ function buildCustomerData(
     pricing:
       quote.tier === "proposal"
         ? { kind: "proposal", totalImplementationFee: implementationFee }
-        : { kind: "ballpark", breakdown },
+        : {
+            kind: "ballpark",
+            breakdown,
+            ballpark: ballpark
+              ? {
+                  implementationLow: ballpark.implementationLow,
+                  implementationHigh: ballpark.implementationHigh,
+                  confidencePct: ballpark.confidencePct,
+                }
+              : undefined,
+          },
   };
 }
 
@@ -194,10 +232,26 @@ function buildInternalData(
   breakdown: PricingBreakdown,
   lines: WbsLineRow[],
   items: CostItemRow[],
+  ballpark: BallparkForQuote | null,
   shared: SharedPdfFields,
 ): InternalPdfData {
   if (quote.tier !== "proposal") {
-    return { ...shared, version: "internal", quote, pricing: { kind: "ballpark", breakdown } };
+    return {
+      ...shared,
+      version: "internal",
+      quote,
+      pricing: {
+        kind: "ballpark",
+        breakdown,
+        ballpark: ballpark
+          ? {
+              implementationLow: ballpark.implementationLow,
+              implementationHigh: ballpark.implementationHigh,
+              confidencePct: ballpark.confidencePct,
+            }
+          : undefined,
+      },
+    };
   }
   const cost = grandTotalCost(lines, items);
   return {
@@ -242,6 +296,25 @@ export function useQuotePdfDownload() {
       }
 
       const breakdown = calculatePricingBreakdown(quote, catalog);
+
+      let ballpark: BallparkForQuote | null = null;
+      if (quote.tier === "ballpark") {
+        const ballparkInput = quote as unknown as BallparkQuoteInput;
+        const tier = resolveBallparkTier(ballparkInput);
+        if (tier !== null) {
+          try {
+            const sizingRows = await fetchBallparkSizingRows(tier);
+            ballpark = computeBallparkForQuote(ballparkInput, sizingRows);
+          } catch (error) {
+            // Fails closed to pre-fix behavior (catalog-only TCV) rather than
+            // blocking the download.
+            console.error("[pdf-export] ballpark sizing fetch failed", {
+              quoteId: quote.id,
+              error,
+            });
+          }
+        }
+      }
       const assumptions = visibleAssumptions(quote, version);
       const [salesRep, estimator] = await Promise.all([
         fetchContact(quote.ownerId ?? quote.requestedBy ?? null),
@@ -282,7 +355,7 @@ export function useQuotePdfDownload() {
 
       const context: PdfData =
         version === "internal"
-          ? buildInternalData(quote, breakdown, lines, items, shared)
+          ? buildInternalData(quote, breakdown, lines, items, ballpark, shared)
           : buildCustomerData(
               quote,
               breakdown,
@@ -291,6 +364,7 @@ export function useQuotePdfDownload() {
                 grandTotalCost(lines, items),
                 quote.contingencyPct,
               ),
+              ballpark,
               shared,
             );
 

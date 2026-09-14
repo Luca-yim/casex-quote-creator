@@ -1,5 +1,6 @@
 import { Page, Text, View } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/utils";
+import { combinedBallparkTCVRange } from "@/features/estimator-ballpark/computeBallparkForQuote";
 import { styles } from "../styles/styles";
 import type { PdfSectionProps } from "../types";
 import { PdfFooter } from "./PdfFooter";
@@ -26,9 +27,19 @@ export function PdfExecutiveSummary({ context }: PdfSectionProps) {
       {pricing.kind === "ballpark" ? (
         <>
           <PdfSection title="Executive Summary">
-            <Text style={styles.label}>Total contract value</Text>
+            <Text style={styles.label}>
+              {pricing.ballpark ? "Estimated Total incl. Implementation Fee" : "Total contract value"}
+            </Text>
             <Text style={styles.displayNumber}>
-              {formatCurrency(pricing.breakdown.finalTCV)}
+              {pricing.ballpark
+                ? (() => {
+                    const { low, high } = combinedBallparkTCVRange(
+                      pricing.breakdown,
+                      pricing.ballpark,
+                    );
+                    return `${formatCurrency(low)} – ${formatCurrency(high)}`;
+                  })()
+                : formatCurrency(pricing.breakdown.finalTCV)}
             </Text>
             <Text style={styles.lead}>
               Contract term: {pricing.breakdown.contractYears}{" "}

@@ -50,7 +50,7 @@ export function PdfLineItemsPage({ context }: PdfSectionProps) {
 
 function BallparkDetail({ context }: PdfSectionProps) {
   if (context.pricing.kind !== "ballpark") return null;
-  const { breakdown } = context.pricing;
+  const { breakdown, ballpark } = context.pricing;
   const oneTime = breakdown.lineItems.filter((i) => i.category === "one_time");
   const monthly = breakdown.lineItems.filter((i) => i.category === "monthly");
 
@@ -60,6 +60,19 @@ function BallparkDetail({ context }: PdfSectionProps) {
         <Text style={styles.body}>No priced line items on this quote.</Text>
       ) : null}
       <PdfLineItemTable title="One-Time Costs" items={oneTime} totalLabel="One-time subtotal" />
+      {ballpark ? (
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.tableTitle}>Implementation Fee (Estimated)</Text>
+          <View style={styles.tableTotalRow}>
+            <Text style={[styles.tableTotalLabel, styles.colItem]}>
+              Implementation Fee (Estimated)
+            </Text>
+            <Text style={[styles.tableTotalValue, styles.colSubtotal]}>
+              {formatCurrency(ballpark.implementationLow)} – {formatCurrency(ballpark.implementationHigh)}
+            </Text>
+          </View>
+        </View>
+      ) : null}
       <PdfLineItemTable title="Monthly Recurring" items={monthly} totalLabel="Monthly subtotal" />
     </PdfSection>
   );
