@@ -29,18 +29,17 @@ export function useLeadActions() {
     mutationFn: async (leadId: string) => {
       const userId = user?.id;
       if (!userId) throw new Error("You must be signed in to claim a lead");
-      // All four fields move together — a partial claim would leave the row
-      // in a state the queue's "unclaimed" test cannot reason about.
-      await updateLead(leadId, {
-        claimed_by: userId,
-        claimed_at: new Date().toISOString(),
-        assigned_rep_id: userId,
-        status: "claimed" satisfies LeadStatus,
+      // One atomic server-side call: claims the lead for the current rep
+      // and immediately converts it into a draft ballpark quote they own.
+      const { error } = await supabase.rpc("claim_and_convert_lead", {
+        p_lead_id: leadId,
       });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      toast.success("Lead claimed");
+      toast.success("Lead claimed and converted to a draft ballpark quote");
       invalidate();
+      void queryClient.invalidateQueries({ queryKey: ["quotes"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });

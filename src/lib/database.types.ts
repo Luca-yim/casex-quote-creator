@@ -824,6 +824,10 @@ export type Database = {
         Args: { p_lead_id: string; p_rep_id: string }
         Returns: Database["public"]["Tables"]["quotes"]["Row"]
       }
+      claim_and_convert_lead: {
+        Args: { p_lead_id: string }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
       transition_quote: {
         Args: {
           p_quote_id: string

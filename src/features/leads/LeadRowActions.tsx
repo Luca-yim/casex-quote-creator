@@ -81,7 +81,10 @@ export function LeadRowActions({
   const showQualify = canPerformLeadAction(role, "qualify");
   const showDisqualify = canPerformLeadAction(role, "disqualify");
   const showDuplicate = canPerformLeadAction(role, "duplicate");
-  const showConvert = canConvertLead(role, lead, user?.id ?? null);
+  const showConvert =
+    canConvertLead(role, lead, user?.id ?? null) &&
+    lead.status === "claimed" &&
+    !lead.convertedQuoteId;
 
   const assignClaimOptions = (assignClaimOwners.data ?? []).filter((owner) =>
     ["sales_rep", "estimator"].includes(owner.role),
@@ -119,7 +122,7 @@ export function LeadRowActions({
               disabled={claim.isPending}
               onClick={() => claim.mutate(lead.id)}
             >
-              <UserPlus className="mr-2 size-4" /> Claim lead
+              <UserPlus className="mr-2 size-4" /> Claim & convert
             </DropdownMenuItem>
           ) : null}
           {showAssignClaim ? (
