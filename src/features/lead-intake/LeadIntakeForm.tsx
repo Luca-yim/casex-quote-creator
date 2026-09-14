@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useForm, Controller, type SubmitHandler, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { ArrowLeft, ArrowRight, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useVerticalSolutions } from "@/hooks/useVerticalSolutions";
 import { useVerticalLabels, OTHER_VERTICAL } from "@/hooks/useVerticalLabels";
+import "./LeadIntakeForm.css";
 import {
   COMPLIANCE_OPTIONS,
   HOSTING_PREFERENCES,
@@ -571,7 +574,20 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact_phone">Phone (optional)</Label>
-              <Input id="contact_phone" type="tel" {...form.register("contact_phone")} />
+              <Controller
+                control={form.control}
+                name="contact_phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    id="contact_phone"
+                    international
+                    defaultCountry="US"
+                    value={field.value || undefined}
+                    onChange={(value) => field.onChange(value ?? "")}
+                    className="phone-input-field"
+                  />
+                )}
+              />
             </div>
             <Controller
               control={form.control}
