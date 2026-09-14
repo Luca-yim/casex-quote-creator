@@ -296,6 +296,25 @@ export function useQuotePdfDownload() {
       }
 
       const breakdown = calculatePricingBreakdown(quote, catalog);
+
+      let ballpark: BallparkForQuote | null = null;
+      if (quote.tier === "ballpark") {
+        const ballparkInput = quote as unknown as BallparkQuoteInput;
+        const tier = resolveBallparkTier(ballparkInput);
+        if (tier !== null) {
+          try {
+            const sizingRows = await fetchBallparkSizingRows(tier);
+            ballpark = computeBallparkForQuote(ballparkInput, sizingRows);
+          } catch (error) {
+            // Fails closed to pre-fix behavior (catalog-only TCV) rather than
+            // blocking the download.
+            console.error("[pdf-export] ballpark sizing fetch failed", {
+              quoteId: quote.id,
+              error,
+            });
+          }
+        }
+      }
       const assumptions = visibleAssumptions(quote, version);
       const [salesRep, estimator] = await Promise.all([
         fetchContact(quote.ownerId ?? quote.requestedBy ?? null),
