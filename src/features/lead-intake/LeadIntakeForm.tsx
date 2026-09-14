@@ -582,6 +582,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
                     id="contact_phone"
                     international
                     defaultCountry="US"
+                    limitMaxLength
                     value={field.value || ""}
                     onChange={(value) => field.onChange(value ?? "")}
                     className="phone-input-field"
