@@ -34,7 +34,7 @@ export const Route = createFileRoute("/get-a-quote")({
 });
 
 function GetAQuotePage() {
-  const { session, role, anonymousSignIn } = useAuth();
+  const { session, role, anonymousSignIn, signOut } = useAuth();
   const navigate = useNavigate();
   const isInternal = role !== null && (INTERNAL_ROLES as readonly string[]).includes(role);
   const [sessionReady, setSessionReady] = useState(Boolean(session));
@@ -48,7 +48,7 @@ function GetAQuotePage() {
   }, [isInternal, navigate]);
 
   useEffect(() => {
-    if (isInternal) return;
+    if (isInternal || leadNumber) return;
     let active = true;
     if (session) {
       setSessionReady(true);
@@ -72,7 +72,7 @@ function GetAQuotePage() {
     };
     // anonymousSignIn is stable for the provider's lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, captchaToken, isInternal]);
+  }, [session, captchaToken, isInternal, leadNumber]);
 
   const handleSubmit = async (values: LeadIntakeValues) => {
     const { data: current } = await supabase.auth.getSession();
