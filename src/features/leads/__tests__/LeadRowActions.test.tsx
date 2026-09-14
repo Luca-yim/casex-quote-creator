@@ -13,8 +13,9 @@ const update = vi.fn((patch: Record<string, unknown>) => {
 });
 
 const { rpc } = vi.hoisted(() => ({
-  rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
+  rpc: vi.fn(() => Promise.resolve({ data: { id: "quote-1" }, error: null })),
 }));
+
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: () => ({ update }), rpc },
