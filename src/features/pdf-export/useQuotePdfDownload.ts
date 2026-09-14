@@ -14,6 +14,14 @@ import {
   type WbsLineRow,
 } from "@/features/wbs/useWbsData";
 import { grandTotalCost, totalImplementationFee } from "@/lib/pricing-engine/fullQuote";
+import {
+  computeBallparkForQuote,
+  resolveBallparkTier,
+  type BallparkQuoteInput,
+  type BallparkForQuote,
+} from "@/features/estimator-ballpark/computeBallparkForQuote";
+import type { BallparkSizingRow } from "@/lib/pricing-engine/ballpark";
+import type { ComplexityTier } from "@/lib/pricing-engine/complexity";
 import type { Assumption } from "@/lib/assumptions-builder";
 import type { PricingBreakdown } from "@/types/pricing";
 import type { PricingCatalogRow } from "@/types/pricing";
@@ -97,6 +105,25 @@ async function fetchCatalog(): Promise<PricingCatalogRow[]> {
     effective_date: row.effective_date,
     expiration_date: row.expiration_date,
     metadata: (row.metadata as Record<string, unknown> | null) ?? {},
+  }));
+}
+
+/** Loads ballpark_sizing_reference for one tier, mirroring useBallparkSizingReference. */
+async function fetchBallparkSizingRows(tier: ComplexityTier): Promise<BallparkSizingRow[]> {
+  const { data, error } = await supabase
+    .from("ballpark_sizing_reference")
+    .select("*")
+    .eq("tier", tier);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    tier: Number(row.tier) as ComplexityTier,
+    tier_label: row.tier_label,
+    hours_low: Number(row.hours_low),
+    hours_high: Number(row.hours_high),
+    commercial_rate_low: Number(row.commercial_rate_low),
+    commercial_rate_high: Number(row.commercial_rate_high),
+    public_sector_rate_low: Number(row.public_sector_rate_low),
+    public_sector_rate_high: Number(row.public_sector_rate_high),
   }));
 }
 
