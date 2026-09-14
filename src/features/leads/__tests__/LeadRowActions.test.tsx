@@ -16,6 +16,13 @@ const { rpc } = vi.hoisted(() => ({
   rpc: vi.fn(() => Promise.resolve({ data: { id: "quote-1" }, error: null })),
 }));
 
+vi.mock("@tanstack/react-router", async () => {
+  const actual = await vi.importActual("@tanstack/react-router");
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: () => ({ update }), rpc },

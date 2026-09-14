@@ -1,0 +1,20 @@
+.phone-input-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phone-input-field input {
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius);
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  background: transparent;
+  width: 100%;
+}
+
+.phone-input-field input:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
