@@ -121,6 +121,11 @@ function GetAQuotePage() {
       .maybeSingle();
 
     setLeadNumber(data?.lead_number ?? id.slice(0, 8).toUpperCase());
+
+    // Only end anonymous sessions — a real signed-in visitor keeps theirs.
+    if (current.session?.user.is_anonymous) {
+      await signOut();
+    }
   };
 
   if (leadNumber) {
