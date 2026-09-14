@@ -41,9 +41,7 @@ function Landing() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <BrandLogo className="size-8" />
-            <span className="font-brand text-sm font-semibold text-brand-navy">
-              Speridian · CaseX
-            </span>
+            <span className="font-brand text-sm font-semibold text-brand-navy">Speridian · CaseX</span>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="ghost" size="sm">
@@ -54,16 +52,14 @@ function Landing() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 py-20">
-        <p className="font-mono text-xs uppercase tracking-widest text-brand-teal">
-          CaseXellence pricing
-        </p>
+        <p className="font-mono text-xs uppercase tracking-widest text-brand-teal">CaseXellence pricing</p>
         <h1 className="mt-4 max-w-3xl font-brand text-4xl font-semibold tracking-tight text-brand-navy sm:text-5xl">
-          Defensible quotes for government case management 🏛️
+          Defensible quotes for government case management
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
-          Request a quote in minutes — no account needed. Verify with a quick check, answer a short
-          guided questionnaire, and get a reference number your team can track. Every quote is
-          submitted for approval and signed off by an estimator before pricing goes out the door.
+          Request a quote in minutes — no account needed. Verify with a quick check, answer a short guided
+          questionnaire, and get a reference number your team can track. Every quote is submitted for approval and
+          signed off by an estimator before pricing goes out the door.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg">
