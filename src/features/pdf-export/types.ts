@@ -42,6 +42,12 @@ export interface PdfQuoteConfiguration {
 export interface BallparkPricing {
   kind: "ballpark";
   breakdown: PricingBreakdown;
+  /** Present only when a ballpark range could be computed for this quote/role. */
+  ballpark?: {
+    implementationLow: number;
+    implementationHigh: number;
+    confidencePct: number;
+  };
 }
 
 /** Proposal-tier pricing as a customer may see it: the final fee only. */
