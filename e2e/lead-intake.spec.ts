@@ -23,34 +23,37 @@ test.describe("public lead intake", () => {
     await expect(page.getByTestId("turnstile-widget")).toHaveCount(0);
 
     const stamp = Date.now();
+
+    // Step 1 (vertical & solution) -> 2
+    await page.getByRole("button", { name: /continue/i }).click();
+    await expect(page.getByText("Step 2 of 6")).toBeVisible();
+
+    // Step 2 (scope): toggle the public portal on.
+    await page.getByLabel("Public-facing portal needed").click();
+    await page.getByRole("button", { name: /continue/i }).click();
+    await expect(page.getByText("Step 3 of 6")).toBeVisible();
+
+    // Step 3 (compliance chips).
+    await page.getByRole("button", { name: "SOC 2" }).click();
+    await page.getByRole("button", { name: "HIPAA" }).click();
+    await page.getByRole("button", { name: /continue/i }).click();
+    await expect(page.getByText("Step 4 of 6")).toBeVisible();
+
+    // Step 4 (integrations) -> 5
+    await page.getByRole("button", { name: /continue/i }).click();
+    await expect(page.getByText("Step 5 of 6")).toBeVisible();
+
+    // Step 5 (notes) -> 6
+    await page.getByLabel(/anything else/i).fill("Submitted by the Playwright e2e suite.");
+    await page.getByRole("button", { name: /continue/i }).click();
+    await expect(page.getByText("Step 6 of 6")).toBeVisible();
+
+    // Step 6: contact & organization.
     await page.getByLabel("Organization name").fill(`E2E County ${stamp}`);
     await page.getByLabel("Your name").fill("E2E Visitor");
     await page.getByLabel("Work email").fill(`e2e+${stamp}@example.com`);
     await page.getByLabel("Phone (optional)").fill("555-0100");
 
-    // Step 1 -> 2
-    await page.getByRole("button", { name: /continue/i }).click();
-    await expect(page.getByText("Step 2 of 6")).toBeVisible();
-
-    // Step 2 -> 3
-    await page.getByRole("button", { name: /continue/i }).click();
-    await expect(page.getByText("Step 3 of 6")).toBeVisible();
-
-    // Scope: toggle the public portal on and pick a range.
-    await page.getByLabel("Public-facing portal needed").click();
-    await page.getByRole("button", { name: /continue/i }).click();
-    await expect(page.getByText("Step 4 of 6")).toBeVisible();
-
-    // Compliance chips.
-    await page.getByRole("button", { name: "SOC 2" }).click();
-    await page.getByRole("button", { name: "HIPAA" }).click();
-    await page.getByRole("button", { name: /continue/i }).click();
-    await expect(page.getByText("Step 5 of 6")).toBeVisible();
-
-    await page.getByRole("button", { name: /continue/i }).click();
-    await expect(page.getByText("Step 6 of 6")).toBeVisible();
-
-    await page.getByLabel(/anything else/i).fill("Submitted by the Playwright e2e suite.");
     const submit = page.getByRole("button", { name: /submit request/i });
     await expect(submit).toBeEnabled();
     await submit.click();
