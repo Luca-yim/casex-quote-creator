@@ -197,23 +197,8 @@ function GetAQuotePage() {
         </p>
       </header>
 
-      {sessionReady || (isTurnstileEnabled && !captchaToken) ? null : (
-        <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing your form…
-        </p>
-      )}
-      <LeadIntakeForm
-        onSubmit={handleSubmit}
-        disabled={!sessionReady}
-        firstStepSlot={
-          sessionReady ? null : (
-            <TurnstileWidget
-              onToken={setCaptchaToken}
-              onExpire={() => setCaptchaToken(null)}
-            />
-          )
-        }
-      />
+      <LeadIntakeForm onSubmit={handleSubmit} disabled={!sessionReady} />
+
     </main>
   );
 }
