@@ -582,7 +582,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
                     id="contact_phone"
                     international
                     defaultCountry="US"
-                    value={field.value || undefined}
+                    value={field.value || ""}
                     onChange={(value) => field.onChange(value ?? "")}
                     className="phone-input-field"
                   />
