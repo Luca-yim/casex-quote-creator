@@ -151,3 +151,24 @@ export function computeBallparkForQuote(
     })),
   };
 }
+
+/**
+ * Margin-inclusive combined TCV range: catalog baseline + implementation
+ * fee, grossed by margin once. Single source of truth for this combination —
+ * used by both the sidebar headline and the PDF executive summary, so the
+ * two can never silently drift apart.
+ */
+export function combinedBallparkTCVRange(
+  breakdown: Pick<PricingBreakdown, "adjustedBaseline" | "marginPercent">,
+  ballpark: Pick<BallparkForQuote, "implementationLow" | "implementationHigh">,
+): { low: number; high: number } {
+  const low = applyMargin(
+    breakdown.adjustedBaseline + ballpark.implementationLow,
+    breakdown.marginPercent,
+  );
+  const high = applyMargin(
+    breakdown.adjustedBaseline + ballpark.implementationHigh,
+    breakdown.marginPercent,
+  );
+  return { low, high };
+}
