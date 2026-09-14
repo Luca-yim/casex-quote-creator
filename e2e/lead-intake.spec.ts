@@ -16,10 +16,11 @@ test.describe("public lead intake", () => {
     await page.goto("/get-a-quote");
 
     await expect(page.getByRole("heading", { name: "Get a quote" })).toBeVisible();
-    // The stubbed widget resolves immediately; the session is ready once the
-    // challenge slot disappears from step 1.
-    await expect(page.getByText("Preparing your form…")).toBeHidden({ timeout: 30_000 });
-    await expect(page.getByTestId("turnstile-widget")).toHaveCount(0, { timeout: 30_000 });
+    // The gate screen replaces the form entirely until the anonymous session
+    // is ready; the stubbed widget resolves immediately.
+    await expect(page.getByText("Step 1 of 6")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Preparing your form…")).toHaveCount(0);
+    await expect(page.getByTestId("turnstile-widget")).toHaveCount(0);
 
     const stamp = Date.now();
     await page.getByLabel("Organization name").fill(`E2E County ${stamp}`);
