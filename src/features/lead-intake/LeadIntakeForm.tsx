@@ -360,7 +360,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
                 )}
               />
             )}
-            {firstStepSlot}
+            
           </>
         )}
 
