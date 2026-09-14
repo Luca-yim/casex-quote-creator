@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ArrowRight, Calculator, ShieldCheck, Workflow } from "lucide-react";
+import { ArrowRight, Calculator, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Internal sales enablement tool for defensible CaseXellence quotes with estimator-gated pricing approval.",
+          "Request a CaseXellence quote in minutes — no account needed. Every quote is reviewed and approved by an estimator before pricing goes out.",
       },
       { property: "og:title", content: "CaseX Pricing Calculator — Speridian Technologies" },
       {
         property: "og:description",
-        content: "Defensible CaseXellence quotes with an approval-gated pricing workflow.",
+        content:
+          "Request a quote in minutes, no account needed — reviewed and approved by an estimator before pricing goes out.",
       },
     ],
   }),
@@ -48,9 +49,6 @@ function Landing() {
             <Button asChild variant="ghost" size="sm">
               <Link to="/login">Sign in</Link>
             </Button>
-            <Button asChild size="sm">
-              <Link to="/signup">Get started</Link>
-            </Button>
           </div>
         </div>
       </header>
@@ -63,8 +61,9 @@ function Landing() {
           Defensible quotes for government case management 🏛️
         </h1>
         <p className="mt-5 max-w-2xl text-muted-foreground">
-          A 16-question intake, an estimator approval gate, and a customer-ready quote — so pricing
-          only leaves the building once Speridian stands behind it.
+          Request a quote in minutes — no account needed. Verify with a quick check, answer a short
+          guided questionnaire, and get a reference number your team can track. Every quote is
+          submitted for approval and signed off by an estimator before pricing goes out the door.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg">
@@ -72,25 +71,14 @@ function Landing() {
               Get a quote <ArrowRight className="ml-1 size-4" />
             </Link>
           </Button>
-          <Button asChild size="lg" variant="secondary">
-            <Link to="/signup">Create an account</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link to="/login">Team sign in</Link>
-          </Button>
         </div>
 
-        <div className="mt-16 grid gap-4 sm:grid-cols-3">
+        <div className="mt-16 grid gap-4 sm:grid-cols-2">
           {[
             {
-              icon: Workflow,
-              title: "One intake, three audiences",
-              body: "External requesters, sales reps and estimators share the same questionnaire.",
-            },
-            {
               icon: ShieldCheck,
-              title: "Approval-gated pricing",
-              body: "Numbers stay hidden until an estimator reviews and signs off.",
+              title: "No sign-up required",
+              body: "Anyone can request a quote anonymously — a quick one-time check, then a short guided flow. No password, no account.",
             },
             {
               icon: Calculator,
@@ -110,16 +98,8 @@ function Landing() {
       </section>
 
       <footer className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-8 text-sm text-muted-foreground">
           <span>© {new Date().getFullYear()} Speridian Technologies</span>
-          <nav className="flex gap-4">
-            <Link to="/get-a-quote" className="hover:text-brand">
-              Get a quote
-            </Link>
-            <Link to="/login" className="hover:text-brand">
-              Team sign in
-            </Link>
-          </nav>
         </div>
       </footer>
     </div>
