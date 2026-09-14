@@ -13,11 +13,10 @@ export const REGION_OPTIONS = [
   { value: "other", label: "Other / global" },
 ] as const;
 
-
 export const HOSTING_PREFERENCES = [
   { value: "cloud", label: "Vendor-hosted cloud" },
   { value: "govcloud", label: "Government cloud (FedRAMP)" },
-  { value: "customer_hosted", label: "Regular hosting (self-hosted)" },
+  { value: "customer_hosted", label: "Regular hosting (Free)" },
   { value: "unsure", label: "Not sure yet" },
 ] as const;
 
@@ -31,7 +30,6 @@ export const COMPLIANCE_OPTIONS = [
   { value: "irs_1075", label: "IRS Pub. 1075" },
   { value: "none", label: "None / not sure" },
 ] as const;
-
 
 export const INTEGRATION_DIFFICULTY = [
   { value: "low", label: "Simple — modern APIs" },
