@@ -355,7 +355,7 @@ export function useQuotePdfDownload() {
 
       const context: PdfData =
         version === "internal"
-          ? buildInternalData(quote, breakdown, lines, items, shared)
+          ? buildInternalData(quote, breakdown, lines, items, ballpark, shared)
           : buildCustomerData(
               quote,
               breakdown,
@@ -364,6 +364,7 @@ export function useQuotePdfDownload() {
                 grandTotalCost(lines, items),
                 quote.contingencyPct,
               ),
+              ballpark,
               shared,
             );
 
