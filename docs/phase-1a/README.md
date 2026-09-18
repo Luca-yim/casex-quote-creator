@@ -41,16 +41,15 @@ identified as necessary. Removed from the executable set:
 | 2 | `A_pricing_catalog_rls_grants.sql` | `public.pricing_catalog` only: RLS on, anon revoked, authenticated DELETE removed, SELECT preserved (temporary), INSERT/UPDATE admin-gated | unconditional |
 | 3 | `B_function_grants_search_path.sql` | EXECUTE scoping on RPCs; guarded revoke on `_convert_lead_core`; trigger-function API revokes; `handle_new_user()` search_path | Section 3 self-guards on wrapper SECURITY DEFINER check |
 | 4 | `C_rls_policy_corrections.sql` | `vertical_labels` / `vertical_solutions` read-only RLS for the public intake flow | unconditional |
-| 5 | `0_approval_transition_fix.sql` | Sales-cannot-approve enforcement — **template + guard** | ONLY if VERIFY section 5 shows `enforce_quote_state_transition` does not block sales_rep → `approved` |
-| — | `D_optional_fk_indexes.sql` | FK indexes | **DEFERRED — not part of minimal Phase 1A** |
+| 4 | `D_optional_fk_indexes.sql` | FK indexes | **DEFERRED — not part of minimal Phase 1A** |
 
 ## Key open items (all documented in-file)
 
-- **`enforce_quote_state_transition()` is uninspected.** Its definition does
-  not exist in the repository, and the database reachable from this workspace
-  could not confirm or deny it. VERIFY section 5 prints it;
-  `0_approval_transition_fix.sql` is applied only if the sales-can-approve
-  hole is real.
+- **Approval authorization: RESOLVED.** `enforce_quote_state_transition()`
+  is verified to gate `under_review → approved` on estimator/admin. The
+  conditional fix file was deleted; staging now only *tests* the existing
+  control via the role matrix. The verified transition table is recorded in
+  VERIFY_phase_1a.sql section 5b.
 - **Supabase anonymous Auth users** are expected to reach Postgres as
   `authenticated`, not `anon` — treated as authenticated unless live testing
   proves otherwise (`ROLE_VERIFICATION_PLAN.md`).
@@ -61,6 +60,10 @@ identified as necessary. Removed from the executable set:
   verification.
 - `profiles.role` and `pricing_catalog.naspo_discount_price` may not exist —
   VERIFY section 10 resolves both conflicts.
+- **Lifecycle observation (not a Phase 1A blocker):** the verified function
+  permits `draft → archived` for external, sales_rep, estimator and admin.
+  Marked as *product behavior to confirm separately*; Phase 1A does not
+  change it.
 
 ## Companion documents
 
