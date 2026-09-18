@@ -1,59 +1,63 @@
 -- =====================================================================
--- Phase 1A / Migration B — SECURITY DEFINER function EXECUTE grants and
--- fixed search_path.
+-- Phase 1A / Migration B (REVISED, minimal) — function EXECUTE grants and
+-- one targeted search_path fix.
 --
--- STATUS: PREPARED, NOT APPLIED. For DBA review and execution.
+-- STATUS: PREPARED, NOT APPLIED, NOT VERIFIED. For external DBA execution.
+-- Revised 2026-09-18. The previous revision reset search_path on EVERY
+-- listed function and granted service_role broadly. Both were removed:
+-- search_path is now changed on handle_new_user() ONLY, and service_role is
+-- granted nowhere, because no repository or live evidence proves it is
+-- required.
 --
--- EVIDENCE BASIS
---   Confirmed from repository evidence — these functions are called from
---   the browser with the `authenticated` role, so they MUST keep EXECUTE
---   for `authenticated`:
---     public.quotes_scoped()                 src/features/intake/useQuote.ts:42 (+7 more call sites)
+-- SCOPE OF THIS FILE
+--   1. Keep authenticated EXECUTE on the six client-called RPCs.
+--   2. Revoke PUBLIC / anon EXECUTE from those RPCs.
+--   3. Revoke anon AND authenticated EXECUTE from public._convert_lead_core(...).
+--   4. Revoke API (PUBLIC/anon/authenticated) EXECUTE from trigger-only functions.
+--   5. Add an explicit safe search_path to public.handle_new_user().
+--
+-- EVIDENCE BASIS (repository only; no database inspection was performed)
+--   Called from the browser as `authenticated` — MUST keep EXECUTE:
+--     public.quotes_scoped()                 src/features/intake/useQuote.ts:42 (+7 sites)
 --     public.quote_versions_scoped()         src/features/intake/useQuoteVersions.ts:29
---     public.transition_quote(uuid, text)    src/features/intake/useQuoteTransition.ts:147,
+--     public.transition_quote(...)           src/features/intake/useQuoteTransition.ts:147
 --                                            src/features/intake/useSubmitQuote.ts:33
 --     public.convert_lead_to_quote(uuid)     src/features/leads/useConvertLeadToQuote.ts:18
 --     public.claim_and_convert_lead(uuid)    src/features/leads/useLeadActions.ts:34
 --     public.estimator_assign_and_convert(uuid, uuid)
 --                                            src/features/leads/useLeadActions.ts:70
---   Confirmed: NO repository code calls any of these as `anon`. The only
---   anonymous database operation in the product is a direct INSERT into
---   public.lead_intakes (src/routes/get-a-quote.tsx:88) followed by a
---   SELECT of lead_number on that row (line 118). Migration B therefore
---   revokes anon EXECUTE on every RPC without touching lead intake.
---   Confirmed: private.has_role already has SET search_path = public and
---   correct grants (supabase/migrations/20260820193207_*.sql).
---   Confirmed: public.has_role was DROPPED in that migration.
---   Expected but unverified:
---     * Exact argument types of transition_quote's second parameter. The
---       generated types describe it as the quotes.state value; it is
---       written below as `text` and ALSO attempted as the enum name
---       `public.quote_state`. Both attempts are guarded by
---       to_regprocedure, so the non-existent one is a no-op. DBA MUST
---       confirm from section 3 of VERIFY_phase_1a.sql which one exists.
---     * Whether _convert_lead_core(...) exists (referenced in project
---       notes, never in repository SQL) and its signature. PLACEHOLDER
---       block at the end — DBA to fill in after running the verification
---       query.
---   Unknown (no direct database access): current search_path setting and
---   current EXECUTE grants on every function below.
+--   No repository code calls any RPC as an unauthenticated caller. The only
+--   anonymous-path database operation is a direct INSERT into
+--   public.lead_intakes (src/routes/get-a-quote.tsx:88) plus a SELECT of
+--   lead_number on that row (line 118). Nothing here touches either.
+--   NOTE ON IDENTITY: the public intake caller holds a Supabase anonymous
+--   Auth JWT, which Postgres may present as `authenticated` (see
+--   ROLE_VERIFICATION_PLAN.md). Confirm this in staging before relying on
+--   any anon-only revoke as a control over that flow.
 --
--- WHY search_path MATTERS: a SECURITY DEFINER function without a fixed
--- search_path can be hijacked by a caller-controlled schema. Every
--- function below is set to `public` (plus `private` where the body is
--- expected to call private.has_role), matching the convention already used
--- by private.has_role and public.handle_new_user.
+-- CRITICAL PRECONDITION FOR CHANGE 3
+--   Revoking EXECUTE from `authenticated` on _convert_lead_core is safe
+--   ONLY IF every wrapper (convert_lead_to_quote, claim_and_convert_lead,
+--   estimator_assign_and_convert) is SECURITY DEFINER and owned by a role
+--   that retains EXECUTE on the core. Under SECURITY DEFINER the nested
+--   call is privilege-checked as the function owner, not the caller.
+--   If ANY wrapper is SECURITY INVOKER, this revoke BREAKS lead conversion.
+--   VERIFY FIRST: VERIFY_phase_1a.sql sections 3 and 6b (prosecdef, owner,
+--   has_function_privilege). The block below refuses to run unless all
+--   three wrappers report prosecdef = true.
 --
--- DESTRUCTIVE OPERATIONS: none. Function bodies are NOT redefined; only
--- their configuration and privileges change.
+-- DESTRUCTIVE OPERATIONS: none. No function body is redefined.
 -- =====================================================================
 
 BEGIN;
 
-DO $phase1a$
+-- ---------------------------------------------------------------------
+-- 1. + 2. Client-called RPCs: authenticated only. search_path untouched.
+-- ---------------------------------------------------------------------
+DO $phase1a_rpcs$
 DECLARE
-  sig   text;
-  sigs  text[] := ARRAY[
+  sig  text;
+  sigs text[] := ARRAY[
     'public.quotes_scoped()',
     'public.quote_versions_scoped()',
     'public.transition_quote(uuid, text)',
@@ -64,31 +68,66 @@ DECLARE
   ];
 BEGIN
   FOREACH sig IN ARRAY sigs LOOP
-    -- to_regprocedure returns NULL instead of erroring when the function
-    -- does not exist, which makes this block safe and idempotent.
+    -- to_regprocedure returns NULL rather than erroring for a missing
+    -- function, so the two transition_quote spellings are self-selecting.
     IF to_regprocedure(sig) IS NOT NULL THEN
-      EXECUTE format('ALTER FUNCTION %s SET search_path = public, private', sig);
       EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', sig);
       EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', sig);
-      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role', sig);
-      RAISE NOTICE 'Phase 1A/B: hardened %', sig;
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', sig);
+      RAISE NOTICE 'Phase 1A/B: scoped EXECUTE to authenticated on %', sig;
     ELSE
       RAISE WARNING 'Phase 1A/B: SKIPPED (not found) %  -- verify manually', sig;
     END IF;
   END LOOP;
 END
-$phase1a$;
+$phase1a_rpcs$;
 
--- Trigger-only functions must never be callable over the Data API. These
--- REVOKEs were already issued for the first two in
--- supabase/migrations/20260818164257_*.sql; repeated here for idempotency
--- and extended to the trigger functions described in docs/*.sql.
+-- ---------------------------------------------------------------------
+-- 3. Internal conversion core: not part of the public API surface.
+--    Guarded by the SECURITY DEFINER precondition described above.
+-- ---------------------------------------------------------------------
+DO $phase1a_core$
+DECLARE
+  core_oid   oid;
+  bad_wrapper text;
+BEGIN
+  SELECT p.oid INTO core_oid
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = '_convert_lead_core'
+  LIMIT 1;
+
+  IF core_oid IS NULL THEN
+    RAISE WARNING 'Phase 1A/B: public._convert_lead_core(...) not found -- confirm its real schema/name before assuming it is absent';
+    RETURN;
+  END IF;
+
+  SELECT string_agg(p.proname, ', ') INTO bad_wrapper
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('convert_lead_to_quote','claim_and_convert_lead','estimator_assign_and_convert')
+    AND NOT p.prosecdef;
+
+  IF bad_wrapper IS NOT NULL THEN
+    RAISE EXCEPTION 'Phase 1A/B ABORT: wrapper(s) % are SECURITY INVOKER; revoking EXECUTE on _convert_lead_core would break lead conversion', bad_wrapper;
+  END IF;
+
+  EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', core_oid::regprocedure);
+  RAISE NOTICE 'Phase 1A/B: revoked API EXECUTE on %', core_oid::regprocedure;
+END
+$phase1a_core$;
+
+-- ---------------------------------------------------------------------
+-- 4. Trigger-only functions must not be callable over the Data API.
+--    Trigger execution does not require EXECUTE by the calling role.
+--    search_path is NOT altered here (see change 5 for the one exception).
+-- ---------------------------------------------------------------------
 DO $phase1a_triggers$
 DECLARE
   sig  text;
   sigs text[] := ARRAY[
     'public.handle_new_user()',
     'public.update_updated_at_column()',
+    'public.enforce_quote_state_transition()',
     'public.prevent_self_role_change()',        -- docs/ADMIN_USER_MANAGEMENT.sql
     'public.prevent_role_self_escalation()',    -- docs/SECURITY_HARDENING.sql
     'public.force_external_role_on_insert()'    -- docs/SECURITY_HARDENING.sql
@@ -96,9 +135,8 @@ DECLARE
 BEGIN
   FOREACH sig IN ARRAY sigs LOOP
     IF to_regprocedure(sig) IS NOT NULL THEN
-      EXECUTE format('ALTER FUNCTION %s SET search_path = public, private', sig);
       EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', sig);
-      RAISE NOTICE 'Phase 1A/B: locked trigger function %', sig;
+      RAISE NOTICE 'Phase 1A/B: removed API EXECUTE from trigger function %', sig;
     ELSE
       RAISE WARNING 'Phase 1A/B: SKIPPED (not found) %', sig;
     END IF;
@@ -106,49 +144,42 @@ BEGIN
 END
 $phase1a_triggers$;
 
--- current_user_role(): referenced by the quotes RLS policies in
--- docs/SESSION_5B_PERMISSIONS.sql. Used only inside policies, never called
--- by the client — repository grep shows no .rpc("current_user_role").
-DO $phase1a_role_fn$
+-- ---------------------------------------------------------------------
+-- 5. handle_new_user() is SECURITY DEFINER and runs on auth.users INSERT.
+--    Its current setting is search_path = 'public' only; that resolves the
+--    two writes it performs but leaves any unqualified helper lookup open.
+--    Pin it explicitly and drop the implicit reliance on a mutable path.
+--    This is the ONLY search_path change in Phase 1A. Every other
+--    function's search_path is left exactly as found and is reported for
+--    review by VERIFY_phase_1a.sql sections 3 and 4.
+-- ---------------------------------------------------------------------
+DO $phase1a_hnu$
 BEGIN
-  IF to_regprocedure('public.current_user_role()') IS NOT NULL THEN
-    EXECUTE 'ALTER FUNCTION public.current_user_role() SET search_path = public, private';
-    EXECUTE 'REVOKE ALL ON FUNCTION public.current_user_role() FROM PUBLIC, anon';
-    -- Kept executable by authenticated: policy evaluation runs as the
-    -- calling role, and revoking it here can break every quotes policy.
-    EXECUTE 'GRANT EXECUTE ON FUNCTION public.current_user_role() TO authenticated, service_role';
+  IF to_regprocedure('public.handle_new_user()') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.handle_new_user() SET search_path = public, pg_temp';
   ELSE
-    RAISE WARNING 'Phase 1A/B: public.current_user_role() not found -- confirm which predicate the quotes policies use';
+    RAISE WARNING 'Phase 1A/B: public.handle_new_user() not found';
   END IF;
 END
-$phase1a_role_fn$;
+$phase1a_hnu$;
 
 COMMIT;
 
--- ---------------------------------------------------------------------
--- PLACEHOLDER — REQUIRES DBA INPUT BEFORE USE
--- Project notes describe a shared conversion core, _convert_lead_core(...),
--- extracted from convert_lead_to_quote / estimator_assign_and_convert /
--- claim_and_convert_lead. It appears in NO repository SQL file and its
--- schema, name and signature cannot be confirmed here. If section 3 of
--- VERIFY_phase_1a.sql shows it, apply the same treatment, and revoke
--- EXECUTE from authenticated as well — it is an internal helper and
--- should only be reachable from the three wrapper RPCs:
---
---   ALTER FUNCTION <schema>._convert_lead_core(<args>) SET search_path = public, private;
---   REVOKE ALL ON FUNCTION <schema>._convert_lead_core(<args>) FROM PUBLIC, anon, authenticated;
---   GRANT EXECUTE ON FUNCTION <schema>._convert_lead_core(<args>) TO service_role;
---
--- CAUTION: if the wrappers are SECURITY DEFINER owned by the same role,
--- revoking `authenticated` is safe. If any wrapper is SECURITY INVOKER,
--- revoking breaks lead conversion. Confirm proconfig/prosecdef first.
--- ---------------------------------------------------------------------
-
 -- =====================================================================
+-- NOT DONE HERE — DELIBERATELY
+--   * No service_role grant on any function.
+--   * No blanket search_path rewrite. If section 4 of the verification
+--     script reports other SECURITY DEFINER functions without a fixed
+--     search_path, list them for DBA review; do not batch-fix them under
+--     Phase 1A.
+--   * public.current_user_role(): left untouched. It is evaluated inside
+--     the quotes RLS policies (docs/SESSION_5B_PERMISSIONS.sql) and a
+--     mistaken revoke there breaks every quote read. Report its grants.
+--
 -- ROLLBACK GUIDANCE
---   Capture the pre-state first (VERIFY_phase_1a.sql sections 3-6). Then:
---     ALTER FUNCTION <sig> RESET search_path;           -- or SET to prior value
+--   Capture the pre-state first (VERIFY_phase_1a.sql sections 3, 6, 6b).
 --     GRANT EXECUTE ON FUNCTION <sig> TO <prior grantees>;
---   Nothing here drops or redefines a function, so rollback is limited to
---   restoring configuration and privileges.
+--     ALTER FUNCTION public.handle_new_user() SET search_path = public;
+--   Nothing here drops or redefines a function; rollback restores
+--   privileges and that one configuration value only.
 -- =====================================================================
