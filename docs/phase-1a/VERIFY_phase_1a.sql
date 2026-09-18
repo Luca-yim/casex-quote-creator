@@ -153,6 +153,49 @@ ORDER BY 1;
 
 
 -- ---------------------------------------------------------------------
+-- 5b. VERIFIED APPROVAL ENFORCEMENT — evidence record (read-only) — NEW.
+--     Verified 2026-09-18 from the live database: public.
+--     enforce_quote_state_transition() is a trigger function,
+--     SECURITY DEFINER, owner postgres, search_path 'public', and its
+--     approval branch permits
+--       old.state = 'under_review' AND new.state = 'approved'
+--       AND actor_role IN ('estimator', 'admin')
+--     Sales representatives and external users CANNOT approve; this is
+--     enforced server-side, not only by the frontend. No approval-fix
+--     migration exists in Phase 1A.
+--
+--     EXPECTED RESULT of this section: the function definition must
+--     contain an approval branch allowing only estimator and admin roles
+--     for under_review → approved, prosecdef = true, owner = postgres,
+--     and a trigger must be attached on public.quotes.
+--
+--     Definition inspected: VERIFIED. Live role-based execution tests:
+--     STILL REQUIRED in staging via ROLE_VERIFICATION_PLAN.md rows 18/23.
+--     Do not record behavior as passing until that matrix has run.
+-- ---------------------------------------------------------------------
+SELECT p.oid::regprocedure AS function_signature,
+       p.prosecdef         AS security_definer,
+       pg_get_userbyid(p.proowner) AS owner,
+       p.proconfig         AS config_settings,
+       pg_get_functiondef(p.oid)   AS definition
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'enforce_quote_state_transition';
+
+SELECT t.tgname AS trigger_name,
+       c.relname AS table_name,
+       pg_get_triggerdef(t.oid) AS trigger_definition
+FROM pg_trigger t
+JOIN pg_class c ON c.oid = t.tgrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relname = 'quotes'
+  AND NOT t.tgisinternal
+ORDER BY t.tgname;
+
+
+-- ---------------------------------------------------------------------
 -- 6. Function EXECUTE grants — REPORT ONLY, no global claim.
 --    Lists every function in public/private with whether PUBLIC, anon,
 --    authenticated and service_role hold EXECUTE. The DBA reviews the
