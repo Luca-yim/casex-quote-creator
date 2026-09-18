@@ -22,7 +22,7 @@ export function TurnstileWidget({ onToken, onExpire }: TurnstileWidgetProps) {
 
   useEffect(() => {
     const siteKey = TURNSTILE_SITE_KEY;
-    if (!siteKey) return;
+    if (!siteKey || !isTurnstileEnabled) return;
     let widgetId: string | null = null;
     let cancelled = false;
 
