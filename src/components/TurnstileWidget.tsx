@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { TURNSTILE_SITE_KEY, loadTurnstile } from "@/lib/turnstile";
+import { TURNSTILE_SITE_KEY, isTurnstileEnabled, loadTurnstile } from "@/lib/turnstile";
 
 export interface TurnstileWidgetProps {
   /** Called with a fresh token each time the challenge is solved. */
