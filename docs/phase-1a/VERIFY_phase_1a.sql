@@ -5,10 +5,9 @@
 -- privileges or configuration.
 --
 -- RUN IT TWICE:
---   1. BEFORE applying migrations A/B/C (+ 0 if its condition fires),
---      and SAVE THE OUTPUT. That saved output is the rollback reference —
---      the migrations cannot restore prior grants or configuration
---      without it.
+--   1. BEFORE applying migrations A/B/C, and SAVE THE OUTPUT. That saved
+--      output is the rollback reference — the migrations cannot restore
+--      prior grants or configuration without it.
 --   2. AFTER applying, and diff against the saved pre-state.
 --
 -- New in this revision: sections 2b and 6 use has_table_privilege() /
