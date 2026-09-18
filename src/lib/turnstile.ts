@@ -13,8 +13,30 @@ const rawSiteKey = import.meta.env["VITE_APP_TURNSTILE_SITE_KEY"] as string | un
 
 export const TURNSTILE_SITE_KEY = rawSiteKey?.trim() ? rawSiteKey.trim() : null;
 
+/**
+ * Development-only escape hatch for the Lovable preview environment.
+ *
+ * Requires BOTH conditions, so a production/Vercel bundle can never activate it:
+ *  1. import.meta.env.DEV — true only for the dev server (Lovable preview);
+ *     statically false in any production build, so the branch is dead code there.
+ *  2. VITE_DISABLE_TURNSTILE_PREVIEW === "true" — explicit opt-in, default off.
+ *
+ * It is not readable from, or togglable by, any URL parameter or hostname string.
+ */
+export const isTurnstileBypassed =
+  import.meta.env.DEV &&
+  (import.meta.env["VITE_DISABLE_TURNSTILE_PREVIEW"] as string | undefined)?.trim() === "true";
+
 /** True when a site key is configured and the widget should be rendered. */
-export const isTurnstileEnabled = TURNSTILE_SITE_KEY !== null;
+export const isTurnstileEnabled = TURNSTILE_SITE_KEY !== null && !isTurnstileBypassed;
+
+if (isTurnstileBypassed && typeof window !== "undefined") {
+  // Dev-only diagnostic; stripped from production bundles with the branch above.
+  console.warn(
+    "[turnstile] Bypassed: VITE_DISABLE_TURNSTILE_PREVIEW=true in the development/preview environment. " +
+      "This never applies to production or Vercel builds.",
+  );
+}
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 

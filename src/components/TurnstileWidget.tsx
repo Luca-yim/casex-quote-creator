@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { TURNSTILE_SITE_KEY, loadTurnstile } from "@/lib/turnstile";
+import { TURNSTILE_SITE_KEY, isTurnstileEnabled, loadTurnstile } from "@/lib/turnstile";
 
 export interface TurnstileWidgetProps {
   /** Called with a fresh token each time the challenge is solved. */
@@ -22,7 +22,7 @@ export function TurnstileWidget({ onToken, onExpire }: TurnstileWidgetProps) {
 
   useEffect(() => {
     const siteKey = TURNSTILE_SITE_KEY;
-    if (!siteKey) return;
+    if (!siteKey || !isTurnstileEnabled) return;
     let widgetId: string | null = null;
     let cancelled = false;
 
@@ -49,7 +49,7 @@ export function TurnstileWidget({ onToken, onExpire }: TurnstileWidgetProps) {
     };
   }, []);
 
-  if (!TURNSTILE_SITE_KEY) return null;
+  if (!TURNSTILE_SITE_KEY || !isTurnstileEnabled) return null;
 
   return (
     <div className="space-y-2">

@@ -10,6 +10,11 @@ interface ImportMetaEnv {
   readonly VITE_APP_SUPABASE_URL?: string;
   readonly VITE_APP_SUPABASE_PUBLISHABLE_KEY: string;
   readonly APP_SUPABASE_PUBLISHABLE_KEY?: string;
+
+  /** Public Cloudflare Turnstile site key. */
+  readonly VITE_APP_TURNSTILE_SITE_KEY?: string;
+  /** Dev/Lovable-preview only bypass for Turnstile. Never enable in production. */
+  readonly VITE_DISABLE_TURNSTILE_PREVIEW?: string;
 }
 
 interface ImportMeta {
