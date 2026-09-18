@@ -13,8 +13,6 @@ interface ImportMetaEnv {
 
   /** Public Cloudflare Turnstile site key. */
   readonly VITE_APP_TURNSTILE_SITE_KEY?: string;
-  /** Dev/Lovable-preview only bypass for Turnstile. Never enable in production. */
-  readonly VITE_DISABLE_TURNSTILE_PREVIEW?: string;
 }
 
 interface ImportMeta {
