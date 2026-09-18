@@ -4,9 +4,10 @@
 -- *** DEFERRED — NOT PART OF THE MINIMAL PHASE 1A DEPLOYMENT. ***
 --
 -- This file is PERFORMANCE ONLY: it contains no security change. The
--- minimal Phase 1A deployment consists of migrations A, B, C and (if the
--- verification condition in 0_approval_transition_fix.sql is met) that
--- file alone. Do NOT apply this migration as part of Phase 1A.
+-- minimal Phase 1A deployment consists of migrations A, B and C only —
+-- no approval-transition fix is needed (server-side approval
+-- authorization is verified in the live trigger function). Do NOT apply
+-- this migration as part of Phase 1A.
 --
 -- Keep it for a later performance pass, run with the DBA's own review.
 --
