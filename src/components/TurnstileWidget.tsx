@@ -49,7 +49,7 @@ export function TurnstileWidget({ onToken, onExpire }: TurnstileWidgetProps) {
     };
   }, []);
 
-  if (!TURNSTILE_SITE_KEY) return null;
+  if (!TURNSTILE_SITE_KEY || !isTurnstileEnabled) return null;
 
   return (
     <div className="space-y-2">
