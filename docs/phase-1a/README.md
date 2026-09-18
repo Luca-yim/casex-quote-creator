@@ -1,8 +1,19 @@
-# Phase 1A — Minimal security-fix package (REVISED 2026-09-18)
+# Phase 1A — Minimal security-fix package (REVISED 2026-09-18, approval update)
 
 **Status: prepared but NOT applied and NOT verified.** Every file here is
-for external DBA review and execution. No database inspection, application,
-or verification was performed from this workspace.
+for external DBA review and execution. No database modification was
+performed from this workspace.
+
+**Verified complete: server-side approval authorization.** The live
+`public.enforce_quote_state_transition()` trigger function was inspected
+(SECURITY DEFINER, owner `postgres`, search_path `public`) and verified to
+permit `under_review → approved` only for `estimator` and `admin` roles.
+Sales representatives cannot approve; external users cannot approve. This is
+enforced server-side by the database trigger, not only by the frontend.
+**No approval-transition migration is required**, and
+`0_approval_transition_fix.sql` has been removed from the package.
+Definition inspected: verified. Live role-based execution tests: still
+required in staging (see ROLE_VERIFICATION_PLAN.md).
 
 ## What changed in this revision
 
