@@ -125,14 +125,15 @@ ORDER BY 1, 2;
 -- ---------------------------------------------------------------------
 -- 5. Full source of the functions Phase 1A cares about.
 --    Read these bodies before trusting any claim:
---      * enforce_quote_state_transition — THE DECISIVE CHECK for whether
---        sales_rep/external callers can reach state = 'approved'. Feed the
---        output to the condition in 0_approval_transition_fix.sql.
+--      * enforce_quote_state_transition — RESOLVED 2026-09-18: the live
+--        definition was inspected and verified to allow
+--        under_review → approved only for estimator/admin (see section 5b).
+--        This section remains as the re-confirmation check.
 --      * transition_quote — same question, wrapper side.
 --      * _convert_lead_core — signature + prosecdef, which gate the
 --        guarded revoke in Migration B section 3.
---    All were applied outside the repository; their logic is unknown to
---    the application team without this output.
+--    All were applied outside the repository; without this output the
+--    application team cannot confirm they still match the verified state.
 -- ---------------------------------------------------------------------
 SELECT n.nspname || '.' || p.proname AS fn,
        pg_get_functiondef(p.oid)     AS definition
