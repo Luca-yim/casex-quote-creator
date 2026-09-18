@@ -78,12 +78,14 @@ identified as necessary. Removed from the executable set:
 
 ## Execution order
 
-1. Run `VERIFY_phase_1a.sql` in staging. Save the full output.
-2. Inspect section 5's output for `enforce_quote_state_transition`. Decide
-   whether `0_approval_transition_fix.sql` applies; finalise its template
-   against the live signature if it does.
-3. Apply A, B, C (and 0 if condition met) one at a time, re-running the
-   relevant VERIFY sections between each.
-4. Run the `ROLE_VERIFICATION_PLAN.md` matrix with real JWTs against
-   PostgREST; diff against the pre-state capture.
-5. `D_optional_fk_indexes.sql` is deferred to a later performance pass.
+1. Run `VERIFY_phase_1a.sql` in staging. Save the full output. Section 5b
+   records the verified approval-function definition and trigger attachment
+   as evidence — no approval fix is applied.
+2. Apply A, B, C one at a time, re-running the relevant VERIFY sections
+   between each. `0_approval_transition_fix.sql` no longer exists; no
+   additional approval trigger is created.
+3. Run the `ROLE_VERIFICATION_PLAN.md` matrix with real JWTs against
+   PostgREST — including the approval rows, which now *test the existing
+   server-side control* rather than validate a new fix. Diff against the
+   pre-state capture.
+4. `D_optional_fk_indexes.sql` is deferred to a later performance pass.
