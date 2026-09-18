@@ -4,7 +4,7 @@
 in this document may be reported as passing.**
 
 Run the whole matrix twice: once in staging BEFORE applying the minimal
-Phase 1A set (A, B, C, plus 0 only if its condition fires), once AFTER.
+Phase 1A set (A, B, C), once AFTER.
 A test whose behaviour is identical before and after is not evidence that
 Phase 1A worked — compare against the "expected after" column.
 
