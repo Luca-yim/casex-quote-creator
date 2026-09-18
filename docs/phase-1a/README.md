@@ -1,8 +1,19 @@
-# Phase 1A — Minimal security-fix package (REVISED 2026-09-18)
+# Phase 1A — Minimal security-fix package (REVISED 2026-09-18, approval update)
 
 **Status: prepared but NOT applied and NOT verified.** Every file here is
-for external DBA review and execution. No database inspection, application,
-or verification was performed from this workspace.
+for external DBA review and execution. No database modification was
+performed from this workspace.
+
+**Verified complete: server-side approval authorization.** The live
+`public.enforce_quote_state_transition()` trigger function was inspected
+(SECURITY DEFINER, owner `postgres`, search_path `public`) and verified to
+permit `under_review → approved` only for `estimator` and `admin` roles.
+Sales representatives cannot approve; external users cannot approve. This is
+enforced server-side by the database trigger, not only by the frontend.
+**No approval-transition migration is required**, and
+`0_approval_transition_fix.sql` has been removed from the package.
+Definition inspected: verified. Live role-based execution tests: still
+required in staging (see ROLE_VERIFICATION_PLAN.md).
 
 ## What changed in this revision
 
@@ -30,16 +41,15 @@ identified as necessary. Removed from the executable set:
 | 2 | `A_pricing_catalog_rls_grants.sql` | `public.pricing_catalog` only: RLS on, anon revoked, authenticated DELETE removed, SELECT preserved (temporary), INSERT/UPDATE admin-gated | unconditional |
 | 3 | `B_function_grants_search_path.sql` | EXECUTE scoping on RPCs; guarded revoke on `_convert_lead_core`; trigger-function API revokes; `handle_new_user()` search_path | Section 3 self-guards on wrapper SECURITY DEFINER check |
 | 4 | `C_rls_policy_corrections.sql` | `vertical_labels` / `vertical_solutions` read-only RLS for the public intake flow | unconditional |
-| 5 | `0_approval_transition_fix.sql` | Sales-cannot-approve enforcement — **template + guard** | ONLY if VERIFY section 5 shows `enforce_quote_state_transition` does not block sales_rep → `approved` |
-| — | `D_optional_fk_indexes.sql` | FK indexes | **DEFERRED — not part of minimal Phase 1A** |
+| 4 | `D_optional_fk_indexes.sql` | FK indexes | **DEFERRED — not part of minimal Phase 1A** |
 
 ## Key open items (all documented in-file)
 
-- **`enforce_quote_state_transition()` is uninspected.** Its definition does
-  not exist in the repository, and the database reachable from this workspace
-  could not confirm or deny it. VERIFY section 5 prints it;
-  `0_approval_transition_fix.sql` is applied only if the sales-can-approve
-  hole is real.
+- **Approval authorization: RESOLVED.** `enforce_quote_state_transition()`
+  is verified to gate `under_review → approved` on estimator/admin. The
+  conditional fix file was deleted; staging now only *tests* the existing
+  control via the role matrix. The verified transition table is recorded in
+  VERIFY_phase_1a.sql section 5b.
 - **Supabase anonymous Auth users** are expected to reach Postgres as
   `authenticated`, not `anon` — treated as authenticated unless live testing
   proves otherwise (`ROLE_VERIFICATION_PLAN.md`).
@@ -50,6 +60,10 @@ identified as necessary. Removed from the executable set:
   verification.
 - `profiles.role` and `pricing_catalog.naspo_discount_price` may not exist —
   VERIFY section 10 resolves both conflicts.
+- **Lifecycle observation (not a Phase 1A blocker):** the verified function
+  permits `draft → archived` for external, sales_rep, estimator and admin.
+  Marked as *product behavior to confirm separately*; Phase 1A does not
+  change it.
 
 ## Companion documents
 
@@ -64,12 +78,14 @@ identified as necessary. Removed from the executable set:
 
 ## Execution order
 
-1. Run `VERIFY_phase_1a.sql` in staging. Save the full output.
-2. Inspect section 5's output for `enforce_quote_state_transition`. Decide
-   whether `0_approval_transition_fix.sql` applies; finalise its template
-   against the live signature if it does.
-3. Apply A, B, C (and 0 if condition met) one at a time, re-running the
-   relevant VERIFY sections between each.
-4. Run the `ROLE_VERIFICATION_PLAN.md` matrix with real JWTs against
-   PostgREST; diff against the pre-state capture.
-5. `D_optional_fk_indexes.sql` is deferred to a later performance pass.
+1. Run `VERIFY_phase_1a.sql` in staging. Save the full output. Section 5b
+   records the verified approval-function definition and trigger attachment
+   as evidence — no approval fix is applied.
+2. Apply A, B, C one at a time, re-running the relevant VERIFY sections
+   between each. `0_approval_transition_fix.sql` no longer exists; no
+   additional approval trigger is created.
+3. Run the `ROLE_VERIFICATION_PLAN.md` matrix with real JWTs against
+   PostgREST — including the approval rows, which now *test the existing
+   server-side control* rather than validate a new fix. Diff against the
+   pre-state capture.
+4. `D_optional_fk_indexes.sql` is deferred to a later performance pass.

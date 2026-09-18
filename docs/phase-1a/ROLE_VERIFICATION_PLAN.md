@@ -4,7 +4,7 @@
 in this document may be reported as passing.**
 
 Run the whole matrix twice: once in staging BEFORE applying the minimal
-Phase 1A set (A, B, C, plus 0 only if its condition fires), once AFTER.
+Phase 1A set (A, B, C), once AFTER.
 A test whose behaviour is identical before and after is not evidence that
 Phase 1A worked — compare against the "expected after" column.
 
@@ -56,6 +56,7 @@ Legend: **A** allow, **D** deny (error or zero rows).
 | 20 | `insert into user_roles` (role assignment) | D | D | D | D | A |
 | 21 | `select * from quote_wbs_lines` / `quote_cost_items` | **preserved** | **preserved** | **D — preserved** | A | A |
 | 22 | `select * from past_deployments` / `pricing_reviews` | record only | record only | record only | record only | record only |
+| 23 | Sales rep attempts **direct or indirect approval of an owned quote** (e.g. `update quotes set state = 'approved'` on own row, or `transition_quote` straight to `approved`) | – | – | **D — denied by database transition enforcement** | – | – |
 
 † Rows 1, 5 and 8: whether a Supabase anonymous Auth user reaches these
 tables as `anon` or `authenticated` is unresolved. Migration C grants the
@@ -69,9 +70,16 @@ Rows 10 and 11 are the **preserve-the-public-workflow** checks. If either
 fails after applying the migrations, stop and roll back — the public
 `/get-a-quote` flow is broken.
 
-Row 18 is the **sales cannot approve** check and must be enforced inside
-`transition_quote` / `enforce_quote_state_transition`, not by the UI. See
-`0_approval_transition_fix.sql`.
+Row 18 is the **sales cannot approve** check. Its purpose has changed: the
+live `public.enforce_quote_state_transition()` trigger function has been
+inspected and verified to allow `under_review → approved` only for
+`estimator` and `admin` — so this row now **verifies the existing
+server-side control; no approval fix is being deployed**. Test through the
+actual RPC/API path (real JWTs against PostgREST), not only the UI. Expected:
+sales rep Deny, estimator Allow, admin Allow, external Deny. Row 23 covers
+the direct/indirect path (a rep writing `state = 'approved'` on their own
+quote outside the normal RPC flow) and must also be denied by the database
+transition enforcement.
 
 Row 21: quote_wbs_lines / quote_cost_items access is **preserved as
 Estimator/Admin-only** in Phase 1A — nothing modifies it. Verify the claim

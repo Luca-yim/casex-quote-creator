@@ -5,10 +5,9 @@
 -- privileges or configuration.
 --
 -- RUN IT TWICE:
---   1. BEFORE applying migrations A/B/C (+ 0 if its condition fires),
---      and SAVE THE OUTPUT. That saved output is the rollback reference —
---      the migrations cannot restore prior grants or configuration
---      without it.
+--   1. BEFORE applying migrations A/B/C, and SAVE THE OUTPUT. That saved
+--      output is the rollback reference — the migrations cannot restore
+--      prior grants or configuration without it.
 --   2. AFTER applying, and diff against the saved pre-state.
 --
 -- New in this revision: sections 2b and 6 use has_table_privilege() /
@@ -125,14 +124,15 @@ ORDER BY 1, 2;
 -- ---------------------------------------------------------------------
 -- 5. Full source of the functions Phase 1A cares about.
 --    Read these bodies before trusting any claim:
---      * enforce_quote_state_transition — THE DECISIVE CHECK for whether
---        sales_rep/external callers can reach state = 'approved'. Feed the
---        output to the condition in 0_approval_transition_fix.sql.
+--      * enforce_quote_state_transition — RESOLVED 2026-09-18: the live
+--        definition was inspected and verified to allow
+--        under_review → approved only for estimator/admin (see section 5b).
+--        This section remains as the re-confirmation check.
 --      * transition_quote — same question, wrapper side.
 --      * _convert_lead_core — signature + prosecdef, which gate the
 --        guarded revoke in Migration B section 3.
---    All were applied outside the repository; their logic is unknown to
---    the application team without this output.
+--    All were applied outside the repository; without this output the
+--    application team cannot confirm they still match the verified state.
 -- ---------------------------------------------------------------------
 SELECT n.nspname || '.' || p.proname AS fn,
        pg_get_functiondef(p.oid)     AS definition
@@ -149,6 +149,49 @@ WHERE n.nspname IN ('public', 'private')
     'prevent_role_self_escalation', 'force_external_role_on_insert'
   )
 ORDER BY 1;
+
+
+-- ---------------------------------------------------------------------
+-- 5b. VERIFIED APPROVAL ENFORCEMENT — evidence record (read-only) — NEW.
+--     Verified 2026-09-18 from the live database: public.
+--     enforce_quote_state_transition() is a trigger function,
+--     SECURITY DEFINER, owner postgres, search_path 'public', and its
+--     approval branch permits
+--       old.state = 'under_review' AND new.state = 'approved'
+--       AND actor_role IN ('estimator', 'admin')
+--     Sales representatives and external users CANNOT approve; this is
+--     enforced server-side, not only by the frontend. No approval-fix
+--     migration exists in Phase 1A.
+--
+--     EXPECTED RESULT of this section: the function definition must
+--     contain an approval branch allowing only estimator and admin roles
+--     for under_review → approved, prosecdef = true, owner = postgres,
+--     and a trigger must be attached on public.quotes.
+--
+--     Definition inspected: VERIFIED. Live role-based execution tests:
+--     STILL REQUIRED in staging via ROLE_VERIFICATION_PLAN.md rows 18/23.
+--     Do not record behavior as passing until that matrix has run.
+-- ---------------------------------------------------------------------
+SELECT p.oid::regprocedure AS function_signature,
+       p.prosecdef         AS security_definer,
+       pg_get_userbyid(p.proowner) AS owner,
+       p.proconfig         AS config_settings,
+       pg_get_functiondef(p.oid)   AS definition
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'enforce_quote_state_transition';
+
+SELECT t.tgname AS trigger_name,
+       c.relname AS table_name,
+       pg_get_triggerdef(t.oid) AS trigger_definition
+FROM pg_trigger t
+JOIN pg_class c ON c.oid = t.tgrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relname = 'quotes'
+  AND NOT t.tgisinternal
+ORDER BY t.tgname;
 
 
 -- ---------------------------------------------------------------------

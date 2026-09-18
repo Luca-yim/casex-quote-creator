@@ -118,7 +118,19 @@ $phase1a_core$;
 
 -- ---------------------------------------------------------------------
 -- 4. Trigger-only functions must not be callable over the Data API.
---    Trigger execution does not require EXECUTE by the calling role.
+--    Trigger execution does not require EXECUTE by the calling role —
+--    revoking API EXECUTE from public.enforce_quote_state_transition()
+--    does NOT remove trigger execution; the trigger on public.quotes
+--    keeps firing. This must still be verified in staging by exercising
+--    valid and invalid quote transitions after applying (see
+--    ROLE_VERIFICATION_PLAN.md rows 17-18, 23).
+--    NOTE (verified 2026-09-18): enforce_quote_state_transition() is
+--    SECURITY DEFINER with search_path 'public' and calls
+--    public.current_user_role(). Its search_path is deliberately NOT
+--    altered here — do not change it unless a separate security review
+--    identifies a concrete issue. public.current_user_role() keeps its
+--    EXECUTE grants untouched (it is evaluated inside the quotes RLS
+--    policies; revoking it would break every quote read).
 --    search_path is NOT altered here (see change 5 for the one exception).
 -- ---------------------------------------------------------------------
 DO $phase1a_triggers$
