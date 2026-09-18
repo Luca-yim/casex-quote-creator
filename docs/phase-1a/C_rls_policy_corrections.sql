@@ -1,70 +1,52 @@
 -- =====================================================================
--- Phase 1A / Migration C — overly broad public-role RLS policies, and
--- RLS-enabled tables with no policies.
+-- Phase 1A / Migration C (REVISED, minimal) — public lookup tables only.
 --
--- STATUS: PREPARED, NOT APPLIED. For DBA review and execution.
--- This migration is DELIBERATELY the most conservative of the four:
--- several findings below are INVESTIGATION ITEMS, not changes, because the
--- current policy set cannot be read from this workspace.
+-- STATUS: PREPARED, NOT APPLIED, NOT VERIFIED. For external DBA execution.
+-- Revised 2026-09-18. Everything unrelated to the verified public intake
+-- read path was REMOVED from the executable section and demoted to an
+-- investigation note:
+--   * past_deployments   — no longer modified.
+--   * pricing_reviews    — no longer modified.
+--   * quote_wbs_lines    — no longer modified; existing Estimator/Admin-only
+--   * quote_cost_items     access is PRESERVED as-is.
+--   * vertical_labels / vertical_solutions — admin write policies and
+--     INSERT/UPDATE grants REMOVED. No application write path exists, so
+--     no write grant is issued.
 --
--- EVIDENCE BASIS
---   Confirmed from repository evidence:
---     * Every policy created in supabase/migrations/* names `TO
---       authenticated` explicitly. Policies created later via the SQL
---       editor (docs/*.sql) also name `TO authenticated`, EXCEPT the
---       policies on public.quotes described in
---       docs/SESSION_5B_PERMISSIONS.sql, which are `TO authenticated` too.
---       So no repository-visible policy targets the PUBLIC role. Any
---       PUBLIC-role policy found by section 7 of VERIFY_phase_1a.sql was
---       created outside the repository and needs case-by-case review.
---     * Tables known to the application (src/lib/database.types.ts):
---         past_deployments, pricing_catalog, pricing_reviews, profiles,
---         quote_comments, quote_versions, quotes, vertical_labels,
---         vertical_solutions, ballpark_sizing_reference, quote_wbs_lines,
---         quote_cost_items, rate_cards, phase_weight_allocation,
---         lead_intakes, notifications, quote_pdfs.
---     * Of these, the repository contains policy SQL for only: profiles,
---       user_roles, quotes, quote_pdfs. Everything else is UNKNOWN.
---     * public.lead_intakes MUST stay insertable by `anon`
---       (src/routes/get-a-quote.tsx:88) and the inserting session must be
---       able to read back `lead_number` on its own row (line 118).
---       Nothing in this migration touches lead_intakes.
---     * src/features/leads/useLeadQueue.ts:73 reads lead_intakes directly
---       (base table, not an RPC) and joins profiles twice; internal roles
---       must keep that read.
---   Expected but unverified: the existing policy names on quotes,
---   quote_versions, notifications, quote_wbs_lines, quote_cost_items.
---   Unknown: which tables currently have RLS on with zero policies.
+-- SCOPE OF THIS FILE
+--   Preserve the verified public lookup read behaviour required by the
+--   anonymous /get-a-quote flow, with RLS switched on and an explicit
+--   read-only policy. Nothing else.
 --
--- DESTRUCTIVE OPERATIONS: none. No DROP POLICY on a policy this file did
--- not create; no data changes.
+-- EVIDENCE BASIS (repository only; no database inspection was performed)
+--   * src/hooks/useVerticalLabels.ts:15    reads vertical_labels
+--   * src/hooks/useVerticalSolutions.ts:12 reads vertical_solutions
+--   * Both hooks are gated behind `enabled: !disabled` and run on the
+--     public intake page (src/routes/get-a-quote.tsx) only AFTER an
+--     anonymous Supabase session exists.
+--   * No repository code writes to either table.
+--
+-- IDENTITY CAVEAT (must be settled in staging before applying)
+--   A Supabase anonymous Auth user presents a JWT and is expected to reach
+--   Postgres as `authenticated`, not `anon`. A caller with no JWT at all is
+--   `anon`. The read policy below names BOTH roles so the public picker
+--   works under either resolution. If staging proves the intake caller is
+--   `authenticated`, the `anon` half can be dropped in a later phase —
+--   do NOT pre-emptively narrow it here.
+--
+-- DESTRUCTIVE OPERATIONS: none.
 -- =====================================================================
 
 BEGIN;
 
--- ---------------------------------------------------------------------
--- 1. Reference/lookup tables read by the client with no repository policy
---    evidence. Enabling RLS with an explicit authenticated-read policy is
---    additive: it cannot remove access the app has today, because the app
---    only ever reads them as `authenticated`.
---      src/hooks/useVerticalLabels.ts:15     vertical_labels
---      src/hooks/useVerticalSolutions.ts:12  vertical_solutions
---    ASSUMPTION REQUIRING VERIFICATION: vertical_labels / vertical_solutions
---    are NOT read anonymously. The public intake form at
---    src/routes/get-a-quote.tsx establishes an anonymous Supabase session
---    BEFORE the form renders, and those hooks are gated behind
---    `enabled: !disabled` for exactly that reason — so the reader is an
---    anonymous-but-authenticated JWT, which Postgres sees as the `anon`
---    role. THE READ POLICIES BELOW THEREFORE INCLUDE anon. Removing anon
---    here WILL break the public lead-intake vertical/solution pickers.
--- ---------------------------------------------------------------------
 ALTER TABLE public.vertical_labels    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vertical_solutions ENABLE ROW LEVEL SECURITY;
 
 GRANT SELECT ON public.vertical_labels    TO anon, authenticated;
 GRANT SELECT ON public.vertical_solutions TO anon, authenticated;
-GRANT ALL    ON public.vertical_labels    TO service_role;
-GRANT ALL    ON public.vertical_solutions TO service_role;
+
+-- No INSERT / UPDATE / DELETE grants: there is no application write path.
+-- No service_role grant: not proven necessary by repository or live evidence.
 
 DROP POLICY IF EXISTS "vertical_labels_read" ON public.vertical_labels;
 CREATE POLICY "vertical_labels_read"
@@ -76,102 +58,50 @@ CREATE POLICY "vertical_solutions_read"
   ON public.vertical_solutions FOR SELECT TO anon, authenticated
   USING (true);
 
--- Writes on lookup tables: admin only, no DELETE grant.
-GRANT INSERT, UPDATE ON public.vertical_labels    TO authenticated;
-GRANT INSERT, UPDATE ON public.vertical_solutions TO authenticated;
-
-DROP POLICY IF EXISTS "vertical_labels_admin_write" ON public.vertical_labels;
-CREATE POLICY "vertical_labels_admin_write"
-  ON public.vertical_labels FOR ALL TO authenticated
-  USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
-  WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
-
-DROP POLICY IF EXISTS "vertical_solutions_admin_write" ON public.vertical_solutions;
-CREATE POLICY "vertical_solutions_admin_write"
-  ON public.vertical_solutions FOR ALL TO authenticated
-  USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
-  WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
-
--- ---------------------------------------------------------------------
--- 2. Deny-by-default hardening for tables the client NEVER touches
---    directly. Repository grep confirms no .from("past_deployments") and
---    no .from("pricing_reviews") anywhere in src/ or e2e/. Enabling RLS
---    with no permissive policy leaves them reachable only by service_role
---    and by SECURITY DEFINER functions.
---    RISK: if an unlisted internal tool reads these with a user JWT, it
---    will start returning zero rows. DBA to confirm before applying.
--- ---------------------------------------------------------------------
-ALTER TABLE public.past_deployments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pricing_reviews  ENABLE ROW LEVEL SECURITY;
-
-REVOKE ALL ON public.past_deployments FROM anon;
-REVOKE ALL ON public.pricing_reviews  FROM anon;
-GRANT  ALL ON public.past_deployments TO service_role;
-GRANT  ALL ON public.pricing_reviews  TO service_role;
-
-COMMENT ON TABLE public.past_deployments IS
-  'Phase 1A: RLS enabled, intentionally no permissive policy. Reachable only via service_role / SECURITY DEFINER. No client read path exists as of 2026-09-17.';
-COMMENT ON TABLE public.pricing_reviews IS
-  'Phase 1A: RLS enabled, intentionally no permissive policy. Reachable only via service_role / SECURITY DEFINER. No client read path exists as of 2026-09-17.';
-
 COMMIT;
 
 -- =====================================================================
--- INVESTIGATION ITEMS — NO SQL WRITTEN, DBA ACTION REQUIRED
+-- INVESTIGATION NOTES — NO SQL, NO ACTION IN PHASE 1A
 --
 -- I-1  quote_wbs_lines / quote_cost_items
 --      Read and written from the browser (src/features/wbs/useWbsData.ts).
---      No policy SQL exists anywhere in the repository for either table.
---      If RLS is OFF, every authenticated user can read and edit every
---      quote's WBS and cost lines, including cost rates. This is the
---      highest-severity open item in Phase 1A. Correct policies depend on
---      the ownership columns on those tables and on the quotes policy set,
---      neither of which can be read here — so no SQL is proposed.
---      Run VERIFY_phase_1a.sql sections 1, 2 and 7 for these two tables
---      first, then prepare a follow-up migration.
+--      Current behaviour is understood to be Estimator/Admin-only and is
+--      PRESERVED unchanged. Confirm it with VERIFY_phase_1a.sql section 8b
+--      before proposing any policy work in a later phase. Do not broaden
+--      Sales access.
 --
--- I-2  PUBLIC-role policies
---      Section 7 lists any policy whose roles include `public` (i.e. `TO
---      PUBLIC`, which covers anon). Review each. Repository evidence
---      predicts ONE legitimate anon path only: INSERT on lead_intakes plus
---      a self-scoped SELECT of that row. Anything else granting anon
---      access to quotes, pricing, WBS or profiles is a finding.
+-- I-2  past_deployments / pricing_reviews
+--      No client read path exists in the repository. Previously proposed
+--      deny-by-default RLS was removed from this migration because the
+--      live audit did not identify it as a necessary fix. Record their
+--      current RLS/grant state from sections 1 and 2; decide later.
 --
--- I-3  RLS-enabled tables with zero policies
---      Section 8 lists them. For each, decide: intentional deny-by-default
---      (like item 2 above), or an accidental lockout. Cross-check against
---      the client read paths in the Phase 1A application compatibility
---      report before adding any policy.
+-- I-3  PUBLIC-role policies
+--      Section 7 lists any policy whose roles include `public`. The only
+--      legitimate unauthenticated path predicted by the repository is the
+--      lead_intakes intake INSERT plus a self-scoped SELECT of that row.
+--      Anything else is a finding for review, not a Phase 1A change.
 --
--- I-4  profiles.role column
+-- I-4  profiles.role
 --      docs/SECURITY_HARDENING.sql and docs/QUOTE_PDFS_INTERNAL_SCOPE.sql
---      both read `profiles.role`, but the generated types
---      (src/lib/database.types.ts:140) show NO role column on profiles —
---      roles live in public.user_roles. If profiles.role does not exist,
---      the quote_pdfs policies in QUOTE_PDFS_INTERNAL_SCOPE.sql either
---      were never applied or reference a dropped column. CONFLICT:
---      confirm which is true before trusting the internal-PDF boundary.
+--      read `profiles.role`, but the generated types
+--      (src/lib/database.types.ts:140) show no such column — roles live in
+--      public.user_roles. Section 10 of the verification script resolves
+--      this. CONFLICT: unresolved.
 --
 -- I-5  docs/*.sql drift
 --      docs/DRAFT_DELETE.sql, docs/QUOTE_PDFS_INTERNAL_SCOPE.sql and
---      docs/ADMIN_USER_MANAGEMENT.sql all call public.has_role(...), which
---      was DROPPED in supabase/migrations/20260820193207_*.sql in favour of
---      private.has_role. Any policy still carrying that expression will
---      error at evaluation time. Section 7 output shows the live
---      expressions — grep it for `has_role` and check the schema prefix.
--- =====================================================================
-
--- =====================================================================
+--      docs/ADMIN_USER_MANAGEMENT.sql call public.has_role(...), dropped in
+--      supabase/migrations/20260820193207_*.sql in favour of
+--      private.has_role. Grep section 7 output for `has_role` and check the
+--      schema prefix on every live policy expression.
+--
 -- ROLLBACK GUIDANCE
 -- BEGIN;
---   DROP POLICY IF EXISTS "vertical_labels_read"          ON public.vertical_labels;
---   DROP POLICY IF EXISTS "vertical_labels_admin_write"   ON public.vertical_labels;
---   DROP POLICY IF EXISTS "vertical_solutions_read"       ON public.vertical_solutions;
---   DROP POLICY IF EXISTS "vertical_solutions_admin_write" ON public.vertical_solutions;
+--   DROP POLICY IF EXISTS "vertical_labels_read"    ON public.vertical_labels;
+--   DROP POLICY IF EXISTS "vertical_solutions_read" ON public.vertical_solutions;
 --   -- Only if RLS was OFF beforehand (capture pre-state first):
 --   -- ALTER TABLE public.vertical_labels    DISABLE ROW LEVEL SECURITY;
 --   -- ALTER TABLE public.vertical_solutions DISABLE ROW LEVEL SECURITY;
---   -- ALTER TABLE public.past_deployments   DISABLE ROW LEVEL SECURITY;
---   -- ALTER TABLE public.pricing_reviews    DISABLE ROW LEVEL SECURITY;
 -- COMMIT;
 -- =====================================================================
