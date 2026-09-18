@@ -49,6 +49,11 @@ function SignupPage() {
   }, [loading, profileLoading, ready, user, role, navigate]);
 
   const onSubmit = form.handleSubmit(async (values) => {
+    // Supabase Auth enforces CAPTCHA server-side; never call it without a token.
+    if (isTurnstileEnabled && !captchaToken) {
+      toast.error("Please complete the verification challenge before creating your account.");
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.auth.signUp({
       email: values.email,
