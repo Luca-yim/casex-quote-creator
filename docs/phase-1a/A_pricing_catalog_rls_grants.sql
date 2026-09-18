@@ -1,69 +1,59 @@
 -- =====================================================================
--- Phase 1A / Migration A — public.pricing_catalog (and sibling reference
--- tables) RLS + grants.
+-- Phase 1A / Migration A (REVISED, minimal) — public.pricing_catalog only.
 --
--- STATUS: PREPARED, NOT APPLIED. For DBA review and execution.
--- Author: application team. Date prepared: 2026-09-17.
+-- STATUS: PREPARED, NOT APPLIED, NOT VERIFIED. For external DBA execution.
+-- Revised 2026-09-18 to the minimal set of fixes identified by the live
+-- read-only audit. The previous revision also touched
+-- ballpark_sizing_reference, rate_cards and phase_weight_allocation; those
+-- tables are now DELIBERATELY OUT OF SCOPE — see the "explicitly excluded"
+-- note at the bottom.
 --
--- EVIDENCE BASIS
---   Confirmed from repository evidence:
---     * public.pricing_catalog is read by the browser client with the
---       `authenticated` role:
---         src/hooks/usePricingCatalog.ts:18   .from("pricing_catalog").select(...)
---         src/features/pdf-export/useQuotePdfDownload.ts:88
---     * public.ballpark_sizing_reference is read the same way:
---         src/features/estimator-ballpark/useBallparkSizingReference.ts:30
---         src/features/pdf-export/useQuotePdfDownload.ts:114
---     * public.rate_cards and public.phase_weight_allocation are read the
---       same way: src/features/wbs/useWbsData.ts:129,162
---     * NO client code anywhere performs insert/update/delete/upsert on any
---       of these tables (repo-wide grep for .from("<table>") shows reads
---       only). Catalog writes today are out-of-band (SQL editor / service
---       role).
---     * src/test/db/rls.test.ts:40-54 asserts: any authenticated user can
---       read pricing_catalog; anonymous callers must NOT.
---   Expected but unverified:
---     * Current RLS status and existing policy names on these tables.
---     * Current grants held by anon / authenticated / service_role.
---   Unknown (no direct database access):
---     * Whether pricing_catalog.naspo_discount_price exists in the live
---       schema. Application code reads it
---       (src/hooks/usePricingCatalog.ts) but the generated types at
---       src/lib/database.types.ts:50 do NOT list it. See the CONFLICT note
---       in the Phase 1A report. This migration never references that
---       column, so the discrepancy does not affect it.
+-- SCOPE OF THIS FILE
+--   1. Enable RLS on public.pricing_catalog.
+--   2. Revoke all anon access.
+--   3. Remove DELETE from authenticated (no application delete path).
+--   4. Preserve SELECT for authenticated (TEMPORARY — see note).
+--   5. Restrict INSERT and UPDATE to admins via RLS.
 --
--- DESIGN DECISIONS
---   * Reads stay open to every authenticated user. Column-level
---     confidentiality (hiding unit rates from external users) is enforced
---     in the application projection, src/lib/quote-columns.ts +
---     src/hooks/usePricingCatalog.ts. Narrowing reads by role here WOULD
---     BREAK the external dashboard, which needs SKU labels/tier ranges.
---   * Writes are closed to anon and authenticated entirely. Admin-authorised
---     write paths are added as explicit admin-only policies so that a future
---     admin catalog editor works without another grant change; INSERT/UPDATE
---     privileges are granted to `authenticated` but every row is gated by
---     private.has_role(auth.uid(),'admin'). DELETE is deliberately NOT
---     granted — catalog rows are retired via expiration_date.
+-- EVIDENCE BASIS (repository only; no database inspection was performed)
+--   * pricing_catalog is read by the browser as `authenticated`:
+--       src/hooks/usePricingCatalog.ts:18
+--       src/features/pdf-export/useQuotePdfDownload.ts:88
+--   * No repository code performs insert/update/delete/upsert on
+--     pricing_catalog. Catalog writes today are out-of-band.
+--   * src/test/db/rls.test.ts:40-54 asserts authenticated users can read
+--     pricing_catalog and anonymous callers cannot.
 --   * private.has_role is the current role predicate
 --     (supabase/migrations/20260820193207_*.sql). public.has_role was
---     DROPPED in that same migration; do not reference it.
+--     DROPPED there — do not reference it.
 --
--- DESTRUCTIVE OPERATIONS: none. No row data is read, written, or deleted.
+-- TEMPORARY DECISION — authenticated SELECT stays open
+--   Narrowing catalog reads by role would break the external dashboard and
+--   the PDF path, which need SKU labels and tier ranges. Column-level
+--   confidentiality is currently enforced in the application projection
+--   (src/lib/quote-columns.ts, src/hooks/usePricingCatalog.ts). This is an
+--   application-layer control, NOT a database control, and is carried
+--   forward as an open item for a later phase.
+--
+-- DESTRUCTIVE OPERATIONS: none. No row data is read, written or deleted.
 -- =====================================================================
 
 BEGIN;
 
--- ---------------------------------------------------------------------
--- 1. pricing_catalog
--- ---------------------------------------------------------------------
 ALTER TABLE public.pricing_catalog ENABLE ROW LEVEL SECURITY;
 
--- Revoke anything anon may hold. Safe if it holds nothing.
+-- 2. anon must hold nothing. Safe if it already holds nothing.
 REVOKE ALL ON public.pricing_catalog FROM anon;
 
+-- 3. + 4. Remove DELETE, keep the read the application depends on, and keep
+-- INSERT/UPDATE privileges only so the admin-gated policies below can take
+-- effect. Every write row is still checked by private.has_role(...,'admin').
+REVOKE DELETE ON public.pricing_catalog FROM authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.pricing_catalog TO authenticated;
-GRANT ALL                     ON public.pricing_catalog TO service_role;
+
+-- service_role: NOT granted here. No repository evidence proves a
+-- service_role write path to this table exists. If live verification shows
+-- an out-of-band admin/ETL job using the service key, add the grant then.
 
 DROP POLICY IF EXISTS "pricing_catalog_read_authenticated" ON public.pricing_catalog;
 CREATE POLICY "pricing_catalog_read_authenticated"
@@ -81,94 +71,35 @@ CREATE POLICY "pricing_catalog_admin_update"
   USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
   WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
 
--- ---------------------------------------------------------------------
--- 2. ballpark_sizing_reference — same shape, same read audience.
--- ---------------------------------------------------------------------
-ALTER TABLE public.ballpark_sizing_reference ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.ballpark_sizing_reference FROM anon;
-GRANT SELECT, INSERT, UPDATE ON public.ballpark_sizing_reference TO authenticated;
-GRANT ALL                     ON public.ballpark_sizing_reference TO service_role;
-
-DROP POLICY IF EXISTS "ballpark_sizing_read_authenticated" ON public.ballpark_sizing_reference;
-CREATE POLICY "ballpark_sizing_read_authenticated"
-  ON public.ballpark_sizing_reference FOR SELECT TO authenticated
-  USING (true);
-
-DROP POLICY IF EXISTS "ballpark_sizing_admin_write" ON public.ballpark_sizing_reference;
-CREATE POLICY "ballpark_sizing_admin_write"
-  ON public.ballpark_sizing_reference FOR ALL TO authenticated
-  USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
-  WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
-
--- ---------------------------------------------------------------------
--- 3. rate_cards — cost rates are internal. Read audience is NARROWER:
---    only estimator/admin surfaces consume it (src/features/wbs/useWbsData.ts,
---    reached from the WBS editor panel). Confirmed from repository
---    evidence: no external/sales-rep-only screen imports useWbsData.
---    ASSUMPTION REQUIRING DBA + PRODUCT CONFIRMATION: if a sales rep is
---    ever expected to open the WBS editor read-only, add 'sales_rep' to the
---    read policy below before applying.
--- ---------------------------------------------------------------------
-ALTER TABLE public.rate_cards ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.rate_cards FROM anon;
-GRANT SELECT, INSERT, UPDATE ON public.rate_cards TO authenticated;
-GRANT ALL                     ON public.rate_cards TO service_role;
-
-DROP POLICY IF EXISTS "rate_cards_read_internal" ON public.rate_cards;
-CREATE POLICY "rate_cards_read_internal"
-  ON public.rate_cards FOR SELECT TO authenticated
-  USING (
-    private.has_role(auth.uid(), 'estimator'::public.app_role)
-    OR private.has_role(auth.uid(), 'admin'::public.app_role)
-  );
-
-DROP POLICY IF EXISTS "rate_cards_admin_write" ON public.rate_cards;
-CREATE POLICY "rate_cards_admin_write"
-  ON public.rate_cards FOR ALL TO authenticated
-  USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
-  WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
-
--- ---------------------------------------------------------------------
--- 4. phase_weight_allocation — non-sensitive display weights, read by the
---    same WBS panel.
--- ---------------------------------------------------------------------
-ALTER TABLE public.phase_weight_allocation ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.phase_weight_allocation FROM anon;
-GRANT SELECT, INSERT, UPDATE ON public.phase_weight_allocation TO authenticated;
-GRANT ALL                     ON public.phase_weight_allocation TO service_role;
-
-DROP POLICY IF EXISTS "phase_weights_read_authenticated" ON public.phase_weight_allocation;
-CREATE POLICY "phase_weights_read_authenticated"
-  ON public.phase_weight_allocation FOR SELECT TO authenticated
-  USING (true);
-
-DROP POLICY IF EXISTS "phase_weights_admin_write" ON public.phase_weight_allocation;
-CREATE POLICY "phase_weights_admin_write"
-  ON public.phase_weight_allocation FOR ALL TO authenticated
-  USING      (private.has_role(auth.uid(), 'admin'::public.app_role))
-  WITH CHECK (private.has_role(auth.uid(), 'admin'::public.app_role));
+-- No DELETE policy: catalog rows are retired via expiration_date.
 
 COMMIT;
 
 -- =====================================================================
--- ROLLBACK GUIDANCE (run inside a transaction)
+-- EXPLICITLY EXCLUDED FROM THIS MIGRATION (do not re-add in Phase 1A)
+--   public.ballpark_sizing_reference   — leave current access as-is.
+--   public.phase_weight_allocation     — leave current access as-is.
+--   public.rate_cards                  — PRESERVE existing Estimator/Admin
+--                                        -only access. Do not broaden to
+--                                        sales_rep in this phase.
+--   public.quote_wbs_lines             — PRESERVE existing Estimator/Admin
+--   public.quote_cost_items              -only access. Not touched here.
+-- Their read/write behaviour is recorded for verification in
+-- ROLE_VERIFICATION_PLAN.md and VERIFY_phase_1a.sql, not changed.
+-- =====================================================================
+
+-- =====================================================================
+-- ROLLBACK GUIDANCE (run inside a transaction; capture the pre-state with
+-- VERIFY_phase_1a.sql sections 1, 2 and 2b BEFORE applying)
 --
 -- BEGIN;
 --   DROP POLICY IF EXISTS "pricing_catalog_read_authenticated" ON public.pricing_catalog;
 --   DROP POLICY IF EXISTS "pricing_catalog_admin_insert"       ON public.pricing_catalog;
 --   DROP POLICY IF EXISTS "pricing_catalog_admin_update"       ON public.pricing_catalog;
---   DROP POLICY IF EXISTS "ballpark_sizing_read_authenticated" ON public.ballpark_sizing_reference;
---   DROP POLICY IF EXISTS "ballpark_sizing_admin_write"        ON public.ballpark_sizing_reference;
---   DROP POLICY IF EXISTS "rate_cards_read_internal"           ON public.rate_cards;
---   DROP POLICY IF EXISTS "rate_cards_admin_write"             ON public.rate_cards;
---   DROP POLICY IF EXISTS "phase_weights_read_authenticated"   ON public.phase_weight_allocation;
---   DROP POLICY IF EXISTS "phase_weights_admin_write"          ON public.phase_weight_allocation;
---   -- Only if RLS was OFF before this migration (capture the pre-state with
---   -- the query in VERIFY_phase_1a.sql section 1 BEFORE applying):
---   -- ALTER TABLE public.pricing_catalog            DISABLE ROW LEVEL SECURITY;
---   -- ALTER TABLE public.ballpark_sizing_reference  DISABLE ROW LEVEL SECURITY;
---   -- ALTER TABLE public.rate_cards                 DISABLE ROW LEVEL SECURITY;
---   -- ALTER TABLE public.phase_weight_allocation    DISABLE ROW LEVEL SECURITY;
---   -- Restore any pre-existing grants captured in the same pre-state run.
+--   -- Only if RLS was OFF before this migration:
+--   -- ALTER TABLE public.pricing_catalog DISABLE ROW LEVEL SECURITY;
+--   -- Restore exactly the grants captured in the pre-state run, e.g.
+--   -- GRANT DELETE ON public.pricing_catalog TO authenticated;
+--   -- GRANT SELECT ON public.pricing_catalog TO anon;
 -- COMMIT;
 -- =====================================================================
