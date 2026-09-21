@@ -16,6 +16,17 @@ import { PRICING_SENSITIVE_QUOTE_COLUMNS } from "@/lib/quote-columns";
 
 /** Questionnaire v6.4 Section 1 — Quote Metadata (Q1.4, Q1.7, Q1.8, Q1.9). */
 
+/** Minimal valid form input so schema parses succeed. */
+const VALID_BASE = {
+  customerName: "State DOL",
+  vertical: "famcx",
+  solution: "rental_assistance",
+  moduleTier: "standard" as const,
+  hostingModel: "soc2" as const,
+  contractYears: 3,
+  environmentCount: 1,
+};
+
 const isoDate = "2026-11-19";
 
 const baseRow = {
