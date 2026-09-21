@@ -224,7 +224,9 @@ describe("PricingSidebar headline TCV", () => {
 
     // Proposal headline is the combined total (one-time + recurring across the
     // contract term); the ballpark TCV headline never renders here.
-    expect(screen.getByText("Combined Proposal Total")).toBeInTheDocument();
+    expect(
+      screen.getByText(`Combined Proposal Total (${BREAKDOWN.contractYears}-year)`),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText(`Total Contract Value (${BREAKDOWN.contractYears}-year)`),
     ).not.toBeInTheDocument();
