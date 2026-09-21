@@ -68,40 +68,67 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- 3. Server-side write authorization for Q2.3 (narrowly required change).
---    UI hiding alone is insufficient: only estimators and admins may write
---    pricing_schedule / pricing_schedule_other_detail. service_role contexts
---    (auth.uid() IS NULL) pass through. RLS policies themselves are untouched.
+--    UI hiding alone is insufficient, and the existing quotes INSERT policy
+--    does not restrict these columns, so the trigger covers INSERT *and*
+--    UPDATE. Only estimators and admins may set or change
+--    pricing_schedule / pricing_schedule_other_detail.
+--
+--    Trusted system context: auth.uid() IS NULL. This is reached only when no
+--    end-user JWT is present on the connection — i.e. service_role calls,
+--    psql/migrations as postgres, and scheduled jobs. Supabase's anon role
+--    still yields auth.uid() IS NULL only when no user is signed in, and the
+--    anon role has no INSERT/UPDATE grant on public.quotes, so the anon API
+--    path cannot reach this branch. SECURITY DEFINER RPCs (including the
+--    lead-conversion RPCs) run with the *caller's* auth.uid(), so they do NOT
+--    silently gain this bypass; they insert NULL schedule values and are
+--    unaffected.
+--
+--    NULL/NULL on INSERT is always allowed: Ballpark quotes and
+--    lead-converted quotes legitimately create rows with no pricing schedule.
+--
 --    Dependency: public.current_user_role() — the only role primitive verified
 --    present in the live capture (it is called by public.quotes_scoped()).
 --    private.has_role is NOT used: capture query 6 returned no rows for it.
+--    RLS policies themselves are untouched.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.enforce_pricing_schedule_authorization()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO public
 AS $function$
+DECLARE
+  protected_write boolean;
 BEGIN
-  IF NEW.pricing_schedule IS DISTINCT FROM OLD.pricing_schedule
-     OR NEW.pricing_schedule_other_detail IS DISTINCT FROM OLD.pricing_schedule_other_detail THEN
+  IF TG_OP = 'INSERT' THEN
+    -- Only a non-null value is a protected write; NULL/NULL stays open so
+    -- Ballpark and lead-converted quotes insert unchanged.
+    protected_write := NEW.pricing_schedule IS NOT NULL
+                       OR NEW.pricing_schedule_other_detail IS NOT NULL;
+  ELSE
+    protected_write := NEW.pricing_schedule IS DISTINCT FROM OLD.pricing_schedule
+                       OR NEW.pricing_schedule_other_detail IS DISTINCT FROM OLD.pricing_schedule_other_detail;
+  END IF;
+
+  IF protected_write THEN
     IF auth.uid() IS NULL THEN
-      -- Non-authenticated privileged context (service role). Allowed.
+      -- Documented trusted system context (service role / migration / job).
       RETURN NEW;
     END IF;
     IF public.current_user_role() IS DISTINCT FROM 'estimator'
        AND public.current_user_role() IS DISTINCT FROM 'admin' THEN
-      RAISE EXCEPTION 'Only estimators and admins may change the pricing schedule'
+      RAISE EXCEPTION 'Only estimators and admins may set the pricing schedule'
         USING ERRCODE = '42501';
     END IF;
   END IF;
+
   RETURN NEW;
 END;
 $function$;
 
-
 DROP TRIGGER IF EXISTS quotes_enforce_pricing_schedule_authorization ON public.quotes;
 
 CREATE TRIGGER quotes_enforce_pricing_schedule_authorization
-BEFORE UPDATE ON public.quotes
+BEFORE INSERT OR UPDATE ON public.quotes
 FOR EACH ROW
 EXECUTE FUNCTION public.enforce_pricing_schedule_authorization();
 
