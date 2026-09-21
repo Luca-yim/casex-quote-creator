@@ -209,7 +209,20 @@ export const quoteSchema = z.object({
     .default(null),
   quoteValidityDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date")
+    .refine(
+      (v) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+        // Reject impossible calendar dates like 2026-13-01.
+        const [y, m, d] = v.split("-").map(Number);
+        const date = new Date(Date.UTC(y, m - 1, d));
+        return (
+          date.getUTCFullYear() === y &&
+          date.getUTCMonth() + 1 === m &&
+          date.getUTCDate() === d
+        );
+      },
+      "Use a valid YYYY-MM-DD date",
+    )
     .nullable()
     .default(null),
   compliance: z.array(z.enum(complianceValues)).default([]),
