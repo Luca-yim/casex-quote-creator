@@ -207,6 +207,7 @@ function buildCustomerData(
       name: quote.name,
       customerName: quote.customerName,
       customerEmail: quote.customerEmail,
+      quoteValidityDate: quote.quoteValidityDate,
       tier: quote.tier,
     },
     pricing:
