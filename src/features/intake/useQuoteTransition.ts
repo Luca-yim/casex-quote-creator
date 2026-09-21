@@ -8,6 +8,7 @@ import type { Database } from "@/lib/database.types";
 import type { WorkflowAction, QuoteAction } from "@/lib/quote-workflow";
 import { describeQuoteWriteError } from "@/lib/supabase-errors";
 import { writeVersionSnapshot, type VersionChangeType } from "@/lib/version-snapshot";
+import { buildProposalPricingSnapshot } from "@/lib/pricing-engine/proposalSnapshot";
 import type { AppRole } from "@/lib/auth";
 
 const CHANGE_TYPES: Record<QuoteAction, VersionChangeType> = {
@@ -176,6 +177,23 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
         }
       }
 
+      // Approval-time price snapshot: freeze the computed Proposal price so an
+      // approved quote keeps the exact values that were approved even if the
+      // catalog, WBS, margin or contract term change afterwards.
+      let pricingSnapshot: unknown;
+      if (action.action === "approve" && input.quote.tier === "proposal") {
+        try {
+          pricingSnapshot = await buildProposalPricingSnapshot(input.quote);
+        } catch (snapshotBuildError) {
+          toast.warning("Approval price snapshot could not be built", {
+            description:
+              snapshotBuildError instanceof Error
+                ? snapshotBuildError.message
+                : "The version history will still record the approval.",
+          });
+        }
+      }
+
       try {
         await writeVersionSnapshot({
           quoteId,
@@ -183,6 +201,7 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
           changeReason: changeReason(input),
           changedBy: userId,
           changeType: CHANGE_TYPES[action.action],
+          pricingSnapshot,
         });
       } catch (snapshotError) {
         toast.warning("Audit trail incomplete", {

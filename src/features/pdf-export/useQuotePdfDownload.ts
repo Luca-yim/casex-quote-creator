@@ -14,6 +14,7 @@ import {
   type WbsLineRow,
 } from "@/features/wbs/useWbsData";
 import { grandTotalCost, totalImplementationFee } from "@/lib/pricing-engine/fullQuote";
+import { computeProposalTotals } from "@/lib/pricing-engine/proposalTotal";
 import {
   computeBallparkForQuote,
   resolveBallparkTier,
@@ -211,7 +212,11 @@ function buildCustomerData(
     },
     pricing:
       quote.tier === "proposal"
-        ? { kind: "proposal", totalImplementationFee: implementationFee }
+        ? {
+            kind: "proposal",
+            totalImplementationFee: implementationFee,
+            totals: computeProposalTotals(implementationFee, breakdown),
+          }
         : {
             kind: "ballpark",
             breakdown,
@@ -254,6 +259,11 @@ function buildInternalData(
     };
   }
   const cost = grandTotalCost(lines, items);
+  const fee = totalImplementationFee(
+    quote.marginPercent,
+    cost,
+    quote.contingencyPct,
+  );
   return {
     ...shared,
     version: "internal",
@@ -263,11 +273,8 @@ function buildInternalData(
       grandTotalCost: cost,
       marginPercent: quote.marginPercent,
       contingencyPct: quote.contingencyPct,
-      totalImplementationFee: totalImplementationFee(
-        quote.marginPercent,
-        cost,
-        quote.contingencyPct,
-      ),
+      totalImplementationFee: fee,
+      totals: computeProposalTotals(fee, breakdown),
       lines,
       items,
     },

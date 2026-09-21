@@ -15,6 +15,14 @@ import { buildAssumptions, type Assumption } from "@/lib/assumptions-builder";
 import { readinessCheck } from "@/lib/quote-validation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useWbsLines, useQuoteCostItems } from "@/features/wbs/useWbsData";
+import {
+  grandTotalCost,
+  totalImplementationFee,
+} from "@/lib/pricing-engine/fullQuote";
+import { computeProposalTotals } from "@/lib/pricing-engine/proposalTotal";
+import { useApprovedPricingSnapshot } from "./useApprovedPricingSnapshot";
+import { formatDistanceToNow } from "date-fns";
+import type { Quote } from "@/types/quote";
 import { useBallparkSizingReference } from "@/features/estimator-ballpark/useBallparkSizingReference";
 import {
   computeBallparkForQuote,
@@ -123,6 +131,31 @@ export function PricingSidebar() {
     [isBallpark, ballparkInput, sizingRows],
   );
 
+  // Proposal-tier only: the catalog side of the combined total (one-time
+  // items, recurring items, NASPO, contract years) from the same breakdown.
+  const proposalCatalog = useMemo(
+    () =>
+      breakdown
+        ? {
+            oneTimeTotal: breakdown.oneTimeTotal,
+            monthlyRecurring: breakdown.monthlyRecurring,
+            contractYears: breakdown.contractYears,
+            naspoDiscountApplied: breakdown.naspoDiscountApplied,
+          }
+        : null,
+    [breakdown],
+  );
+  const proposalTotals = useMemo(() => {
+    if (!isProposal || !proposalCatalog) return null;
+    const cost = grandTotalCost(engineLines, engineItems);
+    const fee = totalImplementationFee(
+      quote.marginPercent,
+      cost,
+      quote.contingencyPct ?? 0,
+    );
+    return computeProposalTotals(fee, proposalCatalog);
+  }, [isProposal, proposalCatalog, engineLines, engineItems, quote.marginPercent, quote.contingencyPct]);
+
   const handleJustificationChange = (text: string) => {
     updateField("marginJustification", text || null);
   };
@@ -170,6 +203,15 @@ export function PricingSidebar() {
                   const { low, high } = combinedBallparkTCVRange(breakdown, ballpark);
                   return `${formatCurrency(low)} – ${formatCurrency(high)}`;
                 })()}
+              </p>
+            </>
+          ) : proposalTotals ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Combined Proposal Total ({proposalTotals.contractYears}-year)
+              </p>
+              <p className="font-mono text-4xl font-semibold tracking-tight">
+                {formatCurrency(proposalTotals.proposalTotal)}
               </p>
             </>
           ) : (
@@ -234,6 +276,25 @@ export function PricingSidebar() {
                 </span>
               </div>
             ) : null}
+            {isProposal && proposalTotals ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Implementation fee</span>
+                  <span className="font-mono">{formatCurrency(proposalTotals.implementationFee)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Annual recurring</span>
+                  <span className="font-mono">{formatCurrency(proposalTotals.annualRecurring)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Recurring ({proposalTotals.contractYears}{" "}
+                    {proposalTotals.contractYears === 1 ? "year" : "years"})
+                  </span>
+                  <span className="font-mono">{formatCurrency(proposalTotals.multiYearRecurring)}</span>
+                </div>
+              </>
+            ) : null}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monthly recurring</span>
               <span className="font-mono">{formatCurrency(breakdown.monthlyRecurring)}</span>
@@ -251,6 +312,15 @@ export function PricingSidebar() {
         <span className="inline-flex rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
           NASPO cooperative pricing applied
         </span>
+      ) : null}
+
+      {/* D3 — Approval-time price snapshot for approved Proposals */}
+      {showPricing && isProposal ? (
+        <ApprovedPriceSnapshot
+          quoteId={quote.id}
+          state={quote.state}
+          liveProposalTotal={proposalTotals?.proposalTotal ?? null}
+        />
       ) : null}
 
       {/* E — Repeatable activation adjustment */}
@@ -299,6 +369,7 @@ export function PricingSidebar() {
                 items={engineItems}
                 totalHours={totalHours}
                 canEdit={canEditMargin}
+                catalog={proposalCatalog}
                 onChange={(pct) => updateField("contingencyPct", pct)}
               />
             ) : null}
@@ -389,5 +460,55 @@ export function PricingSidebar() {
         <p>Ballpark tier — internal estimate. Requires estimator approval before sharing with customer.</p>
       </div>
     </aside>
+  );
+}
+
+const SNAPSHOT_ELIGIBLE_STATES = new Set([
+  "approved",
+  "sent_to_customer",
+  "accepted",
+  "declined",
+]);
+
+/** Approval-time price snapshot with a live-recalculation drift notice. */
+function ApprovedPriceSnapshot({
+  quoteId,
+  state,
+  liveProposalTotal,
+}: {
+  quoteId: string;
+  state: Quote["state"];
+  liveProposalTotal: number | null;
+}) {
+  const eligible = SNAPSHOT_ELIGIBLE_STATES.has(state);
+  const { data: snapshot, isLoading } = useApprovedPricingSnapshot(quoteId, eligible);
+
+  if (!eligible || isLoading || !snapshot) return null;
+
+  const drifted =
+    liveProposalTotal !== null && liveProposalTotal !== snapshot.totals.proposalTotal;
+
+  return (
+    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+        Approved price
+      </p>
+      <p className="mt-1 font-mono text-lg">
+        {formatCurrency(snapshot.totals.proposalTotal)}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Frozen at approval · contract {snapshot.totals.contractYears}{" "}
+        {snapshot.totals.contractYears === 1 ? "year" : "years"} ·{" "}
+        {formatDistanceToNow(new Date(snapshot.computedAt), { addSuffix: true })}
+      </p>
+      {drifted ? (
+        <p className="mt-2 flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          Inputs have changed since approval. This quote keeps the approved price (
+          {formatCurrency(snapshot.totals.proposalTotal)}); the live estimate is now{" "}
+          {formatCurrency(liveProposalTotal!)}.
+        </p>
+      ) : null}
+    </div>
   );
 }
