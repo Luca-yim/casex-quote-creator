@@ -281,8 +281,15 @@ describe("Ballpark preservation and pricing boundaries", () => {
   it("enforces the server-side authorization trigger in the forward migration", () => {
     // Write authorization is a trigger, not UI hiding.
     expect(SECTION2_FORWARD_SQL).toContain("enforce_pricing_schedule_authorization");
-    expect(SECTION2_FORWARD_SQL).toContain("private.has_role(auth.uid(), 'estimator')");
-    expect(SECTION2_FORWARD_SQL).toContain("private.has_role(auth.uid(), 'admin')");
+    // Uses the only role primitive verified present in the live capture.
+    expect(SECTION2_FORWARD_SQL).toContain(
+      "IF public.current_user_role() IS DISTINCT FROM 'estimator'",
+    );
+    expect(SECTION2_FORWARD_SQL).toContain(
+      "AND public.current_user_role() IS DISTINCT FROM 'admin' THEN",
+    );
+    // private.has_role is unverified in the live database and must not be executed.
+    expect(SECTION2_FORWARD_SQL).not.toMatch(/^\s*[^-\s].*private\.has_role/m);
   });
 
   it("exposes only the approved sales-rep post-approval schedule label via quotes_scoped()", () => {
