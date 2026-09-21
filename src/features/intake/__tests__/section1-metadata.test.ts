@@ -21,6 +21,8 @@ const VALID_BASE = {
   customerName: "State DOL",
   vertical: "famcx",
   solution: "rental_assistance",
+  customerType: "state_naspo" as const,
+  supportTier: "standard" as const,
   moduleTier: "standard" as const,
   hostingModel: "soc2" as const,
   contractYears: 3,
