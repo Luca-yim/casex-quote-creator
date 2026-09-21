@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { rowToQuote } from "./quote-mapper";
@@ -7,6 +8,7 @@ import type { AppRole } from "@/lib/auth";
 import { devLog } from "@/lib/debug-log";
 import { useAuth } from "@/lib/auth";
 import { quoteSelectForRole } from "@/lib/quote-columns";
+import { QUOTE_VALIDITY_DEFAULT_DAYS } from "./sections/quote-metadata-options";
 
 /**
  * Cache key prefix for a single quote's detail entry.
@@ -89,6 +91,14 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         name: "",
         margin_percent: 20,
         contract_years: 3,
+        // Section 1 metadata defaults (Q1.4/Q1.7/Q1.9). Validity starts as the
+        // established 60-day window from today.
+        opportunity_stage: "discovery" as const,
+        deal_priority: "standard" as const,
+        quote_validity_date: format(
+          addDays(new Date(), QUOTE_VALIDITY_DEFAULT_DAYS),
+          "yyyy-MM-dd",
+        ),
       };
 
       devLog("[quote-create] insert payload:", insertPayload);
