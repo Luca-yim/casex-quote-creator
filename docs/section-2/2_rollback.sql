@@ -68,9 +68,11 @@ GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO postgres;
 
 -- ---------------------------------------------------------------------------
--- 2. Remove the Section 2 authorization trigger and its function
---    (the trigger depends on public.current_user_role(), which is a
---    pre-existing object and is deliberately left in place).
+-- 2. Remove the Section 2 authorization trigger (INSERT OR UPDATE) and its
+--    function. The trigger depends on public.current_user_role(), which is a
+--    pre-existing object and is deliberately left in place. Dropping the
+--    trigger restores the pre-Section-2 write behaviour exactly: the columns
+--    it guarded are removed in step 3, so no write path is left unguarded.
 -- ---------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS quotes_enforce_pricing_schedule_authorization ON public.quotes;
 DROP FUNCTION IF EXISTS public.enforce_pricing_schedule_authorization();

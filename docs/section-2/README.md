@@ -18,9 +18,15 @@ deployed. Application code for Section 2 is implemented separately.
      option sets;
    - **new authorization trigger**
      `quotes_enforce_pricing_schedule_authorization` — the narrowly required
-     authorization change: only estimator/admin may write
-     `pricing_schedule`/`pricing_schedule_other_detail`; non-authenticated
-     (service) contexts pass through. It depends on
+     authorization change, fired **BEFORE INSERT OR UPDATE** because the
+     existing `quotes` INSERT policy does not restrict these columns. Only
+     estimator/admin may set or change
+     `pricing_schedule`/`pricing_schedule_other_detail`. NULL/NULL on INSERT is
+     always allowed so Ballpark and lead-converted quotes are unaffected. The
+     documented trusted context is `auth.uid() IS NULL` (service_role,
+     migrations as postgres, scheduled jobs); the anon role has no
+     insert/update grant on `quotes`, and SECURITY DEFINER RPCs keep the
+     caller's `auth.uid()`, so neither reaches that branch. It depends on
      **`public.current_user_role()`**, the only role primitive verified present
      in the live capture (it is already called by `quotes_scoped()`).
      `private.has_role` was rejected: capture query 6 returned no rows for it,

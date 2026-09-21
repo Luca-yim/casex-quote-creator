@@ -281,6 +281,12 @@ describe("Ballpark preservation and pricing boundaries", () => {
   it("enforces the server-side authorization trigger in the forward migration", () => {
     // Write authorization is a trigger, not UI hiding.
     expect(SECTION2_FORWARD_SQL).toContain("enforce_pricing_schedule_authorization");
+    // Covers INSERT as well as UPDATE: the quotes INSERT policy does not
+    // restrict these columns.
+    expect(SECTION2_FORWARD_SQL).toContain(
+      "BEFORE INSERT OR UPDATE ON public.quotes",
+    );
+    expect(SECTION2_FORWARD_SQL).toContain("IF TG_OP = 'INSERT' THEN");
     // Uses the only role primitive verified present in the live capture.
     expect(SECTION2_FORWARD_SQL).toContain(
       "IF public.current_user_role() IS DISTINCT FROM 'estimator'",
@@ -288,8 +294,121 @@ describe("Ballpark preservation and pricing boundaries", () => {
     expect(SECTION2_FORWARD_SQL).toContain(
       "AND public.current_user_role() IS DISTINCT FROM 'admin' THEN",
     );
+    expect(SECTION2_FORWARD_SQL).toContain("USING ERRCODE = '42501'");
     // private.has_role is unverified in the live database and must not be executed.
     expect(SECTION2_FORWARD_SQL).not.toMatch(/^\s*[^-\s].*private\.has_role/m);
+  });
+
+  /**
+   * Decision table mirroring public.enforce_pricing_schedule_authorization()
+   * in docs/section-2/1_forward.sql. This documents and locks the intended
+   * semantics; the live-database probes in VERIFY.sql section 9c confirm the
+   * same table against the real trigger once the migration is approved.
+   */
+  type TriggerRole = "external" | "sales_rep" | "estimator" | "admin" | null;
+  const triggerAllows = (input: {
+    op: "INSERT" | "UPDATE";
+    role: TriggerRole; // null = auth.uid() IS NULL (trusted system context)
+    next: { schedule: string | null; detail: string | null };
+    prev?: { schedule: string | null; detail: string | null };
+  }): boolean => {
+    const prev = input.prev ?? { schedule: null, detail: null };
+    const protectedWrite =
+      input.op === "INSERT"
+        ? input.next.schedule !== null || input.next.detail !== null
+        : input.next.schedule !== prev.schedule || input.next.detail !== prev.detail;
+    if (!protectedWrite) return true;
+    if (input.role === null) return true; // documented trusted context
+    return input.role === "estimator" || input.role === "admin";
+  };
+
+  it("allows NULL pricing-schedule inserts for Ballpark and lead-converted quotes", () => {
+    for (const role of ["external", "sales_rep", "estimator", "admin"] as const) {
+      expect(
+        triggerAllows({ op: "INSERT", role, next: { schedule: null, detail: null } }),
+      ).toBe(true);
+    }
+    // Lead-conversion RPCs run with the caller's auth.uid() and insert NULLs.
+    expect(
+      triggerAllows({ op: "INSERT", role: "sales_rep", next: { schedule: null, detail: null } }),
+    ).toBe(true);
+  });
+
+  it("blocks unauthorized INSERT of Q2.3 values", () => {
+    for (const role of ["external", "sales_rep"] as const) {
+      expect(
+        triggerAllows({ op: "INSERT", role, next: { schedule: "naspo", detail: null } }),
+      ).toBe(false);
+      expect(
+        triggerAllows({ op: "INSERT", role, next: { schedule: null, detail: "side deal" } }),
+      ).toBe(false);
+    }
+  });
+
+  it("blocks unauthorized UPDATE of Q2.3 values", () => {
+    for (const role of ["external", "sales_rep"] as const) {
+      expect(
+        triggerAllows({
+          op: "UPDATE",
+          role,
+          prev: { schedule: "naspo", detail: null },
+          next: { schedule: "custom", detail: null },
+        }),
+      ).toBe(false);
+      expect(
+        triggerAllows({
+          op: "UPDATE",
+          role,
+          prev: { schedule: "naspo", detail: null },
+          next: { schedule: "naspo", detail: "rep supplied" },
+        }),
+      ).toBe(false);
+    }
+    // Unrelated updates by a rep are untouched (no pricing-schedule change).
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        prev: { schedule: "naspo", detail: null },
+        next: { schedule: "naspo", detail: null },
+      }),
+    ).toBe(true);
+  });
+
+  it("allows authorized Estimator/Admin INSERT and UPDATE", () => {
+    for (const role of ["estimator", "admin"] as const) {
+      expect(
+        triggerAllows({ op: "INSERT", role, next: { schedule: "list", detail: null } }),
+      ).toBe(true);
+      expect(
+        triggerAllows({
+          op: "UPDATE",
+          role,
+          prev: { schedule: null, detail: null },
+          next: { schedule: "other", detail: "negotiated basis" },
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("documents the auth.uid() IS NULL trusted system context", () => {
+    // Reached only with no end-user JWT: service_role, migrations as postgres,
+    // scheduled jobs. The anon API role has no insert/update grant on quotes,
+    // and SECURITY DEFINER RPCs keep the caller's auth.uid(), so neither can
+    // reach this branch.
+    expect(
+      triggerAllows({ op: "INSERT", role: null, next: { schedule: "naspo", detail: "x" } }),
+    ).toBe(true);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: null,
+        prev: { schedule: null, detail: null },
+        next: { schedule: "custom", detail: "backfill" },
+      }),
+    ).toBe(true);
+    expect(SECTION2_FORWARD_SQL).toContain("IF auth.uid() IS NULL THEN");
+    expect(SECTION2_FORWARD_SQL).toContain("Documented trusted system context");
   });
 
   it("exposes only the approved sales-rep post-approval schedule label via quotes_scoped()", () => {

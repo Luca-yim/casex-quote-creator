@@ -70,17 +70,29 @@ ORDER BY ordinality;
 -- EXPECT: geographic_scope, geographic_scope_other_detail, pricing_schedule,
 --         pricing_schedule_other_detail each occur exactly once.
 
-\echo '=== 9. Authorization trigger present ==='
-SELECT trigger_name, event_manipulation, action_statement
+\echo '=== 9. Authorization trigger present on BOTH insert and update ==='
+SELECT trigger_name, event_manipulation, action_timing, action_statement
 FROM information_schema.triggers
-WHERE trigger_schema = 'public' AND trigger_name = 'quotes_enforce_pricing_schedule_authorization';
+WHERE trigger_schema = 'public' AND trigger_name = 'quotes_enforce_pricing_schedule_authorization'
+ORDER BY event_manipulation;
+-- EXPECT: two rows — INSERT and UPDATE, both BEFORE, both ROW-level.
 
 \echo '=== 9b. Trigger function uses the verified primitive, not has_role ==='
 SELECT prosrc LIKE '%public.current_user_role()%' AS uses_current_user_role,
-       prosrc LIKE '%has_role%'                   AS references_has_role
+       prosrc LIKE '%has_role%'                   AS references_has_role,
+       prosrc LIKE '%TG_OP = ''INSERT''%'         AS handles_insert
 FROM pg_proc
 WHERE oid = 'public.enforce_pricing_schedule_authorization()'::regprocedure;
--- EXPECT: true | false
+-- EXPECT: true | false | true
+
+\echo '=== 9c. Behavioural probe: NULL insert allowed, non-null insert gated ==='
+-- Run as an authenticated sales_rep session (not postgres — postgres has
+-- auth.uid() IS NULL and is the documented trusted context).
+--   INSERT ... (pricing_schedule = NULL)   -> succeeds (Ballpark / lead-converted)
+--   INSERT ... (pricing_schedule='naspo')  -> 42501
+--   UPDATE ... SET pricing_schedule='list' -> 42501
+-- Repeat as estimator and admin: all three succeed.
+
 
 \echo '=== 10. quotes RLS policies unchanged (compare to capture baseline) ==='
 SELECT policyname, cmd, roles, qual, with_check
