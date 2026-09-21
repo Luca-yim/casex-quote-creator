@@ -213,7 +213,8 @@ export const quoteSchema = z.object({
       (v) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
         // Reject impossible calendar dates like 2026-13-01.
-        const [y, m, d] = v.split("-").map(Number);
+        const parts = v.split("-").map(Number);
+        const [y, m, d] = parts as [number, number, number];
         const date = new Date(Date.UTC(y, m - 1, d));
         return (
           date.getUTCFullYear() === y &&
