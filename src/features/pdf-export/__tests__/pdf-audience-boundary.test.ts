@@ -171,14 +171,35 @@ describe("customer PDF data for a proposal-tier quote", () => {
     ]);
   });
 
-  it("carries only the implementation fee as pricing", async () => {
+  it("carries the implementation fee and proposal totals as pricing", async () => {
     const { result } = setup();
     await act(async () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "customer");
     });
     const pricing = captured[0]!['pricing'] as Record<string, unknown>;
-    expect(Object.keys(pricing).sort()).toEqual(["kind", "totalImplementationFee"]);
+    expect(Object.keys(pricing).sort()).toEqual([
+      "kind",
+      "totalImplementationFee",
+      "totals",
+    ]);
     expect(pricing['kind']).toBe("proposal");
+    const totals = pricing['totals'] as Record<string, unknown>;
+    for (const key of [
+      "oneTimeSubtotal",
+      "annualRecurring",
+      "multiYearRecurring",
+      "contractYears",
+      "proposalTotal",
+    ]) {
+      expect(totals).toHaveProperty(key);
+    }
+    // Customer pricing never carries cost basis.
+    expect(Object.keys(pricing).some((k) => /cost|margin|contingency/i.test(k))).toBe(
+      false,
+    );
+    expect(Object.keys(totals).some((k) => /cost|margin|contingency/i.test(k))).toBe(
+      false,
+    );
   });
 });
 
