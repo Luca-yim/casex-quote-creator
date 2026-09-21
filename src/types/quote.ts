@@ -105,6 +105,14 @@ export interface Quote {
   customerName: string | null;
   customerEmail: string | null;
   customerType: CustomerType | null;
+  /** Q1.4 — reporting only. */
+  opportunityStage: OpportunityStage;
+  /** Q1.7 — internal only. */
+  dealPriority: DealPriority;
+  /** Q1.8 — optional deal shape selected at creation. */
+  dealTemplate: DealTemplate | null;
+  /** Q1.9 — ISO date (yyyy-MM-dd). Blank means no validity statement. */
+  quoteValidityDate: string | null;
   compliance: Compliance[];
   vertical: string | null;
   solution: string | null;
@@ -180,6 +188,30 @@ export const quoteSchema = z.object({
     "tribal",
     "commercial",
   ]),
+  // Section 1 metadata (Q1.4, Q1.7, Q1.8, Q1.9). Reporting/administrative
+  // only — none of these participate in any pricing calculation.
+  opportunityStage: z
+    .enum(["discovery", "qualified", "proposal", "negotiation", "closed", "other"])
+    .default("discovery"),
+  dealPriority: z
+    .enum(["standard", "strategic", "rush", "other"])
+    .default("standard"),
+  dealTemplate: z
+    .enum([
+      "state_workers_comp",
+      "state_health_benefits",
+      "county_justice_modernization",
+      "federal_small_deployment",
+      "blank",
+      "other",
+    ])
+    .nullable()
+    .default(null),
+  quoteValidityDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date")
+    .nullable()
+    .default(null),
   compliance: z.array(z.enum(complianceValues)).default([]),
   vertical: z.string().min(1, "Vertical is required"),
   // Solution is required for every real vertical; "other" replaces it with a
