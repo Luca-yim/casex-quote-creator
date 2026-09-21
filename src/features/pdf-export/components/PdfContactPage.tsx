@@ -1,5 +1,5 @@
 import { Page, Text, View } from "@react-pdf/renderer";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { styles } from "../styles/styles";
 import type { PdfSectionProps } from "../types";
 import { PdfFooter } from "./PdfFooter";
@@ -10,9 +10,15 @@ import { PdfSection } from "./PdfSection";
 export function PdfContactPage({ context }: PdfSectionProps) {
   const { quote, salesRep, estimator, generatedAt, version } = context;
   const shortId = quote.id.slice(0, 8);
-  const validUntil = format(addDays(generatedAt, 60), "MMMM d, yyyy");
+  // Q1.9 — the persisted validity date is authoritative. Blank means the
+  // customer PDF makes no validity statement at all (Questionnaire v6.4).
+  const validUntil = quote.quoteValidityDate
+    ? format(parseISO(quote.quoteValidityDate), "MMMM d, yyyy")
+    : null;
   const boilerplate =
-    `This estimate is valid for 60 days from date of issue, through ${validUntil}. ` +
+    (validUntil
+      ? `This offer is valid through ${validUntil}. `
+      : "This estimate carries no fixed validity date. ") +
     "Speridian reserves the right to update pricing based on final scope, integrations discovered during discovery, and infrastructure requirements. All engagements are governed by a mutually executed Master Services Agreement.";
 
   return (
