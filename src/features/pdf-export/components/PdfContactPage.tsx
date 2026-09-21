@@ -1,5 +1,5 @@
 import { Page, Text, View } from "@react-pdf/renderer";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { styles } from "../styles/styles";
 import type { PdfSectionProps } from "../types";
 import { PdfFooter } from "./PdfFooter";
