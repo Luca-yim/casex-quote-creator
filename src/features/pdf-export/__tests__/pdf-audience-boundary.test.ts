@@ -156,7 +156,7 @@ describe("customer PDF data for a proposal-tier quote", () => {
     }
   });
 
-  it("exposes only the five customer quote fields", async () => {
+  it("exposes only the six customer quote fields", async () => {
     const { result } = setup();
     await act(async () => {
       await result.current.generatePdf(PROPOSAL_QUOTE, "customer");
@@ -167,6 +167,7 @@ describe("customer PDF data for a proposal-tier quote", () => {
       "customerName",
       "id",
       "name",
+      "quoteValidityDate",
       "tier",
     ]);
   });

@@ -48,6 +48,10 @@ export const TEST_CATALOG: PricingCatalogRow[] = [
 export function makeQuote(overrides: Partial<Quote> = {}): Quote {
   const base: Quote = {
     id: "quote-1",
+    opportunityStage: "discovery",
+    dealPriority: "standard",
+    dealTemplate: null,
+    quoteValidityDate: null,
     needsAttention: false,
   integrations: [],
   ownerId: "user-1",

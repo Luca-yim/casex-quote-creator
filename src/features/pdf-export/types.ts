@@ -21,6 +21,8 @@ export interface CustomerQuoteFields {
   name: string;
   customerName: string | null;
   customerEmail: string | null;
+  /** Q1.9 — persisted validity date (yyyy-MM-dd) or null for none. */
+  quoteValidityDate: string | null;
   tier: Quote["tier"];
 }
 

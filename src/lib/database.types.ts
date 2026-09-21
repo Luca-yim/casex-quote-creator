@@ -263,6 +263,10 @@ export type Database = {
           name: string
           customer_name: string | null
           customer_type: string | null
+          opportunity_stage: string | null
+          deal_priority: string | null
+          deal_template: string | null
+          quote_validity_date: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
@@ -314,6 +318,10 @@ export type Database = {
           name?: string
           customer_name?: string | null
           customer_type?: string | null
+          opportunity_stage?: string | null
+          deal_priority?: string | null
+          deal_template?: string | null
+          quote_validity_date?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -365,6 +373,10 @@ export type Database = {
           name?: string
           customer_name?: string | null
           customer_type?: string | null
+          opportunity_stage?: string | null
+          deal_priority?: string | null
+          deal_template?: string | null
+          quote_validity_date?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -727,6 +739,10 @@ export type Database = {
           name: string
           customer_name: string | null
           customer_type: string | null
+          opportunity_stage: string | null
+          deal_priority: string | null
+          deal_template: string | null
+          quote_validity_date: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null

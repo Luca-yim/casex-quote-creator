@@ -33,6 +33,8 @@ const PRESELECTED_DEFAULT_FIELDS = [
   "environmentCount",
   "marginPercent",
   "tier",
+  "opportunityStage",
+  "dealPriority",
 ] as const;
 
 /**
@@ -50,6 +52,10 @@ export function IntakeForm() {
       customerName: quote.customerName ?? "",
       customerEmail: quote.customerEmail,
       customerType: quote.customerType ?? undefined,
+      opportunityStage: quote.opportunityStage,
+      dealPriority: quote.dealPriority,
+      dealTemplate: quote.dealTemplate,
+      quoteValidityDate: quote.quoteValidityDate,
       compliance: quote.compliance,
       vertical: quote.vertical ?? "",
       solution: quote.solution ?? "",
