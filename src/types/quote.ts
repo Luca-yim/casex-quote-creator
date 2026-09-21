@@ -64,6 +64,27 @@ export interface IntegrationItem {
 /** Sales rep's confidence in the opportunity. */
 export type RepConfidence = "high" | "medium" | "low";
 
+/** Q1.4 — reporting-only opportunity stage. No pricing effect. */
+export type OpportunityStage =
+  | "discovery"
+  | "qualified"
+  | "proposal"
+  | "negotiation"
+  | "closed"
+  | "other";
+
+/** Q1.7 — internal deal priority. No pricing effect. */
+export type DealPriority = "standard" | "strategic" | "rush" | "other";
+
+/** Q1.8 — deal shape chosen at creation. No pricing effect. */
+export type DealTemplate =
+  | "state_workers_comp"
+  | "state_health_benefits"
+  | "county_justice_modernization"
+  | "federal_small_deployment"
+  | "blank"
+  | "other";
+
 /** Legacy record volume band for data migration. */
 export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
 
