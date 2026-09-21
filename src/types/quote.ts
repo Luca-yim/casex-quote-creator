@@ -85,6 +85,17 @@ export type DealTemplate =
   | "blank"
   | "other";
 
+/** Q2.2 — Proposal-only geographic/procurement breadth of the engagement. */
+export type GeographicScope =
+  | "single_agency"
+  | "multi_agency_same_state"
+  | "multi_state"
+  | "national"
+  | "other";
+
+/** Q2.3 — declared pricing basis. Stored metadata only; does not alter calculations. */
+export type PricingSchedule = "naspo" | "list" | "custom" | "other";
+
 /** Legacy record volume band for data migration. */
 export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
 
@@ -113,6 +124,14 @@ export interface Quote {
   dealTemplate: DealTemplate | null;
   /** Q1.9 — ISO date (yyyy-MM-dd). Blank means no validity statement. */
   quoteValidityDate: string | null;
+  /** Q2.2 — Proposal-only engagement/procurement breadth. Never mapped from the lead's world-geography region. */
+  geographicScope: GeographicScope | null;
+  /** Free-text detail when geographicScope is "other". */
+  geographicScopeOtherDetail: string | null;
+  /** Q2.3 — declared pricing basis. Explicit metadata; no pricing effect in this slice. */
+  pricingSchedule: PricingSchedule | null;
+  /** Free-text detail when pricingSchedule is "other". Never shown to sales reps or external users. */
+  pricingScheduleOtherDetail: string | null;
   compliance: Compliance[];
   vertical: string | null;
   solution: string | null;
@@ -226,6 +245,18 @@ export const quoteSchema = z.object({
     )
     .nullable()
     .default(null),
+  // Section 2 (Q2.2, Q2.3). Proposal-only metadata; nullable so Ballpark
+  // quotes are untouched. Neither field participates in any calculation.
+  geographicScope: z
+    .enum(["single_agency", "multi_agency_same_state", "multi_state", "national", "other"])
+    .nullable()
+    .default(null),
+  geographicScopeOtherDetail: z.string().nullable().default(null),
+  pricingSchedule: z
+    .enum(["naspo", "list", "custom", "other"])
+    .nullable()
+    .default(null),
+  pricingScheduleOtherDetail: z.string().nullable().default(null),
   compliance: z.array(z.enum(complianceValues)).default([]),
   vertical: z.string().min(1, "Vertical is required"),
   // Solution is required for every real vertical; "other" replaces it with a
@@ -281,6 +312,32 @@ export const quoteSchema = z.object({
     .default(null),
 
 }).superRefine((value, ctx) => {
+  // Q2.2/Q2.3 — the universal "Other" rule: choosing Other requires detail.
+  if (value.geographicScope === "other" && !(value.geographicScopeOtherDetail ?? "").trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["geographicScopeOtherDetail"],
+      message: "Please describe the geographic scope",
+    });
+  }
+  if (value.pricingSchedule === "other" && !(value.pricingScheduleOtherDetail ?? "").trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["pricingScheduleOtherDetail"],
+      message: "Please describe the pricing schedule",
+    });
+  }
+
+  // Q2.3 — a Proposal must declare its pricing schedule before it is
+  // submitted. Ballpark quotes never carry this requirement.
+  if (value.tier === "proposal" && value.pricingSchedule == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["pricingSchedule"],
+      message: "Pricing schedule is required before submitting a Proposal",
+    });
+  }
+
   // "Yes, we need integrations" requires at least one listed integration.
   if (value.hasIntegrations && value.integrations.length < 1) {
     ctx.addIssue({

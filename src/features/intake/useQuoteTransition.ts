@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 import type { Quote } from "@/types/quote";
 import type { Database } from "@/lib/database.types";
+import { assertPricingScheduleForApproval } from "@/lib/quote-validation";
 import type { WorkflowAction, QuoteAction } from "@/lib/quote-workflow";
 import { describeQuoteWriteError } from "@/lib/supabase-errors";
 import { writeVersionSnapshot, type VersionChangeType } from "@/lib/version-snapshot";
@@ -73,6 +74,11 @@ export function useQuoteTransition(quoteId: string, userId: string | undefined) 
   return useMutation({
     mutationFn: async (input: TransitionInput): Promise<Quote> => {
       const { action } = input;
+      // Q2.3 gate: a Proposal cannot be approved without an explicit pricing
+      // schedule. Throws before any write is made; Ballpark is unaffected.
+      if (action.action === "approve") {
+        assertPricingScheduleForApproval(input.quote);
+      }
       const now = new Date().toISOString();
       // State itself is never written through the table: `transition_quote()`
       // owns the state machine (and its RLS/`WITH CHECK` rules). Only the
