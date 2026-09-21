@@ -267,6 +267,10 @@ export type Database = {
           deal_priority: string | null
           deal_template: string | null
           quote_validity_date: string | null
+          geographic_scope: string | null
+          geographic_scope_other_detail: string | null
+          pricing_schedule: string | null
+          pricing_schedule_other_detail: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
@@ -322,6 +326,10 @@ export type Database = {
           deal_priority?: string | null
           deal_template?: string | null
           quote_validity_date?: string | null
+          geographic_scope?: string | null
+          geographic_scope_other_detail?: string | null
+          pricing_schedule?: string | null
+          pricing_schedule_other_detail?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -377,6 +385,10 @@ export type Database = {
           deal_priority?: string | null
           deal_template?: string | null
           quote_validity_date?: string | null
+          geographic_scope?: string | null
+          geographic_scope_other_detail?: string | null
+          pricing_schedule?: string | null
+          pricing_schedule_other_detail?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -743,6 +755,10 @@ export type Database = {
           deal_priority: string | null
           deal_template: string | null
           quote_validity_date: string | null
+          geographic_scope: string | null
+          geographic_scope_other_detail: string | null
+          pricing_schedule: string | null
+          pricing_schedule_other_detail: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
