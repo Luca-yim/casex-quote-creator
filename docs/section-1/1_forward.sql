@@ -1,131 +1,158 @@
--- Section 1 — Quote Metadata: FORWARD migration. DO NOT APPLY WITHOUT REVIEW.
--- Adds four metadata columns (Q1.4, Q1.7, Q1.8, Q1.9) and, only if required,
--- re-exposes them through public.quotes_scoped().
---
--- Preconditions: 0_capture.sql has been run and its output stored.
--- Everything below is DDL only and runs inside a single transaction.
--- (NOTIFY pgrst runs AFTER commit — see the tail of this file.)
+-- Section 1 (Quote Metadata) — FORWARD MIGRATION
+-- Target: application database (public.quotes, public.quotes_scoped)
+-- Captured state this file is written against:
+--   public.quotes_scoped() : LANGUAGE sql, STABLE, SECURITY DEFINER,
+--                            OWNER postgres, SET search_path TO 'public',
+--                            explicit RETURNS TABLE(...) column list,
+--                            EXECUTE granted to postgres and authenticated only,
+--                            no dependent routines or views.
+-- Because the captured function uses an explicit RETURNS TABLE list, the return
+-- type changes when columns are appended; CREATE OR REPLACE cannot do that, so a
+-- DROP + CREATE inside the same transaction is required (case 2b).
+-- Safe to run exactly once. Constraint creation is guarded by existence checks.
+-- Does NOT touch RLS policies, Phase 1A objects, pricing behaviour, contingency
+-- masking, Proposal workflow, PDFs, Excel, realtime, or application code.
 
-begin;
-
--- ---------------------------------------------------------------------------
--- 1. Columns on public.quotes
--- ---------------------------------------------------------------------------
--- Idempotent. Existing rows take the defaults for the two non-null columns and
--- NULL for the two nullable ones; no existing row is otherwise rewritten, and
--- no existing default or null behaviour on any other column is touched.
-
-alter table public.quotes
-  add column if not exists opportunity_stage  text not null default 'discovery',
-  add column if not exists deal_priority      text not null default 'standard',
-  add column if not exists deal_template      text,
-  add column if not exists quote_validity_date date;
-
--- Value domains, matching Questionnaire v6.4 Section 1 and the Zod schema in
--- src/types/quote.ts. NOT VALID keeps the statement cheap on existing rows;
--- the defaults above already satisfy both constraints, so validate immediately.
-alter table public.quotes
-  add constraint quotes_opportunity_stage_check
-  check (opportunity_stage in
-    ('discovery','qualified','proposal','negotiation','closed','other')) not valid;
-alter table public.quotes validate constraint quotes_opportunity_stage_check;
-
-alter table public.quotes
-  add constraint quotes_deal_priority_check
-  check (deal_priority in ('standard','strategic','rush','other')) not valid;
-alter table public.quotes validate constraint quotes_deal_priority_check;
-
-alter table public.quotes
-  add constraint quotes_deal_template_check
-  check (deal_template is null or deal_template in
-    ('state_workers_comp','state_health_benefits','county_justice_modernization',
-     'federal_small_deployment','blank','other')) not valid;
-alter table public.quotes validate constraint quotes_deal_template_check;
-
-comment on column public.quotes.opportunity_stage  is 'Questionnaire v6.4 Q1.4. Internal-only metadata. No pricing effect.';
-comment on column public.quotes.deal_priority      is 'Questionnaire v6.4 Q1.7. Internal-only metadata. No pricing effect.';
-comment on column public.quotes.deal_template      is 'Questionnaire v6.4 Q1.8. Internal-only metadata. No pricing effect.';
-comment on column public.quotes.quote_validity_date is 'Questionnaire v6.4 Q1.9. Customer-visible on PDFs. NULL = no validity statement.';
+BEGIN;
 
 -- ---------------------------------------------------------------------------
--- 2. public.quotes_scoped() — role-aware read path
+-- 1. Columns
 -- ---------------------------------------------------------------------------
--- quotes_scoped() is a SECURITY DEFINER set-returning function, NOT a view.
--- There are two possible shapes; 0_capture.sql §0.1 `returns_clause` decides.
---
--- 2a. RETURNS setof public.quotes
---     The composite row type follows the table automatically, so the four new
---     columns are already returned and NO function change is needed. Skip to
---     step 3. Re-read the captured body only to confirm it projects columns via
---     the row type rather than an explicit constructor; if it builds rows with
---     an explicit ROW(...)/SELECT column list, treat it as case 2b.
---
--- 2b. RETURNS TABLE (...) with an explicit column list
---     The function MUST be recreated, otherwise the four columns silently read
---     back as missing for every role, with no error.
---
---     CREATE OR REPLACE FUNCTION cannot change the OUT-parameter list
---     ("cannot change return type of existing function"), so a DROP/CREATE
---     sequence is required. DROP FUNCTION also discards EXECUTE grants, so they
---     are re-applied in the same transaction.
---
---     Fill the body below from 0_capture.sql §0.2 BYTE-FOR-BYTE, changing only:
---       * RETURNS TABLE(...): append, at the END of the list, in this order
---             opportunity_stage   text,
---             deal_priority       text,
---             deal_template       text,
---             quote_validity_date date
---       * the inner SELECT list: append the same four columns, unqualified by
---         any role CASE expression — these are metadata, never pricing, so they
---         are returned verbatim to every role that already passes the WHERE
---         clause.
---     Change NOTHING else: keep the existing WHERE clause (ownership and Sales
---     Representative filtering), every pricing CASE/NULL expression, LANGUAGE,
---     SECURITY DEFINER, `SET search_path`, volatility, and ordering.
---     Do not add the columns anywhere else, and do not re-list any existing
---     column — that is what would duplicate columns.
+ALTER TABLE public.quotes
+  ADD COLUMN IF NOT EXISTS opportunity_stage  text NOT NULL DEFAULT 'discovery',
+  ADD COLUMN IF NOT EXISTS deal_priority      text NOT NULL DEFAULT 'standard',
+  ADD COLUMN IF NOT EXISTS deal_template      text,
+  ADD COLUMN IF NOT EXISTS quote_validity_date date;
 
--- --- BEGIN case-2b block: uncomment and fill only if §0.1 shows RETURNS TABLE
--- drop function public.quotes_scoped();
---
--- create function public.quotes_scoped()
--- returns table (
---   <<< paste the captured column list verbatim >>>,
---   opportunity_stage   text,
---   deal_priority       text,
---   deal_template       text,
---   quote_validity_date date
--- )
--- language sql            -- must match the captured LANGUAGE
--- stable                  -- must match the captured volatility
--- security definer
--- set search_path = public, pg_temp   -- must match the captured proconfig
--- as $function$
---   <<< paste the captured body verbatim, with the four columns appended to
---       the SELECT list and the WHERE clause untouched >>>
--- $function$;
---
--- alter function public.quotes_scoped() owner to <<< captured owner, §0.1 >>>;
--- revoke all on function public.quotes_scoped() from public;
--- grant execute on function public.quotes_scoped() to authenticated;
--- grant execute on function public.quotes_scoped() to service_role;
--- -- Re-apply any ADDITIONAL grantee found in §0.3, and only those.
--- --- END case-2b block
+COMMENT ON COLUMN public.quotes.opportunity_stage   IS 'v6.4 Q1.4 Opportunity Stage (internal-only metadata; no pricing effect)';
+COMMENT ON COLUMN public.quotes.deal_priority       IS 'v6.4 Q1.7 Deal Priority (internal-only metadata; no pricing effect)';
+COMMENT ON COLUMN public.quotes.deal_template       IS 'v6.4 Q1.8 Deal Template Used (nullable, internal-only metadata)';
+COMMENT ON COLUMN public.quotes.quote_validity_date IS 'v6.4 Q1.9 Quote Validity Date (nullable; blank means no validity statement in PDFs)';
 
 -- ---------------------------------------------------------------------------
--- 3. Conversion RPCs — no change required
+-- 2. Check constraints (guarded — ADD CONSTRAINT is not idempotent by itself)
 -- ---------------------------------------------------------------------------
--- convert_lead_to_quote(), estimator_assign_and_convert() and
--- claim_and_convert_lead() insert an explicit column list into public.quotes.
--- The two NOT NULL columns carry defaults and the two nullable columns accept
--- NULL, so their INSERTs keep working unmodified. Leads carry no Section 1
--- metadata, so there is nothing to map.
---
--- 4. Phase 1A — untouched. No object, grant, policy or search_path covered by
---    docs/phase-1a/ is referenced by this migration.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass
+      AND conname  = 'quotes_opportunity_stage_check'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_opportunity_stage_check
+      CHECK (opportunity_stage IN ('discovery','qualified','proposal','negotiation','closed','other'))
+      NOT VALID;
+    ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_opportunity_stage_check;
+  END IF;
 
-commit;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass
+      AND conname  = 'quotes_deal_priority_check'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_deal_priority_check
+      CHECK (deal_priority IN ('standard','strategic','rush','other'))
+      NOT VALID;
+    ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_deal_priority_check;
+  END IF;
 
--- After commit (cannot run inside the transaction block above):
---   notify pgrst, 'reload schema';
--- Then wait 30-60s before running VERIFY.sql.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass
+      AND conname  = 'quotes_deal_template_check'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_deal_template_check
+      CHECK (
+        deal_template IS NULL
+        OR deal_template IN (
+          'state_workers_comp',
+          'state_health_benefits',
+          'county_justice_modernization',
+          'federal_small_deployment',
+          'blank',
+          'other'
+        )
+      )
+      NOT VALID;
+    ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_deal_template_check;
+  END IF;
+END
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 3. Recreate public.quotes_scoped()
+--    Captured body reproduced verbatim; the only edits are the four appended
+--    RETURNS TABLE columns and the four appended SELECT-list expressions.
+--    WHERE clause, ownership/sales_rep/external/estimator/admin filtering,
+--    margin masking, margin-justification masking and q.contingency_pct are
+--    unchanged. LANGUAGE sql / STABLE / SECURITY DEFINER / search_path kept.
+-- ---------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.quotes_scoped();
+
+CREATE FUNCTION public.quotes_scoped()
+ RETURNS TABLE(id uuid, owner_id uuid, requested_by uuid, reviewed_by uuid, approved_by uuid, last_reviewed_by uuid, name text, customer_name text, customer_type text, customer_email text, compliance text[], vertical text, solution text, vertical_other_detail text, repeatable_activation text, module_tier text, contract_years integer, expected_award_date date, case_worker_count integer, include_b2c boolean, b2c_mau integer, include_b2b_portal boolean, b2b_user_count integer, hosting_model text, environment_count integer, has_integrations boolean, integration_count integer, integration_difficulty text, support_tier text, rep_confidence text, tier text, state text, submitted_at timestamp with time zone, approved_at timestamp with time zone, sent_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, margin_percent integer, margin_justification text, contingency_pct numeric, converted_from_lead_id uuid, converted_from_lead_notes text, migration_required boolean, migration_volume_range text, migration_cleanup_required boolean, external_idp_required boolean, worker_idp_required boolean, idp_documented boolean, portal_form_count_range text, lead_id uuid, needs_attention boolean, integrations jsonb, opportunity_stage text, deal_priority text, deal_template text, quote_validity_date date)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select
+    q.id, q.owner_id, q.requested_by, q.reviewed_by, q.approved_by, q.last_reviewed_by,
+    q.name, q.customer_name, q.customer_type, q.customer_email,
+    q.compliance, q.vertical, q.solution, q.vertical_other_detail,
+    q.repeatable_activation, q.module_tier, q.contract_years,
+    q.expected_award_date, q.case_worker_count,
+    q.include_b2c, q.b2c_mau, q.include_b2b_portal, q.b2b_user_count,
+    q.hosting_model, q.environment_count,
+    q.has_integrations, q.integration_count, q.integration_difficulty,
+    q.support_tier, q.rep_confidence,
+    q.tier, q.state,
+    q.submitted_at, q.approved_at, q.sent_at, q.created_at, q.updated_at,
+    case
+      when public.current_user_role() in ('estimator','admin') then q.margin_percent
+      when auth.uid() = q.owner_id and q.state in ('approved','sent_to_customer','accepted','declined')
+        then q.margin_percent
+      else null
+    end,
+    case
+      when public.current_user_role() in ('estimator','admin') then q.margin_justification
+      else null
+    end,
+    q.contingency_pct,
+    q.converted_from_lead_id, q.converted_from_lead_notes,
+    q.migration_required, q.migration_volume_range, q.migration_cleanup_required,
+    q.external_idp_required, q.worker_idp_required, q.idp_documented,
+    q.portal_form_count_range,
+    q.lead_id,
+    q.needs_attention,
+    q.integrations,
+    q.opportunity_stage,
+    q.deal_priority,
+    q.deal_template,
+    q.quote_validity_date
+  from public.quotes q
+  where
+    (q.state = 'draft' and q.requested_by = auth.uid())
+    or (public.current_user_role() = 'sales_rep' and q.state <> 'draft' and q.owner_id = auth.uid())
+    or (public.current_user_role() = 'external' and q.state <> 'draft' and q.requested_by = auth.uid())
+    or (public.current_user_role() = 'admin' and q.state <> 'draft')
+    or (public.current_user_role() = 'estimator' and q.state <> 'draft'
+        and (q.state <> 'under_review' or q.reviewed_by = auth.uid()))
+$function$;
+
+-- ---------------------------------------------------------------------------
+-- 4. Restore captured ownership and grants (DROP discarded them)
+--    Captured grants were postgres + authenticated only. service_role was NOT
+--    present in the capture and is deliberately not granted.
+-- ---------------------------------------------------------------------------
+ALTER FUNCTION public.quotes_scoped() OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.quotes_scoped() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO postgres;
+
+COMMIT;
+
+-- Refresh the API schema cache after the transaction commits.
+NOTIFY pgrst, 'reload schema';
