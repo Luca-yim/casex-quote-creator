@@ -1,7 +1,16 @@
 import { Controller, useFormContext } from "react-hook-form";
+import { format, parseISO } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -9,11 +18,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { QuoteFormData } from "@/types/quote";
 import { useIntake } from "../IntakeContext";
 import { SectionCard } from "./SectionCard";
 import { FieldError } from "./FieldError";
 import { RequiredLabel } from "./RequiredLabel";
+import {
+  DEAL_PRIORITIES,
+  DEAL_TEMPLATES,
+  OPPORTUNITY_STAGES,
+} from "./quote-metadata-options";
 
 const CUSTOMER_TYPES: Array<{ value: string; label: string }> = [
   { value: "state_naspo", label: "State (NASPO cooperative)" },
