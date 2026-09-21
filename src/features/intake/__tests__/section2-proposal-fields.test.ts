@@ -114,8 +114,13 @@ describe("Q2.2 Geographic Scope", () => {
 
   it("accepts every option and rejects invalid values", () => {
     for (const option of GEOGRAPHIC_SCOPES) {
+      const isOther = option.value === "other";
       expect(
-        quoteSchema.safeParse({ ...VALID_BASE, geographicScope: option.value }).success,
+        quoteSchema.safeParse({
+          ...VALID_BASE,
+          geographicScope: option.value,
+          ...(isOther ? { geographicScopeOtherDetail: "Consortium" } : {}),
+        }).success,
       ).toBe(true);
     }
     expect(
