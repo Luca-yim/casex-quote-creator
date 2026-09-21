@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, homeRouteForRole } from "@/lib/auth";
 import { readinessCheck, validateQuoteForSubmission } from "@/lib/quote-validation";
 import type { QuoteFormData } from "@/types/quote";
+import { pricingScheduleDefaultFor } from "./sections/quote-metadata-options";
 import { useIntake } from "./IntakeContext";
 import { SaveStatus } from "./SaveStatus";
 import { useSubmitQuote } from "./useSubmitQuote";
@@ -60,7 +61,19 @@ export function SubmitBar() {
       ...quote,
       name: quote.name?.trim() || "Untitled Quote",
     };
-    const result = validateQuoteForSubmission(submissionQuote);
+    // Q2.3: materialize the application UI default so a Proposal is never
+    // submitted without an explicit pricing schedule. Ballpark is untouched.
+    let effectiveQuote = submissionQuote;
+    if (
+      submissionQuote.tier === "proposal" &&
+      submissionQuote.pricingSchedule == null
+    ) {
+      const derived = pricingScheduleDefaultFor(submissionQuote.customerType);
+      updateField("pricingSchedule", derived);
+      await flushSave();
+      effectiveQuote = { ...submissionQuote, pricingSchedule: derived };
+    }
+    const result = validateQuoteForSubmission(effectiveQuote);
     if (!result.valid) {
       await form.trigger();
       const firstField = result.missingRequiredFields[0];
@@ -80,7 +93,7 @@ export function SubmitBar() {
       return;
     }
 
-    const saved = await submit.mutateAsync(submissionQuote);
+    const saved = await submit.mutateAsync(effectiveQuote);
     if (role === "external") {
       // External users get a dedicated confirmation page.
       void navigate({ to: "/request-quote/confirmation/$id", params: { id: saved.id } });

@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { quoteSchema, type QuoteFormData } from "@/types/quote";
 import { useIntake } from "./IntakeContext";
 import { CustomerInfoSection } from "./sections/CustomerInfoSection";
+import { GeographicScopeSection } from "./sections/GeographicScopeSection";
+import { PricingScheduleSection } from "./sections/PricingScheduleSection";
 import { ExpectedAwardDateSection } from "./sections/ExpectedAwardDateSection";
 import { VerticalSolutionSection } from "./sections/VerticalSolutionSection";
 import { RepeatableActivationSection } from "./sections/RepeatableActivationSection";
@@ -56,6 +58,12 @@ export function IntakeForm() {
       dealPriority: quote.dealPriority,
       dealTemplate: quote.dealTemplate,
       quoteValidityDate: quote.quoteValidityDate,
+      geographicScope: quote.geographicScope,
+      geographicScopeOtherDetail: quote.geographicScopeOtherDetail,
+      // Proposal-only Q2.3: the estimator/admin section materializes the UI
+      // default on mount; Ballpark quotes keep NULL here.
+      pricingSchedule: quote.pricingSchedule,
+      pricingScheduleOtherDetail: quote.pricingScheduleOtherDetail,
       compliance: quote.compliance,
       vertical: quote.vertical ?? "",
       solution: quote.solution ?? "",
@@ -144,6 +152,8 @@ export function IntakeForm() {
           are required.
         </p>
         <CustomerInfoSection />
+        <GeographicScopeSection />
+        <PricingScheduleSection />
         <ExpectedAwardDateSection />
         <VerticalSolutionSection />
         <RepeatableActivationSection />

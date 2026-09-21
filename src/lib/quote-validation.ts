@@ -109,6 +109,19 @@ export function readinessCheck(quote: Quote): ReadinessResult {
 }
 
 /**
+ * Q2.3 gate — a Proposal cannot be approved without an explicit pricing
+ * schedule. Throws so the transition mutation aborts before any write.
+ * Ballpark quotes are never gated on this field.
+ */
+export function assertPricingScheduleForApproval(quote: Quote): void {
+  if (quote.tier === "proposal" && quote.pricingSchedule == null) {
+    throw new Error(
+      "A pricing schedule must be selected before this Proposal can be approved.",
+    );
+  }
+}
+
+/**
  * Determines whether a single field value counts as "filled" for the
  * readiness check.
  */
