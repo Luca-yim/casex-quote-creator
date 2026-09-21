@@ -71,6 +71,9 @@ $$;
 --    UI hiding alone is insufficient: only estimators and admins may write
 --    pricing_schedule / pricing_schedule_other_detail. service_role contexts
 --    (auth.uid() IS NULL) pass through. RLS policies themselves are untouched.
+--    Dependency: public.current_user_role() — the only role primitive verified
+--    present in the live capture (it is called by public.quotes_scoped()).
+--    private.has_role is NOT used: capture query 6 returned no rows for it.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.enforce_pricing_schedule_authorization()
  RETURNS trigger
@@ -84,8 +87,8 @@ BEGIN
       -- Non-authenticated privileged context (service role). Allowed.
       RETURN NEW;
     END IF;
-    IF NOT (private.has_role(auth.uid(), 'estimator')
-            OR private.has_role(auth.uid(), 'admin')) THEN
+    IF public.current_user_role() IS DISTINCT FROM 'estimator'
+       AND public.current_user_role() IS DISTINCT FROM 'admin' THEN
       RAISE EXCEPTION 'Only estimators and admins may change the pricing schedule'
         USING ERRCODE = '42501';
     END IF;
@@ -93,6 +96,7 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
 
 DROP TRIGGER IF EXISTS quotes_enforce_pricing_schedule_authorization ON public.quotes;
 

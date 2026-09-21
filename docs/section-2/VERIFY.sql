@@ -75,6 +75,13 @@ SELECT trigger_name, event_manipulation, action_statement
 FROM information_schema.triggers
 WHERE trigger_schema = 'public' AND trigger_name = 'quotes_enforce_pricing_schedule_authorization';
 
+\echo '=== 9b. Trigger function uses the verified primitive, not has_role ==='
+SELECT prosrc LIKE '%public.current_user_role()%' AS uses_current_user_role,
+       prosrc LIKE '%has_role%'                   AS references_has_role
+FROM pg_proc
+WHERE oid = 'public.enforce_pricing_schedule_authorization()'::regprocedure;
+-- EXPECT: true | false
+
 \echo '=== 10. quotes RLS policies unchanged (compare to capture baseline) ==='
 SELECT policyname, cmd, roles, qual, with_check
 FROM pg_policies

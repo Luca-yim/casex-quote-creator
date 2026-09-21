@@ -69,6 +69,8 @@ GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO postgres;
 
 -- ---------------------------------------------------------------------------
 -- 2. Remove the Section 2 authorization trigger and its function
+--    (the trigger depends on public.current_user_role(), which is a
+--    pre-existing object and is deliberately left in place).
 -- ---------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS quotes_enforce_pricing_schedule_authorization ON public.quotes;
 DROP FUNCTION IF EXISTS public.enforce_pricing_schedule_authorization();
