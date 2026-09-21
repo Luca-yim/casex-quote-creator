@@ -1,9 +1,11 @@
+import type { Quote } from "@/types/quote";
+
 /**
- * Section 1 (Quote Metadata) option lists.
+ * Section 1 (Quote Metadata) and Section 2 (Proposal-only) option lists.
  *
- * Labels and option sets come verbatim from Questionnaire v6.4 Q1.4, Q1.7 and
- * Q1.8. Stored values are snake_case identifiers; none of these fields feed
- * any pricing calculation.
+ * Labels and option sets come verbatim from Questionnaire v6.4 (Q1.4, Q1.7,
+ * Q1.8, Q2.2, Q2.3). Stored values are snake_case identifiers; none of these
+ * fields feed any pricing calculation.
  */
 
 export const OPPORTUNITY_STAGES = [
