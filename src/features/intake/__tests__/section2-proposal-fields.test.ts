@@ -108,7 +108,7 @@ describe("Q2.2 Geographic Scope", () => {
     const parsed = quoteSchema.parse({ ...VALID_BASE });
     expect(parsed.geographicScope).toBeNull();
     expect(parsed.geographicScopeOtherDetail).toBeNull();
-    const quote = rowToQuote({ ...baseRow });
+    const quote = rowToQuote({ ...baseRow } as never);
     expect(quote.geographicScope).toBeNull();
   });
 
@@ -166,7 +166,7 @@ describe("Q2.3 Pricing Schedule", () => {
       ...baseRow,
       pricing_schedule: "custom",
       pricing_schedule_other_detail: "Negotiated addendum",
-    });
+    } as never);
     expect(quote.pricingSchedule).toBe("custom");
     expect(quote.pricingScheduleOtherDetail).toBe("Negotiated addendum");
   });
