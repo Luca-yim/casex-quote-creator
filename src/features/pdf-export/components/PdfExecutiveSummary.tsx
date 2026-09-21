@@ -101,51 +101,14 @@ export function PdfExecutiveSummary({ context }: PdfSectionProps) {
         </>
       ) : (
         <PdfSection title="Executive Summary">
-          <Text style={styles.label}>Combined Proposal total</Text>
+          <Text style={styles.label}>Total implementation fee</Text>
           <Text style={styles.displayNumber}>
-            {formatCurrency(pricing.totals.proposalTotal)}
+            {formatCurrency(pricing.totalImplementationFee)}
           </Text>
-          <Text style={styles.lead}>
-            Contract term: {pricing.totals.contractYears}{" "}
-            {pricing.totals.contractYears === 1 ? "year" : "years"}
-          </Text>
-
-          {pricing.totals.naspoDiscountApplied ? (
-            <Text style={styles.label}>NASPO cooperative pricing applied</Text>
-          ) : null}
-
-          <View style={styles.spacerMd} />
-          <View style={styles.columns}>
-            <View style={[styles.card, styles.column]}>
-              <Text style={styles.label}>One-time subtotal</Text>
-              <Text style={styles.mono}>
-                {formatCurrency(pricing.totals.oneTimeSubtotal)}
-              </Text>
-            </View>
-            <View style={[styles.card, styles.column]}>
-              <Text style={styles.label}>Annual recurring</Text>
-              <Text style={styles.mono}>
-                {formatCurrency(pricing.totals.annualRecurring)}
-              </Text>
-            </View>
-            <View style={[styles.card, styles.column]}>
-              <Text style={styles.label}>
-                Recurring ({pricing.totals.contractYears}{" "}
-                {pricing.totals.contractYears === 1 ? "year" : "years"})
-              </Text>
-              <Text style={styles.mono}>
-                {formatCurrency(pricing.totals.multiYearRecurring)}
-              </Text>
-            </View>
-          </View>
 
           {context.version === "internal" && context.pricing.kind === "proposal" ? (
             <>
               <View style={styles.spacerMd} />
-              <MetaRow
-                label="Total implementation fee"
-                value={formatCurrency(context.pricing.totalImplementationFee)}
-              />
               <MetaRow
                 label="Grand total cost"
                 value={formatCurrency(context.pricing.grandTotalCost)}

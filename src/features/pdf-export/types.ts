@@ -1,7 +1,6 @@
 import type { Assumption } from "@/lib/assumptions-builder";
 import type { CostItemRow, WbsLineRow } from "@/features/wbs/useWbsData";
 import type { PricingBreakdown } from "@/types/pricing";
-import type { ProposalTotals } from "@/lib/pricing-engine/proposalTotal";
 import type { Quote } from "@/types/quote";
 
 /** Which audience a generated PDF is intended for. */
@@ -53,12 +52,10 @@ export interface BallparkPricing {
     | undefined;
 }
 
-/** Proposal-tier pricing as a customer may see it: totals without cost basis. */
+/** Proposal-tier pricing as a customer may see it: the final fee only. */
 export interface ProposalPricingCustomer {
   kind: "proposal";
   totalImplementationFee: number;
-  /** One-time / annual / multi-year / combined breakdown of the Proposal price. */
-  totals: ProposalTotals;
 }
 
 /** Proposal-tier pricing with full cost basis. Internal audience only. */
@@ -68,8 +65,6 @@ export interface ProposalPricingInternal {
   marginPercent: number;
   contingencyPct: number;
   totalImplementationFee: number;
-  /** One-time / annual / multi-year / combined breakdown of the Proposal price. */
-  totals: ProposalTotals;
   lines: WbsLineRow[];
   items: CostItemRow[];
 }

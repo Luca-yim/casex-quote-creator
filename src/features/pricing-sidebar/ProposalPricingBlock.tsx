@@ -11,10 +11,6 @@ import {
   type CostItem,
   type WbsLine,
 } from "@/lib/pricing-engine/fullQuote";
-import {
-  computeProposalTotals,
-  type ProposalCatalogInput,
-} from "@/lib/pricing-engine/proposalTotal";
 import { mapQuoteToDrivers } from "@/lib/pricing-engine/mapQuoteToDrivers";
 import type { Quote } from "@/types/quote";
 import { formatCurrency } from "@/lib/utils";
@@ -27,8 +23,6 @@ export interface ProposalPricingBlockProps {
   totalHours: number;
   /** Estimator/admin in edit mode. */
   canEdit: boolean;
-  /** Catalog side of the Proposal total (recurring, NASPO, duration). */
-  catalog?: ProposalCatalogInput | null;
   onChange: (contingencyPct: number) => void;
 }
 
@@ -43,7 +37,6 @@ export function ProposalPricingBlock({
   items,
   totalHours,
   canEdit,
-  catalog,
   onChange,
 }: ProposalPricingBlockProps) {
   const cost = useMemo(() => grandTotalCost(lines, items), [lines, items]);
@@ -71,10 +64,6 @@ export function ProposalPricingBlock({
   const scenarios = marginScenarios(cost, totalHours);
   const price = totalImplementationFee(quote.marginPercent, cost, contingency);
   const displayPct = Math.round(contingency * 1000) / 10;
-  const totals = useMemo(
-    () => (catalog ? computeProposalTotals(price, catalog) : null),
-    [price, catalog],
-  );
 
   const commitContingency = (pct: number) => {
     setDraftContingency(pct);
@@ -141,65 +130,20 @@ export function ProposalPricingBlock({
       </div>
 
       <div className="space-y-1 rounded-lg border bg-muted/40 p-4">
-        {catalog && totals ? (
-          <>
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Implementation fee ({quote.marginPercent}% margin + {displayPct}% contingency)
-                </span>
-                <span className="font-mono">{formatCurrency(price)}</span>
-              </div>
-              {catalog.oneTimeTotal > 0 ? (
-                <div className="flex justify-between">
-                  <span className="text-xs text-muted-foreground">Catalog one-time items</span>
-                  <span className="font-mono">{formatCurrency(catalog.oneTimeTotal)}</span>
-                </div>
-              ) : null}
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Annual recurring</span>
-                <span className="font-mono">{formatCurrency(totals.annualRecurring)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Recurring ({totals.contractYears}{" "}
-                  {totals.contractYears === 1 ? "year" : "years"})
-                </span>
-                <span className="font-mono">{formatCurrency(totals.multiYearRecurring)}</span>
-              </div>
-            </div>
-            <Separator />
-            <p className="text-xs text-muted-foreground">Combined Proposal total</p>
-            <p
-              data-testid="computed-price"
-              className="font-mono text-3xl font-semibold tracking-tight"
-            >
-              {formatCurrency(totals.proposalTotal)}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground">
-              Total implementation fee ({quote.marginPercent}% margin + {displayPct}%
-              contingency)
-            </p>
-            <p
-              data-testid="computed-price"
-              className="font-mono text-3xl font-semibold tracking-tight"
-            >
-              {formatCurrency(price)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Delivery cost basis {formatCurrency(cost)}
-            </p>
-          </>
-        )}
+        <p className="text-xs text-muted-foreground">
+          Total implementation fee ({quote.marginPercent}% margin + {displayPct}%
+          contingency)
+        </p>
+        <p
+          data-testid="computed-price"
+          className="font-mono text-3xl font-semibold tracking-tight"
+        >
+          {formatCurrency(price)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Delivery cost basis {formatCurrency(cost)}
+        </p>
       </div>
-      {catalog?.naspoDiscountApplied ? (
-        <span className="inline-flex rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
-          NASPO cooperative pricing applied
-        </span>
-      ) : null}
     </div>
   );
 }

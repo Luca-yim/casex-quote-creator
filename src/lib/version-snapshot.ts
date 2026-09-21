@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { PRICING_SNAPSHOT_KEY } from "@/lib/pricing-engine/proposalSnapshot";
 
 /** Kind of pipeline event that produced a snapshot. */
 export type VersionChangeType =
@@ -21,8 +20,6 @@ export interface WriteVersionSnapshotInput {
   changeReason: string;
   changedBy: string | undefined | null;
   changeType: VersionChangeType;
-  /** Optional computed-price payload frozen into the snapshot (e.g. approval). */
-  pricingSnapshot?: unknown;
 }
 
 /**
@@ -40,7 +37,6 @@ export async function writeVersionSnapshot({
   changeReason,
   changedBy,
   changeType,
-  pricingSnapshot,
 }: WriteVersionSnapshotInput): Promise<{ version_number: number }> {
   const { data: latest, error: readError } = await supabase
     .from("quote_versions")
@@ -59,7 +55,6 @@ export async function writeVersionSnapshot({
   const snapshot = {
     ...(typeof quoteData === "object" && quoteData ? quoteData : { value: quoteData }),
     __changeType: changeType,
-    ...(pricingSnapshot !== undefined ? { [PRICING_SNAPSHOT_KEY]: pricingSnapshot } : {}),
   };
 
   const { error: insertError } = await supabase.from("quote_versions").insert({

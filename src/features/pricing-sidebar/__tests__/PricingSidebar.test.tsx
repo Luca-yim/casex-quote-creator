@@ -57,10 +57,6 @@ vi.mock("@/features/estimator-ballpark/useBallparkSizingReference", () => ({
   useBallparkSizingReference: () => ({ data: SIZING, isLoading: false }),
 }));
 
-vi.mock("@/features/pricing-sidebar/useApprovedPricingSnapshot", () => ({
-  useApprovedPricingSnapshot: () => ({ data: undefined, isLoading: false }),
-}));
-
 vi.mock("@/lib/calculation-engine", () => ({
   calculatePricingBreakdown: () => BREAKDOWN,
 }));
@@ -219,18 +215,15 @@ describe("PricingSidebar headline TCV", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the combined proposal headline with recurring rows", () => {
+  it("leaves the proposal headline unchanged", () => {
     renderSidebar(answeredQuote({ tier: "proposal" }));
 
-    // Proposal headline is the combined total (one-time + recurring across the
-    // contract term); the ballpark TCV headline never renders here.
     expect(
-      screen.getByText(`Combined Proposal Total (${BREAKDOWN.contractYears}-year)`),
+      screen.getByText(`Total Contract Value (${BREAKDOWN.contractYears}-year)`),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(`Total Contract Value (${BREAKDOWN.contractYears}-year)`),
+      screen.queryByText("Estimated Total incl. Implementation Fee"),
     ).not.toBeInTheDocument();
-    // 100k one-time + 5k/month * 12 * 3 years = 280k.
     expect(
       screen.getByText(formatCurrency(BREAKDOWN.finalTCV)),
     ).toBeInTheDocument();
