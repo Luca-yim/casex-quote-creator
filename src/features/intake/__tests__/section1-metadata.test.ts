@@ -212,7 +212,7 @@ describe("Section 1 pricing and exposure safety", () => {
 
   it("do not change computed totals", () => {
     const lines = [
-      { id: "w1", quoteId: "quote-1", phase: "Build", area: null, role: "Engineer", location: "Onshore", costHours: 100, costRate: 225, revenueHours: 100, revenueRate: 300, personDays: null, createdAt: "2026-01-01" },
+      { id: "w1", quoteId: "quote-1", phase: "Build", area: null, role: "Engineer", location: "Onshore", costHours: 100, costRate: 225, revenueHours: 100, revenueRate: 300, billRate: 300, personDays: null, createdAt: "2026-01-01" },
     ];
     const items = [{ id: "c1", quoteId: "quote-1", name: "Travel", costType: "travel", amount: 1000, isCustomerVisible: false, createdAt: "2026-01-01" }];
     const withMetadata: Partial<Quote> = {
