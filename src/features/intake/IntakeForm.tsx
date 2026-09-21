@@ -33,6 +33,8 @@ const PRESELECTED_DEFAULT_FIELDS = [
   "environmentCount",
   "marginPercent",
   "tier",
+  "opportunityStage",
+  "dealPriority",
 ] as const;
 
 /**
