@@ -54,6 +54,20 @@ describe("validateQuoteForSubmission", () => {
       );
     }
   });
+
+  it("does not require internal Proposal metadata for Ballpark submission", () => {
+    const quote = makeQuote({ tier: "ballpark" });
+    const withoutInternalMetadata = { ...quote } as Partial<typeof quote>;
+    delete withoutInternalMetadata.opportunityStage;
+    delete withoutInternalMetadata.dealPriority;
+    delete withoutInternalMetadata.dealTemplate;
+
+    const result = validateQuoteForSubmission(withoutInternalMetadata as typeof quote);
+    expect(result.valid).toBe(true);
+    expect(result.missingRequiredFields).not.toEqual(
+      expect.arrayContaining(["opportunityStage", "dealPriority", "dealTemplate"]),
+    );
+  });
 });
 
 describe("readinessCheck", () => {
@@ -87,5 +101,21 @@ describe("readinessCheck", () => {
 
   it("tracks eight required fields", () => {
     expect(readinessCheck(makeQuote()).totalRequired).toBe(8);
+  });
+
+  it("does not count internal Proposal metadata in Ballpark readiness", () => {
+    const baseline = readinessCheck(makeQuote({ tier: "ballpark" }));
+    const changed = readinessCheck(
+      makeQuote({
+        tier: "ballpark",
+        opportunityStage: "closed",
+        dealPriority: "rush",
+        dealTemplate: "other",
+      }),
+    );
+    expect(changed).toEqual(baseline);
+    expect(changed.missing).not.toEqual(
+      expect.arrayContaining(["opportunityStage", "dealPriority", "dealTemplate"]),
+    );
   });
 });

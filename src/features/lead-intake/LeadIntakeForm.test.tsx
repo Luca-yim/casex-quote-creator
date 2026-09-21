@@ -13,6 +13,13 @@ vi.mock("@/hooks/useVerticalLabels", () => ({
 }));
 
 describe("LeadIntakeForm required-field validation", () => {
+  it("does not render internal quote metadata on public intake", () => {
+    render(<LeadIntakeForm onSubmit={vi.fn()} />);
+    expect(screen.queryByLabelText(/opportunity stage/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal priority/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal template used/i)).not.toBeInTheDocument();
+  });
+
   it("blocks the final step until organization and email are provided", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

@@ -164,6 +164,34 @@ describe("readonly locking", () => {
 });
 
 describe("conditional sections", () => {
+  it("hides internal Proposal metadata from the Ballpark questionnaire", () => {
+    setup("sales_rep", "edit", { tier: "ballpark" });
+    expect(screen.queryByLabelText(/opportunity stage/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal priority/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal template used/i)).not.toBeInTheDocument();
+  });
+
+  it("hides internal Proposal metadata from external users", () => {
+    setup("external", "readonly", { tier: "proposal" });
+    expect(screen.queryByLabelText(/opportunity stage/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal priority/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/deal template used/i)).not.toBeInTheDocument();
+  });
+
+  it("retains stored metadata on the authorized internal Proposal surface", () => {
+    setup("estimator", "edit", {
+      tier: "proposal",
+      opportunityStage: "negotiation",
+      dealPriority: "strategic",
+      dealTemplate: "state_workers_comp",
+    });
+    expect(screen.getByLabelText(/opportunity stage/i)).toHaveTextContent("Negotiation");
+    expect(screen.getByLabelText(/deal priority/i)).toHaveTextContent("Strategic");
+    expect(screen.getByLabelText(/deal template used/i)).toHaveTextContent(
+      "State Workers' Compensation",
+    );
+  });
+
   it("hides the MAU band until the B2C portal is enabled", () => {
     setup("sales_rep", "edit", { includeB2c: false });
     expect(screen.queryByText(/monthly active users/i)).toBeNull();
