@@ -30,6 +30,9 @@ test.describe("external requester never sees pricing", () => {
 
     await expect(page.getByText(/total contract value/i)).toHaveCount(0);
     await expect(page.getByRole("slider")).toHaveCount(0);
+    await expect(page.getByLabel(/opportunity stage/i)).toHaveCount(0);
+    await expect(page.getByLabel(/deal priority/i)).toHaveCount(0);
+    await expect(page.getByLabel(/deal template used/i)).toHaveCount(0);
   });
 
   test("offers no PDF download to an external requester", async ({ page }) => {

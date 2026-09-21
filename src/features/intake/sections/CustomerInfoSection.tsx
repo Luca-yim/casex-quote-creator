@@ -43,8 +43,10 @@ const CUSTOMER_TYPES: Array<{ value: string; label: string }> = [
 /** Section 1 — quote name, customer identity, type and contract length. */
 export function CustomerInfoSection() {
   const { control, register, formState } = useFormContext<QuoteFormData>();
-  const { mode } = useIntake();
+  const { mode, quote, role } = useIntake();
   const disabled = mode === "readonly";
+  const showInternalProposalMetadata =
+    quote.tier === "proposal" && role !== "external";
 
   return (
     <SectionCard icon="🏢" title="Customer Info">
@@ -117,81 +119,85 @@ export function CustomerInfoSection() {
         <FieldError message={formState.errors.customerType?.message} />
       </div>
 
-      <div className="space-y-2">
-        <Label>Opportunity stage</Label>
-        <Controller
-          control={control}
-          name="opportunityStage"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-              <SelectTrigger aria-label="Opportunity stage">
-                <SelectValue placeholder="Select stage" />
-              </SelectTrigger>
-              <SelectContent>
-                {OPPORTUNITY_STAGES.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <p className="text-xs text-muted-foreground">
-          For reporting only — does not affect pricing.
-        </p>
-        <FieldError message={formState.errors.opportunityStage?.message} />
-      </div>
+      {showInternalProposalMetadata ? (
+        <>
+          <div className="space-y-2">
+            <Label>Opportunity stage</Label>
+            <Controller
+              control={control}
+              name="opportunityStage"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                  <SelectTrigger aria-label="Opportunity stage">
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OPPORTUNITY_STAGES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              For reporting only — does not affect pricing.
+            </p>
+            <FieldError message={formState.errors.opportunityStage?.message} />
+          </div>
 
-      <div className="space-y-2">
-        <Label>Deal priority</Label>
-        <Controller
-          control={control}
-          name="dealPriority"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-              <SelectTrigger aria-label="Deal priority">
-                <SelectValue placeholder="Select priority" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEAL_PRIORITIES.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <FieldError message={formState.errors.dealPriority?.message} />
-      </div>
+          <div className="space-y-2">
+            <Label>Deal priority</Label>
+            <Controller
+              control={control}
+              name="dealPriority"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
+                  <SelectTrigger aria-label="Deal priority">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_PRIORITIES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={formState.errors.dealPriority?.message} />
+          </div>
 
-      <div className="space-y-2">
-        <Label>Deal template used</Label>
-        <Controller
-          control={control}
-          name="dealTemplate"
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ""}
-              onValueChange={field.onChange}
-              disabled={disabled}
-            >
-              <SelectTrigger aria-label="Deal template used">
-                <SelectValue placeholder="Select a template" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEAL_TEMPLATES.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <FieldError message={formState.errors.dealTemplate?.message} />
-      </div>
+          <div className="space-y-2">
+            <Label>Deal template used</Label>
+            <Controller
+              control={control}
+              name="dealTemplate"
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  disabled={disabled}
+                >
+                  <SelectTrigger aria-label="Deal template used">
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_TEMPLATES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={formState.errors.dealTemplate?.message} />
+          </div>
+        </>
+      ) : null}
 
       <div className="space-y-2">
         <Label>Quote validity date</Label>
