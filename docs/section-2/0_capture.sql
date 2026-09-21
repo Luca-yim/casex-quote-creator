@@ -35,10 +35,21 @@ SELECT trigger_name FROM information_schema.triggers
 WHERE trigger_schema = 'public'
   AND trigger_name = 'quotes_enforce_pricing_schedule_authorization';
 
-\echo '=== 6. private.has_role availability (authorization trigger dependency) ==='
-SELECT n.nspname, p.proname, p.prosecdef
+\echo '=== 6. public.current_user_role() availability (authorization trigger dependency) ==='
+SELECT p.oid::regprocedure AS function_signature,
+       p.prosecdef AS is_security_definer,
+       p.provolatile AS volatility,
+       pg_get_userbyid(p.proowner) AS owner,
+       p.proconfig AS settings
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname = 'private' AND p.proname = 'has_role';
+WHERE n.nspname = 'public' AND p.proname = 'current_user_role';
+-- EXPECT: exactly one row. If empty, STOP — do not run 1_forward.sql.
+
+\echo '=== 6b. current_user_role() grants ==='
+SELECT grantee, privilege_type
+FROM information_schema.routine_privileges
+WHERE routine_schema = 'public' AND routine_name = 'current_user_role'
+ORDER BY grantee;
 
 \echo '=== 7. Dependent objects on quotes_scoped (must be empty, per Section 1 capture) ==='
 SELECT dependent.relname AS dependent_view_or_function

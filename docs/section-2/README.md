@@ -20,7 +20,12 @@ deployed. Application code for Section 2 is implemented separately.
      `quotes_enforce_pricing_schedule_authorization` — the narrowly required
      authorization change: only estimator/admin may write
      `pricing_schedule`/`pricing_schedule_other_detail`; non-authenticated
-     (service) contexts pass through. RLS policies themselves are untouched;
+     (service) contexts pass through. It depends on
+     **`public.current_user_role()`**, the only role primitive verified present
+     in the live capture (it is already called by `quotes_scoped()`).
+     `private.has_role` was rejected: capture query 6 returned no rows for it,
+     and no replacement role function is created. RLS policies are untouched;
+
    - `quotes_scoped()` DROP + CREATE (explicit RETURNS TABLE cannot be
      changed by CREATE OR REPLACE) appending four output columns:
      geographic scope visible to sales_rep/estimator/admin and hidden from
