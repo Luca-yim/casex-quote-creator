@@ -76,13 +76,13 @@ const baseRow = {
 
 describe("Section 1 defaults (Q1.4, Q1.7, Q1.8, Q1.9)", () => {
   it("defaults opportunity stage to discovery and deal priority to standard", () => {
-    const parsed = quoteSchema.parse({});
+    const parsed = quoteSchema.parse(VALID_BASE);
     expect(parsed.opportunityStage).toBe("discovery");
     expect(parsed.dealPriority).toBe("standard");
   });
 
   it("leaves deal template and validity date blank by default", () => {
-    const parsed = quoteSchema.parse({});
+    const parsed = quoteSchema.parse(VALID_BASE);
     expect(parsed.dealTemplate).toBeNull();
     expect(parsed.quoteValidityDate).toBeNull();
   });
@@ -144,6 +144,7 @@ describe("Section 1 exact v6.4 option sets", () => {
 describe("Section 1 validation", () => {
   it("accepts every valid option value", () => {
     const parsed = quoteSchema.parse({
+      ...VALID_BASE,
       opportunityStage: "negotiation",
       dealPriority: "rush",
       dealTemplate: "federal_small_deployment",
@@ -157,25 +158,25 @@ describe("Section 1 validation", () => {
 
   it("rejects values outside the v6.4 option sets (no invented CRM values)", () => {
     expect(
-      quoteSchema.safeParse({ opportunityStage: "closed_won" }).success,
+      quoteSchema.safeParse({ ...VALID_BASE, opportunityStage: "closed_won" }).success,
     ).toBe(false);
-    expect(quoteSchema.safeParse({ dealPriority: "p1" }).success).toBe(false);
-    expect(quoteSchema.safeParse({ dealTemplate: "saas_accelerate" }).success)
+    expect(quoteSchema.safeParse({ ...VALID_BASE, dealPriority: "p1" }).success).toBe(false);
+    expect(quoteSchema.safeParse({ ...VALID_BASE, dealTemplate: "saas_accelerate" }).success)
       .toBe(false);
   });
 
   it("rejects invalid validity-date formats and non-dates", () => {
-    expect(quoteSchema.safeParse({ quoteValidityDate: "11/19/2026" }).success)
+    expect(quoteSchema.safeParse({ ...VALID_BASE, quoteValidityDate: "11/19/2026" }).success)
       .toBe(false);
-    expect(quoteSchema.safeParse({ quoteValidityDate: "2026-13-01" }).success)
+    expect(quoteSchema.safeParse({ ...VALID_BASE, quoteValidityDate: "2026-13-01" }).success)
       .toBe(false);
-    expect(quoteSchema.safeParse({ quoteValidityDate: 12345 }).success).toBe(
+    expect(quoteSchema.safeParse({ ...VALID_BASE, quoteValidityDate: 12345 }).success).toBe(
       false,
     );
   });
 
   it("accepts a blank validity date (means no validity statement)", () => {
-    const parsed = quoteSchema.parse({ quoteValidityDate: null });
+    const parsed = quoteSchema.parse({ ...VALID_BASE, quoteValidityDate: null });
     expect(parsed.quoteValidityDate).toBeNull();
   });
 });
