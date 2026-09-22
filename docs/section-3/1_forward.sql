@@ -1,75 +1,65 @@
 -- =====================================================================
 -- Section 3 / Q3.4 (Billing Preference) — FORWARD MIGRATION **DRAFT**
 -- =====================================================================
--- STATUS: DRAFT. **NOT EXECUTABLE.** NOT APPROVED. NOT APPLIED.
+-- STATUS: DRAFT. **NOT APPLIED.** Requires authorized-operator review of the
+-- pre-change capture (0_capture.sql) immediately before execution.
 --
--- Live capture status: COMPLETE (0_capture.sql; README.md §1b). Verified:
---   - public.quotes has 60 columns and 13 rows;
---   - no Billing Preference column, no Other-detail column, no Q3.4
---     constraint, no Q3.4 name collision;
---   - quotes_scoped() returns exactly 60 columns, positions 57–60 being
---     geographic_scope, geographic_scope_other_detail, pricing_schedule,
---     pricing_schedule_other_detail;
---   - quotes_scoped() is SECURITY DEFINER, STABLE, SQL language, owner
---     postgres, search_path = public; EXECUTE for authenticated observed;
---   - Section 2 constraints present and validated; the Section 2
---     authorization trigger present and must remain behaviourally unchanged;
---   - five non-internal triggers on public.quotes (enforce_quote_state,
---     notify_quote_reassignment, notify_quote_state_change,
---     quotes_enforce_pricing_schedule_authorization, quotes_updated_at);
---   - RLS policies include External draft updates, Sales Representative
---     owned-quote updates, and Estimator/Admin update paths.
+-- Approved decisions baked into this file (per the approved Q3.4 slice):
+--   D1 — YES, a separate billing_preference_other_detail column exists.
+--   D2 — stored values are exactly: monthly, annual_upfront,
+--        annual_quarterly, other.
+--   D3 — "Annual quarterly" is a persisted stored value (annual_quarterly).
+--        There is still NO default at any layer: the Proposal UI starts
+--        blank and the columns carry no database default.
+--   D4 — Sales Representative write access: own quote only, and only while
+--        the existing lifecycle considers it editable — the states used by
+--        canEditQuote("sales_rep", ...) in src/lib/quote-workflow.ts, i.e.
+--        state IN ('draft', 'estimator_adjusted') with owner_id = auth.uid().
+--   D5 — External-user write protection is enforced server-side by the new
+--        trigger (SQLSTATE 42501), because the live External draft-update
+--        RLS path would otherwise expose the columns.
+--   D6 — a SEPARATE new trigger (quotes_enforce_billing_preference_authorization);
+--        the existing quotes_enforce_pricing_schedule_authorization trigger
+--        and function are NOT modified.
+--   D7 — database-level Other-detail validation IS required (per the approved
+--        slice, both the Zod layer and the database enforce it).
+--   D8 — no PDF/export surface: output code is unchanged.
 --
--- HARD STOP #1 — the captured pre-change quotes_scoped() body is held in the
---   operator's capture output and is deliberately NOT reproduced in this
---   repository. It must be pasted into §4 at execution time. Running this
---   file with the placeholder in place fails by design rather than
---   overwriting the live function with a guessed body.
+-- Live baseline (captured; README.md §1b):
+--   public.quotes = 60 columns, 13 rows; no Q3.4 column/constraint existed;
+--   quotes_scoped() = 60 outputs ending 57 geographic_scope,
+--   58 geographic_scope_other_detail, 59 pricing_schedule,
+--   60 pricing_schedule_other_detail; SECURITY DEFINER, STABLE, sql,
+--   owner postgres, search_path = public; EXECUTE for authenticated;
+--   five non-internal triggers; Section 2 constraints validated.
 --
--- HARD STOP #2 — UNRESOLVED APPROVAL DECISIONS. None of the following may be
---   settled by this draft; every one needs explicit approval, and the column,
---   constraint and masking shapes below are provisional illustrations only:
---     D1 — is a separate billing_preference_other_detail column required?
---     D2 — exact stored option values (identifiers and spelling).
---     D3 — is "Annual quarterly" UI-only or persisted?
---     D4 — Sales Representative read/write timing (pre- vs post-approval).
---     D5 — External-user write protection mechanism (the live capture shows
---          an External draft-update RLS path, so external write exposure is
---          an open question, not a settled outcome).
---     D6 — separate new trigger vs. extension of an existing trigger.
---     D7 — database-level "Other"-detail validation vs. Zod only.
---     D8 — PDF/export inclusion.
---
--- Scope ceiling: nullable column(s), guarded constraint(s), and an APPEND to
--- quotes_scoped() after position 60. Nothing else. Pricing, WBS, rate cards,
--- NASPO, margin, contingency, scoring, approval locks, snapshots, realtime,
--- lead-conversion RPCs, Ballpark behaviour, public lead intake, Section 1,
--- Section 2, Q3.1a and Q3.2 are all untouched.
+-- Scope ceiling: two nullable columns, two guarded constraints, one new
+-- trigger + function, and an APPEND to quotes_scoped() after position 60.
+-- Nothing else. Pricing, WBS, rate cards, NASPO, margin, contingency,
+-- scoring, approval locks, snapshots, realtime, lead-conversion RPCs,
+-- Ballpark behaviour, public lead intake, Section 1, Section 2, Q3.1a and
+-- Q3.2 are untouched.
 -- =====================================================================
 
 BEGIN;
 
 -- ---------------------------------------------------------------------
--- 1. Columns — nullable, NO database default, NO backfill.
---    All 13 existing rows must therefore remain NULL for every Q3.4 column;
---    existing quotes stay valid. Verified afterwards by VERIFY.sql A2.
---    Column set and naming are provisional pending D1 and D2.
+-- 1. Columns — nullable text, NO database default, NO backfill.
+--    All 13 pre-existing rows therefore remain NULL for both fields and
+--    stay valid. Verified afterwards by VERIFY.sql A2.
 -- ---------------------------------------------------------------------
 ALTER TABLE public.quotes
   ADD COLUMN IF NOT EXISTS billing_preference              text,
   ADD COLUMN IF NOT EXISTS billing_preference_other_detail text;
--- ^ second column is subject to D1 and must not be added unless approved.
 
 COMMENT ON COLUMN public.quotes.billing_preference IS
   'v6.4 Q3.4 Billing Preference (Proposal-only; optional; no pricing effect)';
 COMMENT ON COLUMN public.quotes.billing_preference_other_detail IS
-  'v6.4 Q3.4 Other detail (free text); enforcement layer pending decision D7';
+  'v6.4 Q3.4 Other detail (free text); required when billing_preference = other';
 
 -- ---------------------------------------------------------------------
--- 2. Option constraint — guarded, NOT VALID then VALIDATE, so the table is
---    not long-locked and the 13 pre-existing NULL rows cannot fail.
---    The value list below is a PLACEHOLDER pending D2/D3; do not treat the
---    identifiers as approved.
+-- 2. Constraints — guarded (NOT VALID then VALIDATE) so the table is not
+--    long-locked and the 13 pre-existing NULL rows cannot fail.
 -- ---------------------------------------------------------------------
 DO $$
 BEGIN
@@ -81,111 +71,207 @@ BEGIN
     ALTER TABLE public.quotes
       ADD CONSTRAINT quotes_billing_preference_check
       CHECK (billing_preference IS NULL
-             OR billing_preference IN (<PASTE_APPROVED_OPTION_VALUES_HERE>))
+             OR billing_preference IN
+                ('monthly', 'annual_upfront', 'annual_quarterly', 'other'))
       NOT VALID;
   END IF;
 END $$;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
--- Optional, subject to D7. Include ONLY if database-level Other-detail
--- validation is approved; otherwise the rule lives in Zod alone, as Q2.2 and
--- Q2.3 do. Note that Q3.4 is optional for completion, submission and
--- approval, so no NOT NULL rule of any kind may be introduced.
--- DO $$
--- BEGIN
---   IF NOT EXISTS (
---     SELECT 1 FROM pg_constraint
---     WHERE conrelid = 'public.quotes'::regclass
---       AND conname = 'quotes_billing_preference_other_detail_check'
---   ) THEN
---     ALTER TABLE public.quotes
---       ADD CONSTRAINT quotes_billing_preference_other_detail_check
---       CHECK (billing_preference_other_detail IS NULL
---              OR billing_preference = <PASTE_APPROVED_OTHER_VALUE_HERE>)
---       NOT VALID;
---   END IF;
--- END $$;
--- ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass
+      AND conname = 'quotes_billing_preference_other_detail_check'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_billing_preference_other_detail_check
+      CHECK (billing_preference IS NULL
+             OR billing_preference <> 'other'
+             OR (billing_preference_other_detail IS NOT NULL
+                 AND btrim(billing_preference_other_detail) <> ''))
+      NOT VALID;
+  END IF;
+END $$;
+
+ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check;
 
 -- ---------------------------------------------------------------------
--- 3. Write authorization — UNRESOLVED (D4, D5, D6). This draft adds NOTHING.
---    The live capture shows an External draft-update RLS path alongside the
---    Sales Representative owned-quote and Estimator/Admin update paths, so
---    it cannot be assumed that RLS alone keeps external users away from the
---    Q3.4 columns. Review must decide between:
---      (a) no new enforcement, if the approved role model tolerates the
---          existing External draft-update path;
---      (b) a new, separately approved trigger; or
---      (c) extending an existing trigger.
---    Option (c) touches quotes_enforce_pricing_schedule_authorization, which
---    the live capture requires to remain behaviourally unchanged for
---    Section 2 — so (c) needs a byte-level before/after review of that
---    function and a matching inverse in 2_rollback.sql.
---    All five captured triggers must remain present regardless of the choice.
+-- 3. Write authorization — separate, narrowly scoped trigger. Inspects ONLY
+--    the two Q3.4 columns; every unrelated field and all five existing
+--    triggers are unaffected. Trusted system context (auth.uid() IS NULL)
+--    passes, matching the Section 2 trigger convention. Ballpark and
+--    lead-converted quotes insert NULL/NULL, which is not a protected write.
 -- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.enforce_billing_preference_authorization()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  protected_write boolean;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    protected_write := NEW.billing_preference IS NOT NULL
+                       OR NEW.billing_preference_other_detail IS NOT NULL;
+  ELSE
+    protected_write := NEW.billing_preference IS DISTINCT FROM OLD.billing_preference
+                       OR NEW.billing_preference_other_detail IS DISTINCT FROM OLD.billing_preference_other_detail;
+  END IF;
+
+  IF protected_write THEN
+    -- Trusted system context: service/system operations run without a user.
+    IF auth.uid() IS NULL THEN
+      RETURN NEW;
+    END IF;
+
+    IF public.current_user_role() IN ('estimator', 'admin') THEN
+      RETURN NEW;
+    END IF;
+
+    -- Sales reps: own quote only, and only while the existing lifecycle
+    -- considers it editable (canEditQuote for sales_rep: draft or
+    -- estimator_adjusted).
+    IF public.current_user_role() = 'sales_rep'
+       AND NEW.owner_id = auth.uid()
+       AND NEW.state IN ('draft', 'estimator_adjusted') THEN
+      RETURN NEW;
+    END IF;
+
+    RAISE EXCEPTION 'Only estimators, admins, or the owning sales rep on an editable quote may set the billing preference'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS quotes_enforce_billing_preference_authorization ON public.quotes;
+
+CREATE TRIGGER quotes_enforce_billing_preference_authorization
+  BEFORE INSERT OR UPDATE ON public.quotes
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_billing_preference_authorization();
 
 -- ---------------------------------------------------------------------
--- 4. quotes_scoped() — APPEND Q3.4 outputs AFTER position 60.
+-- 4. quotes_scoped() — 62 outputs; positions 1–60 preserved exactly;
+--    Q3.4 outputs appended at 61–62.
 --
---    !!! HARD STOP !!!
---    Paste the captured live definition (0_capture.sql query 4) below, then
---    make ONLY these edits:
---      a) preserve output positions 1–60 exactly — every existing name, type
---         and position, ending 57 geographic_scope,
---         58 geographic_scope_other_detail, 59 pricing_schedule,
---         60 pricing_schedule_other_detail. No reordering, no insertion into
---         the middle, no removal;
---      b) append the approved Q3.4 output(s) to the END of the RETURNS TABLE
---         list, starting at position 61;
---      c) append the matching masking expression(s) to the END of the SELECT
---         list, in the same order;
---      d) change NOTHING else — not the existing masking expressions, not
---         the ownership/role WHERE clause, not LANGUAGE sql, not SECURITY
---         DEFINER, not STABLE, not SET search_path = public, not the owner
---         (postgres).
---    Confirm the append position against 0_capture.sql query 6 (60 columns)
---    before running.
+--    OPERATOR CHECK before running: re-run 0_capture.sql and confirm the
+--    live definition still matches the preserved positions 1–60 below
+--    (the live capture verified this baseline; if it has drifted, STOP and
+--    re-baseline rather than overwrite). The body below preserves the
+--    captured masking expressions, row-scope predicates, LANGUAGE sql,
+--    STABLE, SECURITY DEFINER, SET search_path = 'public' and the 60
+--    existing outputs verbatim, appending only:
+--      61 billing_preference
+--      62 billing_preference_other_detail
 -- ---------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.quotes_scoped();
 
-<PASTE_CAPTURED_QUOTES_SCOPED_DEFINITION_HERE>
--- ^ Replace this placeholder line with the captured CREATE OR REPLACE
---   FUNCTION statement, edited per (a)-(d) above. Leaving the placeholder in
---   place causes a syntax error and aborts the transaction — intended.
+CREATE FUNCTION public.quotes_scoped()
+ RETURNS TABLE(id uuid, owner_id uuid, requested_by uuid, reviewed_by uuid, approved_by uuid, last_reviewed_by uuid, name text, customer_name text, customer_type text, customer_email text, compliance text[], vertical text, solution text, vertical_other_detail text, repeatable_activation text, module_tier text, contract_years integer, expected_award_date date, case_worker_count integer, include_b2c boolean, b2c_mau integer, include_b2b_portal boolean, b2b_user_count integer, hosting_model text, environment_count integer, has_integrations boolean, integration_count integer, integration_difficulty text, support_tier text, rep_confidence text, tier text, state text, submitted_at timestamp with time zone, approved_at timestamp with time zone, sent_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, margin_percent integer, margin_justification text, contingency_pct numeric, converted_from_lead_id uuid, converted_from_lead_notes text, migration_required boolean, migration_volume_range text, migration_cleanup_required boolean, external_idp_required boolean, worker_idp_required boolean, idp_documented boolean, portal_form_count_range text, lead_id uuid, needs_attention boolean, integrations jsonb, opportunity_stage text, deal_priority text, deal_template text, quote_validity_date date, geographic_scope text, geographic_scope_other_detail text, pricing_schedule text, pricing_schedule_other_detail text, billing_preference text, billing_preference_other_detail text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select
+    q.id, q.owner_id, q.requested_by, q.reviewed_by, q.approved_by, q.last_reviewed_by,
+    q.name, q.customer_name, q.customer_type, q.customer_email,
+    q.compliance, q.vertical, q.solution, q.vertical_other_detail,
+    q.repeatable_activation, q.module_tier, q.contract_years,
+    q.expected_award_date, q.case_worker_count,
+    q.include_b2c, q.b2c_mau, q.include_b2b_portal, q.b2b_user_count,
+    q.hosting_model, q.environment_count,
+    q.has_integrations, q.integration_count, q.integration_difficulty,
+    q.support_tier, q.rep_confidence,
+    q.tier, q.state,
+    q.submitted_at, q.approved_at, q.sent_at, q.created_at, q.updated_at,
+    case
+      when public.current_user_role() in ('estimator','admin') then q.margin_percent
+      when auth.uid() = q.owner_id and q.state in ('approved','sent_to_customer','accepted','declined')
+        then q.margin_percent
+      else null
+    end,
+    case
+      when public.current_user_role() in ('estimator','admin') then q.margin_justification
+      else null
+    end,
+    q.contingency_pct,
+    q.converted_from_lead_id, q.converted_from_lead_notes,
+    q.migration_required, q.migration_volume_range, q.migration_cleanup_required,
+    q.external_idp_required, q.worker_idp_required, q.idp_documented,
+    q.portal_form_count_range,
+    q.lead_id,
+    q.needs_attention,
+    q.integrations,
+    q.opportunity_stage,
+    q.deal_priority,
+    q.deal_template,
+    q.quote_validity_date,
+    -- Q2.2: hidden from external users; visible to internal roles and reps.
+    case
+      when public.current_user_role() in ('sales_rep','estimator','admin') then q.geographic_scope
+      else null
+    end,
+    case
+      when public.current_user_role() in ('sales_rep','estimator','admin') then q.geographic_scope_other_detail
+      else null
+    end,
+    -- Q2.3: estimator/admin always; sales reps only the approved
+    -- post-approval label on quotes they own; never external users.
+    case
+      when public.current_user_role() in ('estimator','admin') then q.pricing_schedule
+      when public.current_user_role() = 'sales_rep' and auth.uid() = q.owner_id
+        and q.state in ('approved','sent_to_customer','accepted','declined')
+        then q.pricing_schedule
+      else null
+    end,
+    -- Q2.3 Other detail: estimator/admin ONLY.
+    case
+      when public.current_user_role() in ('estimator','admin') then q.pricing_schedule_other_detail
+      else null
+    end,
+    -- Q3.4: estimator/admin always; sales reps only on their OWN quote while
+    -- the existing lifecycle considers it editable (draft / estimator_adjusted);
+    -- external users always NULL. Mirrors the new authorization trigger.
+    case
+      when public.current_user_role() in ('estimator','admin') then q.billing_preference
+      when public.current_user_role() = 'sales_rep' and auth.uid() = q.owner_id
+        and q.state in ('draft','estimator_adjusted')
+        then q.billing_preference
+      else null
+    end,
+    case
+      when public.current_user_role() in ('estimator','admin') then q.billing_preference_other_detail
+      when public.current_user_role() = 'sales_rep' and auth.uid() = q.owner_id
+        and q.state in ('draft','estimator_adjusted')
+        then q.billing_preference_other_detail
+      else null
+    end
+  from public.quotes q
+  where
+    (q.state = 'draft' and q.requested_by = auth.uid())
+    or (public.current_user_role() = 'sales_rep' and q.state <> 'draft' and q.owner_id = auth.uid())
+    or (public.current_user_role() = 'external' and q.state <> 'draft' and q.requested_by = auth.uid())
+    or (public.current_user_role() = 'admin' and q.state <> 'draft')
+    or (public.current_user_role() = 'estimator' and q.state <> 'draft'
+        and (q.state <> 'under_review' or q.reviewed_by = auth.uid()))
+$function$;
 
--- Masking expression shape to append (role model PENDING D4/D5 — reproduced
--- here only to show the form, not as an approved rule):
---
---     case
---       when public.current_user_role() in (<PASTE_APPROVED_READ_ROLES_HERE>)
---         then q.billing_preference
---       else null
---     end as billing_preference
---
--- The approved classification makes Q3.4 visible to Sales Representatives,
--- Estimators and Admins and hidden from External users; D4 must still settle
--- whether Sales Representative visibility is unconditional or gated on quote
--- state, as pricing visibility is elsewhere in this application.
-
 -- ---------------------------------------------------------------------
--- 5. Owner, security settings and grants — RESTORE EXACTLY AS CAPTURED.
---    CREATE OR REPLACE preserves them; a DROP + CREATE does not. If the
---    captured definition required DROP + CREATE, re-issue the captured owner
---    and the captured grant set verbatim here. Captured baseline: owner
---    postgres, EXECUTE for authenticated observed. Do NOT invent a
---    service_role grant, and do NOT grant EXECUTE to anon or PUBLIC.
+-- 5. Owner, security settings and grants — restored exactly as captured.
+--    CREATE OR REPLACE preserves them; the DROP above discards them, so
+--    they are re-asserted here. Least privilege: no anon or PUBLIC grant.
 -- ---------------------------------------------------------------------
--- ALTER FUNCTION public.quotes_scoped() OWNER TO postgres;
--- <PASTE_CAPTURED_GRANT_STATEMENTS_HERE>
-
--- ---------------------------------------------------------------------
--- 6. PostgREST schema reload — required so the new column(s) and the new
---    function output(s) become visible to the Data API.
--- ---------------------------------------------------------------------
-NOTIFY pgrst, 'reload schema';
+ALTER FUNCTION public.quotes_scoped() OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.quotes_scoped() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.quotes_scoped() TO postgres;
 
 COMMIT;
 
--- After COMMIT: run VERIFY.sql Part A (static/catalog), then Part B using
--- real authenticated sales_rep / estimator / admin / external sessions.
--- No SELECT * appears anywhere in this file.
+-- Refresh the API schema cache after the transaction commits.
+NOTIFY pgrst, 'reload schema';

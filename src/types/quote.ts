@@ -96,6 +96,13 @@ export type GeographicScope =
 /** Q2.3 — declared pricing basis. Stored metadata only; does not alter calculations. */
 export type PricingSchedule = "naspo" | "list" | "custom" | "other";
 
+/** Q3.4 — Proposal-only commercial billing cadence. No pricing effect. */
+export type BillingPreference =
+  | "monthly"
+  | "annual_upfront"
+  | "annual_quarterly"
+  | "other";
+
 /** Legacy record volume band for data migration. */
 export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
 
@@ -132,6 +139,10 @@ export interface Quote {
   pricingSchedule: PricingSchedule | null;
   /** Free-text detail when pricingSchedule is "other". Never shown to sales reps or external users. */
   pricingScheduleOtherDetail: string | null;
+  /** Q3.4 — Proposal-only billing cadence. Optional; never affects pricing. */
+  billingPreference: BillingPreference | null;
+  /** Free-text detail when billingPreference is "other". Hidden from external users. */
+  billingPreferenceOtherDetail: string | null;
   compliance: Compliance[];
   vertical: string | null;
   solution: string | null;
@@ -257,6 +268,12 @@ export const quoteSchema = z.object({
     .nullable()
     .default(null),
   pricingScheduleOtherDetail: z.string().nullable().default(null),
+  // Section 3 (Q3.4). Proposal-only, optional at every lifecycle gate.
+  billingPreference: z
+    .enum(["monthly", "annual_upfront", "annual_quarterly", "other"])
+    .nullable()
+    .default(null),
+  billingPreferenceOtherDetail: z.string().nullable().default(null),
   compliance: z.array(z.enum(complianceValues)).default([]),
   vertical: z.string().min(1, "Vertical is required"),
   // Solution is required for every real vertical; "other" replaces it with a
@@ -325,6 +342,19 @@ export const quoteSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["pricingScheduleOtherDetail"],
       message: "Please describe the pricing schedule",
+    });
+  }
+
+  // Q3.4 — the same universal "Other" rule. Q3.4 itself stays optional:
+  // leaving billingPreference null never blocks completion or submission.
+  if (
+    value.billingPreference === "other" &&
+    !(value.billingPreferenceOtherDetail ?? "").trim()
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["billingPreferenceOtherDetail"],
+      message: "Please describe the billing preference",
     });
   }
 

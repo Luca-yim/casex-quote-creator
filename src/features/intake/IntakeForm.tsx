@@ -6,6 +6,7 @@ import { useIntake } from "./IntakeContext";
 import { CustomerInfoSection } from "./sections/CustomerInfoSection";
 import { GeographicScopeSection } from "./sections/GeographicScopeSection";
 import { PricingScheduleSection } from "./sections/PricingScheduleSection";
+import { BillingPreferenceSection } from "./sections/BillingPreferenceSection";
 import { ExpectedAwardDateSection } from "./sections/ExpectedAwardDateSection";
 import { VerticalSolutionSection } from "./sections/VerticalSolutionSection";
 import { RepeatableActivationSection } from "./sections/RepeatableActivationSection";
@@ -64,6 +65,9 @@ export function IntakeForm() {
       // default on mount; Ballpark quotes keep NULL here.
       pricingSchedule: quote.pricingSchedule,
       pricingScheduleOtherDetail: quote.pricingScheduleOtherDetail,
+      // Q3.4 — Proposal-only, blank by default, never persisted on mount.
+      billingPreference: quote.billingPreference,
+      billingPreferenceOtherDetail: quote.billingPreferenceOtherDetail,
       compliance: quote.compliance,
       vertical: quote.vertical ?? "",
       solution: quote.solution ?? "",
@@ -154,6 +158,7 @@ export function IntakeForm() {
         <CustomerInfoSection />
         <GeographicScopeSection />
         <PricingScheduleSection />
+        <BillingPreferenceSection />
         <ExpectedAwardDateSection />
         <VerticalSolutionSection />
         <RepeatableActivationSection />
