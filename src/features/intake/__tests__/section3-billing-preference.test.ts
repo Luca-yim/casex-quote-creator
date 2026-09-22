@@ -552,11 +552,16 @@ describe("Q3.4 role visibility and write boundaries", () => {
         }),
       ).toBe(false);
     }
-    // Neither Q3.4 masking branch mentions the external role.
+    // Neither Q3.4 masking branch mentions the external role: both CASE
+    // expressions fall through to `else null` for external users. The slice
+    // stops at the FROM clause so the (unchanged) row predicate, which does
+    // reference 'external', is not included.
     const q34Masking = SECTION3_FORWARD_SQL.slice(
       SECTION3_FORWARD_SQL.indexOf("then q.billing_preference"),
+      SECTION3_FORWARD_SQL.indexOf("from public.quotes q"),
     );
     expect(q34Masking).not.toContain("'external'");
+    expect(q34Masking).toContain("else null");
   });
 
 
