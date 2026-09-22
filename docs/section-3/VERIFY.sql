@@ -30,13 +30,13 @@
 -- signature change.
 -- =====================================================================
 
-\echo '=== A0. Column count moved from 60 to 62 ==='
+SELECT '=== A0. Column count moved from 60 to 62 ===' AS verification_step;
 SELECT count(*) AS quotes_column_count
 FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'quotes';
 -- EXPECT: 62.
 
-\echo '=== A1. Q3.4 columns: type, nullability, NO default ==='
+SELECT '=== A1. Q3.4 columns: type, nullability, NO default ===' AS verification_step;
 SELECT column_name, data_type, is_nullable, column_default, ordinal_position
 FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'quotes'
@@ -44,7 +44,7 @@ WHERE table_schema = 'public' AND table_name = 'quotes'
 ORDER BY ordinal_position;
 -- EXPECT: two rows, text / YES / null. Expected ordinal positions 61 and 62.
 
-\echo '=== A2. All 18 captured rows remain NULL; row count unchanged ==='
+SELECT '=== A2. All 18 captured rows remain NULL; row count unchanged ===' AS verification_step;
 SELECT count(*) AS total,
        count(*) FILTER (WHERE billing_preference IS NULL)                  AS pref_null,
        count(*) FILTER (WHERE billing_preference_other_detail IS NULL)     AS detail_null,
@@ -57,7 +57,7 @@ FROM public.quotes;
 --         Nullable columns with no default and no backfill must leave every
 --         pre-existing row NULL.
 
-\echo '=== A2a. Hard assertion — 18 pre-existing rows, no backfill, no default ==='
+SELECT '=== A2a. Hard assertion — 18 pre-existing rows, no backfill, no default ===' AS verification_step;
 DO $$
 DECLARE
   n_rows integer;
@@ -94,7 +94,7 @@ END $$;
 -- no-default / no-backfill rule. (n_rows > 18 is tolerated only as normal
 -- application activity; the NULL assertions apply to every row regardless.)
 
-\echo '=== A2b. Section 2 field baseline unchanged (NULL / populated counts) ==='
+SELECT '=== A2b. Section 2 field baseline unchanged (NULL / populated counts) ===' AS verification_step;
 SELECT count(*)                                                              AS total_rows,
        count(*) FILTER (WHERE geographic_scope IS NULL)                      AS geographic_scope_null,
        count(*) FILTER (WHERE geographic_scope IS NOT NULL)                  AS geographic_scope_populated,
@@ -111,7 +111,7 @@ FROM public.quotes;
 --         Section 2 constraints and the pricing authorization trigger/function
 --         are unchanged.
 
-\echo '=== A3. Both constraints present and VALIDATED ==='
+SELECT '=== A3. Both constraints present and VALIDATED ===' AS verification_step;
 SELECT conname, convalidated, pg_get_constraintdef(oid) AS definition
 FROM pg_constraint
 WHERE conrelid = 'public.quotes'::regclass
@@ -124,7 +124,7 @@ WHERE conrelid = 'public.quotes'::regclass
 --         present and nonblank; in every other case (including a NULL
 --         preference) the detail must be NULL.
 
-\echo '=== A4. Constraint truth table — all six cases ==='
+SELECT '=== A4. Constraint truth table — all six cases ===' AS verification_step;
 -- Operator note: run inside an explicit transaction that is ROLLED BACK. It
 -- must not leave any of the 18 rows modified. Use <id> = any existing row.
 --
@@ -170,7 +170,7 @@ WHERE conrelid = 'public.quotes'::regclass
 -- context); otherwise the Q3.4 trigger raises 42501 before the constraint
 -- is ever evaluated.
 
-\echo '=== A5. quotes_scoped() output columns — count, order, append position ==='
+SELECT '=== A5. quotes_scoped() output columns — count, order, append position ===' AS verification_step;
 SELECT ordinality AS output_position, name AS output_column
 FROM pg_proc p, unnest(p.proargnames) WITH ORDINALITY AS t(name, ordinality)
 WHERE p.oid = 'public.quotes_scoped()'::regprocedure
@@ -182,12 +182,12 @@ ORDER BY ordinality;
 --         62 billing_preference_other_detail. No reordering, duplicates or
 --         removals. No SELECT * anywhere in the definition.
 
-\echo '=== A5b. Output column count ==='
+SELECT '=== A5b. Output column count ===' AS verification_step;
 SELECT array_length(proargnames, 1) AS output_column_count
 FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
 -- EXPECT: 62.
 
-\echo '=== A6. quotes_scoped() security properties unchanged ==='
+SELECT '=== A6. quotes_scoped() security properties unchanged ===' AS verification_step;
 SELECT p.prosecdef AS is_security_definer,
        p.provolatile AS volatility,
        p.prolang::regproc AS language,
@@ -197,14 +197,14 @@ FROM pg_proc p
 WHERE p.oid = 'public.quotes_scoped()'::regprocedure;
 -- EXPECT: true / s (STABLE) / sql / postgres / search_path = public.
 
-\echo '=== A7. quotes_scoped() grants remain least privilege ==='
+SELECT '=== A7. quotes_scoped() grants remain least privilege ===' AS verification_step;
 SELECT grantee, privilege_type
 FROM information_schema.routine_privileges
 WHERE routine_schema = 'public' AND routine_name = 'quotes_scoped';
 -- EXPECT: EXECUTE for postgres and authenticated ONLY. No anon, no PUBLIC,
 --         no service_role.
 
-\echo '=== A8. Q3.4 trigger and function exist with correct scope ==='
+SELECT '=== A8. Q3.4 trigger and function exist with correct scope ===' AS verification_step;
 SELECT tgname, pg_get_triggerdef(t.oid) AS definition
 FROM pg_trigger t
 WHERE t.tgrelid = 'public.quotes'::regclass AND NOT t.tgisinternal
@@ -218,7 +218,7 @@ SELECT pg_get_functiondef('public.enforce_billing_preference_authorization()'::r
 --         auth.uid() AND NEW.state IN ('draft','estimator_adjusted'),
 --         raises SQLSTATE 42501 otherwise.
 
-\echo '=== A9. The existing pricing authorization trigger is UNCHANGED ==='
+SELECT '=== A9. The existing pricing authorization trigger is UNCHANGED ===' AS verification_step;
 SELECT md5(pg_get_functiondef('public.enforce_pricing_schedule_authorization()'::regprocedure)) AS section2_fn_md5;
 -- EXPECT: identical hash to the pre-change capture. Compare with the value
 --         recorded by 0_capture.sql before the migration.
@@ -228,7 +228,7 @@ WHERE t.tgrelid = 'public.quotes'::regclass AND NOT t.tgisinternal
   AND t.tgname = 'quotes_enforce_pricing_schedule_authorization';
 -- EXPECT: BEFORE INSERT OR UPDATE, unchanged from the capture.
 
-\echo '=== A10. All five original non-internal triggers remain present ==='
+SELECT '=== A10. All five original non-internal triggers remain present ===' AS verification_step;
 SELECT t.tgname
 FROM pg_trigger t
 WHERE t.tgrelid = 'public.quotes'::regclass AND NOT t.tgisinternal
@@ -238,7 +238,7 @@ ORDER BY t.tgname;
 --         quotes_enforce_billing_preference_authorization (the new sixth),
 --         quotes_enforce_pricing_schedule_authorization, quotes_updated_at.
 
-\echo '=== A11. Section 2 constraints remain present and validated ==='
+SELECT '=== A11. Section 2 constraints remain present and validated ===' AS verification_step;
 SELECT conname, convalidated
 FROM pg_constraint
 WHERE conrelid = 'public.quotes'::regclass
@@ -248,7 +248,7 @@ WHERE conrelid = 'public.quotes'::regclass
                   'quotes_pricing_schedule_other_detail_check');
 -- EXPECT: all captured Section 2 constraints present, convalidated = true.
 
-\echo '=== A12. RLS policies are unchanged from the capture ==='
+SELECT '=== A12. RLS policies are unchanged from the capture ===' AS verification_step;
 SELECT policyname, cmd, roles, qual, with_check
 FROM pg_policies
 WHERE schemaname = 'public' AND tablename = 'quotes'
@@ -258,7 +258,7 @@ ORDER BY policyname;
 --         update paths). Q3.4 column protection is provided by the new
 --         trigger, NOT by any RLS policy change.
 
-\echo '=== A13. PostgREST schema reload was issued ==='
+SELECT '=== A13. PostgREST schema reload was issued ===' AS verification_step;
 -- 1_forward.sql ends with NOTIFY pgrst, 'reload schema'; confirm the API
 -- schema cache picked up the two new columns before running Part B:
 --   GET /rest/v1/quotes?limit=0 with apikey headers and
@@ -272,14 +272,14 @@ ORDER BY policyname;
 -- is deleted afterwards; the 18 live rows are never modified.
 -- =====================================================================
 
-\echo '=== B1. Estimator/Admin can read and write both fields ==='
+SELECT '=== B1. Estimator/Admin can read and write both fields ===' AS verification_step;
 -- As estimator (and again as admin):
 --   UPDATE public.quotes SET billing_preference = 'annual_upfront'
 --     WHERE id = <test-row-id>;                       -> succeeds
 --   SELECT billing_preference, billing_preference_other_detail
 --     FROM quotes_scoped() WHERE id = <test-row-id>;  -> values returned
 
-\echo '=== B2. Sales Representative: owned + editable + row visible succeeds ==='
+SELECT '=== B2. Sales Representative: owned + editable + row visible succeeds ===' AS verification_step;
 -- Authoritative rule: a rep reads/writes Q3.4 only when BOTH hold —
 --   (a) the UNCHANGED row-scope predicate exposes the row, and
 --   (b) owner_id = auth.uid() AND state IN ('draft','estimator_adjusted').
@@ -301,7 +301,7 @@ ORDER BY policyname;
 --     WHERE id = <owned-unrequested-draft-id>;        -> 0 rows
 -- Record this asymmetry; do NOT widen the predicate to fix it.
 
-\echo '=== B3. Sales Representative: requested-but-not-owned draft is denied ==='
+SELECT '=== B3. Sales Representative: requested-but-not-owned draft is denied ===' AS verification_step;
 -- B3a — requested but NOT owned draft (requested_by = rep, owner_id = other
 -- rep). The row IS visible through the unchanged predicate, and must show
 -- NULL for both Q3.4 outputs and refuse writes:
@@ -327,7 +327,7 @@ ORDER BY policyname;
 -- pre-change and post-change row counts returned by quotes_scoped() for the
 -- same rep session: they must be identical.
 
-\echo '=== B4. External user: no read, no write ==='
+SELECT '=== B4. External user: no read, no write ===' AS verification_step;
 -- As an external user (including on their own draft):
 --   SELECT billing_preference FROM quotes_scoped()    -> NULL for both
 --     outputs on every visible row;
@@ -338,7 +338,7 @@ ORDER BY policyname;
 -- Direct PostgREST reads of the raw columns are additionally blocked by the
 -- revoked table SELECT (quotes_scoped() is the only read path).
 
-\echo '=== B5. Anonymous role: no execute, no write ==='
+SELECT '=== B5. Anonymous role: no execute, no write ===' AS verification_step;
 -- Without a session:
 --   SELECT * FROM quotes_scoped();                    -> permission denied
 --   INSERT INTO public.quotes (...) VALUES (..., 'monthly', ...);
@@ -346,12 +346,12 @@ ORDER BY policyname;
 -- Public anonymous lead intake must still succeed unchanged
 -- (anon_lead_intakes INSERT path; no Q3.4 columns involved).
 
-\echo '=== B6. Trusted system context (auth.uid() IS NULL) ==='
+SELECT '=== B6. Trusted system context (auth.uid() IS NULL) ===' AS verification_step;
 -- From a service/system context with no user claim, setting either field
 -- succeeds. This is the documented trusted-context convention shared with
 -- the Section 2 trigger. Do NOT run this as a client-callable privilege.
 
-\echo '=== B7. Ballpark and lead-converted compatibility ==='
+SELECT '=== B7. Ballpark and lead-converted compatibility ===' AS verification_step;
 -- Convert a lead (or create a Ballpark draft) as usual; confirm the new row
 -- has NULL for both Q3.4 fields, the conversion RPCs succeed untouched, and
 -- the autosave path persists a rep-selected value only on the Proposal tier.
