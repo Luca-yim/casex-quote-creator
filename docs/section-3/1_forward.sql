@@ -79,6 +79,16 @@ END $$;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
+-- Complete relationship between the two Q3.4 columns. The CASE form covers
+-- all four required rules in one expression:
+--   preference NULL          + detail NULL     -> VALID  (all 13 existing rows)
+--   preference NULL          + detail NOT NULL -> REJECTED (ELSE branch)
+--   preference <> 'other'    + detail NULL     -> VALID
+--   preference <> 'other'    + detail NOT NULL -> REJECTED (ELSE branch)
+--   preference  = 'other'    + nonblank detail -> VALID
+--   preference  = 'other'    + NULL or blank   -> REJECTED (THEN branch)
+-- NULL preference falls to ELSE because `NULL = 'other'` is not true, so an
+-- orphaned detail can never be stored.
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -88,10 +98,14 @@ BEGIN
   ) THEN
     ALTER TABLE public.quotes
       ADD CONSTRAINT quotes_billing_preference_other_detail_check
-      CHECK (billing_preference IS NULL
-             OR billing_preference <> 'other'
-             OR (billing_preference_other_detail IS NOT NULL
-                 AND btrim(billing_preference_other_detail) <> ''))
+      CHECK (
+        CASE
+          WHEN billing_preference = 'other'
+            THEN billing_preference_other_detail IS NOT NULL
+                 AND btrim(billing_preference_other_detail) <> ''
+          ELSE billing_preference_other_detail IS NULL
+        END
+      )
       NOT VALID;
   END IF;
 END $$;
