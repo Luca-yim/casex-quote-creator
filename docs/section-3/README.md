@@ -58,7 +58,23 @@ planning notes) are preserved as written and are not rewritten.
 
 **Consequence for Q3.4:** adding nullable Q3.4 column(s) with **no default and
 no backfill** must leave all **18** existing rows NULL for those columns. Every
-existing quote therefore remains valid. `VERIFY.sql` check A2 asserts this.
+existing quote therefore remains valid. `VERIFY.sql` checks A2 / A2a assert
+this: row count still 18 (subject only to normal application activity), all 18
+pre-existing rows NULL for `billing_preference`, all 18 NULL for
+`billing_preference_other_detail`, and no `DEFAULT` on either column. Check
+A2b re-runs the Section 2 NULL/populated count baseline recorded by
+`0_capture.sql` query 13 and must match it exactly.
+
+### Function-definition comparison status — **NOT YET CONFIRMED EXACT**
+
+The authoritative pre-change source is a fresh
+`pg_get_functiondef('public.quotes_scoped()'::regprocedure)`. That text has
+**not** been supplied to this package; only the fresh row count (18) was.
+The 60-output definition embedded in `2_rollback.sql` §4 and preserved as
+positions 1–60 in `1_forward.sql` §4 was assembled from the earlier capture,
+so the comparison is **unverified — no exactness claim is made**. Before any
+execution the operator must diff both embedded bodies against the fresh
+`pg_get_functiondef()` output byte for byte and **stop on any difference**.
 
 **Authoritative pre-change function definition.** The supplied
 `quotes_scoped()` definition is the authoritative rollback baseline. Its
