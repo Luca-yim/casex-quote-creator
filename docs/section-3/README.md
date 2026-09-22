@@ -26,10 +26,11 @@ None of the completed work above is reopened, re-audited, or modified.
 
 ## 1b. Live database capture — **COMPLETE**
 
-Captured by an authorized operator via `0_capture.sql`. This is the newer
-verified fact set for Q3.4 work. (The historical State of Play statement about
-18 rows holding NULL Section 2 values is preserved as written and is not
-rewritten; the current live count below applies to this package only.)
+Captured by an authorized operator via `0_capture.sql`, then **re-captured
+fresh**. This is the newer verified fact set for Q3.4 work. The fresh capture
+reports **18** rows in `public.quotes`; the earlier figure of 13 is superseded
+everywhere in this package. Historical documents (State of Play, earlier
+planning notes) are preserved as written and are not rewritten.
 
 | Fact | Captured value |
 |---|---|
