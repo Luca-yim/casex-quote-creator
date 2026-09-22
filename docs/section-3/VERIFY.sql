@@ -4,7 +4,7 @@
 -- confirm no drift).
 --
 -- Baseline from the COMPLETED live capture (0_capture.sql; README.md §1b):
---   public.quotes = 60 columns, 13 rows.
+--   public.quotes = 60 columns, 18 rows.
 --   quotes_scoped() = exactly 60 output columns; positions 57–60 are
 --     geographic_scope, geographic_scope_other_detail, pricing_schedule,
 --     pricing_schedule_other_detail.
@@ -44,12 +44,12 @@ WHERE table_schema = 'public' AND table_name = 'quotes'
 ORDER BY ordinal_position;
 -- EXPECT: two rows, text / YES / null. Expected ordinal positions 61 and 62.
 
-\echo '=== A2. All 13 captured rows remain NULL; row count unchanged ==='
+\echo '=== A2. All 18 captured rows remain NULL; row count unchanged ==='
 SELECT count(*) AS total,
        count(*) FILTER (WHERE billing_preference IS NULL)              AS pref_null,
        count(*) FILTER (WHERE billing_preference_other_detail IS NULL) AS detail_null
 FROM public.quotes;
--- EXPECT: total = 13 (captured baseline; higher only if rows were created
+-- EXPECT: total = 18 (captured baseline; higher only if rows were created
 --         through normal application use since capture), and
 --         pref_null = detail_null = total. Nullable columns with no default
 --         and no backfill must leave every pre-existing row NULL.
@@ -69,12 +69,12 @@ WHERE conrelid = 'public.quotes'::regclass
 
 \echo '=== A4. Constraint truth table — all six cases ==='
 -- Operator note: run inside an explicit transaction that is ROLLED BACK. It
--- must not leave any of the 13 rows modified. Use <id> = any existing row.
+-- must not leave any of the 18 rows modified. Use <id> = any existing row.
 --
 -- 1 VALID    pref NULL,               detail NULL
 --   UPDATE public.quotes SET billing_preference = NULL,
 --          billing_preference_other_detail = NULL WHERE id = <id>;
---   -> succeeds (this is the state of all 13 captured rows)
+--   -> succeeds (this is the state of all 18 captured rows)
 --
 -- 2 REJECTED pref NULL,               detail NOT NULL   <-- orphaned detail
 --   UPDATE public.quotes SET billing_preference = NULL,
@@ -212,7 +212,7 @@ ORDER BY policyname;
 -- REQUIRES REAL AUTHENTICATED SESSIONS (one per role) via the published
 -- application or minted sessions. Cannot be satisfied statically or by
 -- running as postgres. Every write below targets a dedicated test row that
--- is deleted afterwards; the 13 live rows are never modified.
+-- is deleted afterwards; the 18 live rows are never modified.
 -- =====================================================================
 
 \echo '=== B1. Estimator/Admin can read and write both fields ==='

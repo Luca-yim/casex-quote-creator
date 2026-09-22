@@ -34,7 +34,7 @@ rewritten; the current live count below applies to this package only.)
 | Fact | Captured value |
 |---|---|
 | `public.quotes` column count | 60 |
-| `public.quotes` row count (`quote_count`) | **13** |
+| `public.quotes` row count (`quote_count`) | **18** |
 | Billing Preference column | absent |
 | Billing Preference Other-detail column | absent |
 | Billing Preference constraint | absent |
@@ -56,7 +56,7 @@ rewritten; the current live count below applies to this package only.)
 | RLS policies on `public.quotes` | include External draft updates, Sales Representative owned-quote updates, and Estimator/Admin update paths |
 
 **Consequence for Q3.4:** adding nullable Q3.4 column(s) with **no default and
-no backfill** must leave all **13** existing rows NULL for those columns. Every
+no backfill** must leave all **18** existing rows NULL for those columns. Every
 existing quote therefore remains valid. `VERIFY.sql` check A2 asserts this.
 
 **Authoritative pre-change function definition.** The supplied
@@ -153,7 +153,7 @@ server-side. The existing `quotes` RLS policies are untouched.
 Re-run `0_capture.sql` immediately before any execution and confirm no drift
 from §1b. Do not execute `1_forward.sql` while any placeholder remains.
 Single transaction. No `SELECT *`. No `DROP CASCADE`. Constraints added
-`NOT VALID` then validated. No backfill and no default, so all 13 existing
+`NOT VALID` then validated. No backfill and no default, so all 18 existing
 rows stay NULL and no table rewrite occurs. Preserve the captured owner,
 security mode, volatility, language, search_path and grant set exactly. Leave
 Section 2 constraints, the Section 2 trigger, the other four triggers, and all

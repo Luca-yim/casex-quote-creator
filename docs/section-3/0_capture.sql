@@ -107,7 +107,7 @@ ORDER BY t.tgname;
 
 \echo '=== 10. Row count (baseline; all existing rows must stay NULL) ==='
 SELECT count(*) AS quotes_row_count FROM public.quotes;
--- CAPTURED: quote_count = 13.
+-- CAPTURED: quote_count = 18 (fresh re-capture; supersedes the earlier 13).
 
 \echo '=== 11. Name-collision probe for Q3.4 objects ==='
 SELECT conname FROM pg_constraint
