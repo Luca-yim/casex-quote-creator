@@ -272,14 +272,14 @@ SELECT '=== A13. PostgREST schema reload was issued ===' AS verification_step;
 -- is deleted afterwards; the 18 live rows are never modified.
 -- =====================================================================
 
-SELECT '=== B1. Estimator/Admin can read and write both fields ===' AS verification_step;
+-- === B1. Estimator/Admin can read and write both fields === (documentation only — not executed; see PART B note)
 -- As estimator (and again as admin):
 --   UPDATE public.quotes SET billing_preference = 'annual_upfront'
 --     WHERE id = <test-row-id>;                       -> succeeds
 --   SELECT billing_preference, billing_preference_other_detail
 --     FROM quotes_scoped() WHERE id = <test-row-id>;  -> values returned
 
-SELECT '=== B2. Sales Representative: owned + editable + row visible succeeds ===' AS verification_step;
+-- === B2. Sales Representative: owned + editable + row visible succeeds === (documentation only — not executed; see PART B note)
 -- Authoritative rule: a rep reads/writes Q3.4 only when BOTH hold —
 --   (a) the UNCHANGED row-scope predicate exposes the row, and
 --   (b) owner_id = auth.uid() AND state IN ('draft','estimator_adjusted').
@@ -301,7 +301,7 @@ SELECT '=== B2. Sales Representative: owned + editable + row visible succeeds ==
 --     WHERE id = <owned-unrequested-draft-id>;        -> 0 rows
 -- Record this asymmetry; do NOT widen the predicate to fix it.
 
-SELECT '=== B3. Sales Representative: requested-but-not-owned draft is denied ===' AS verification_step;
+-- === B3. Sales Representative: requested-but-not-owned draft is denied === (documentation only — not executed; see PART B note)
 -- B3a — requested but NOT owned draft (requested_by = rep, owner_id = other
 -- rep). The row IS visible through the unchanged predicate, and must show
 -- NULL for both Q3.4 outputs and refuse writes:
@@ -327,7 +327,7 @@ SELECT '=== B3. Sales Representative: requested-but-not-owned draft is denied ==
 -- pre-change and post-change row counts returned by quotes_scoped() for the
 -- same rep session: they must be identical.
 
-SELECT '=== B4. External user: no read, no write ===' AS verification_step;
+-- === B4. External user: no read, no write === (documentation only — not executed; see PART B note)
 -- As an external user (including on their own draft):
 --   SELECT billing_preference FROM quotes_scoped()    -> NULL for both
 --     outputs on every visible row;
@@ -338,7 +338,7 @@ SELECT '=== B4. External user: no read, no write ===' AS verification_step;
 -- Direct PostgREST reads of the raw columns are additionally blocked by the
 -- revoked table SELECT (quotes_scoped() is the only read path).
 
-SELECT '=== B5. Anonymous role: no execute, no write ===' AS verification_step;
+-- === B5. Anonymous role: no execute, no write === (documentation only — not executed; see PART B note)
 -- Without a session:
 --   SELECT * FROM quotes_scoped();                    -> permission denied
 --   INSERT INTO public.quotes (...) VALUES (..., 'monthly', ...);
@@ -346,12 +346,12 @@ SELECT '=== B5. Anonymous role: no execute, no write ===' AS verification_step;
 -- Public anonymous lead intake must still succeed unchanged
 -- (anon_lead_intakes INSERT path; no Q3.4 columns involved).
 
-SELECT '=== B6. Trusted system context (auth.uid() IS NULL) ===' AS verification_step;
+-- === B6. Trusted system context (auth.uid() IS NULL) === (documentation only — not executed; see PART B note)
 -- From a service/system context with no user claim, setting either field
 -- succeeds. This is the documented trusted-context convention shared with
 -- the Section 2 trigger. Do NOT run this as a client-callable privilege.
 
-SELECT '=== B7. Ballpark and lead-converted compatibility ===' AS verification_step;
+-- === B7. Ballpark and lead-converted compatibility === (documentation only — not executed; see PART B note)
 -- Convert a lead (or create a Ballpark draft) as usual; confirm the new row
 -- has NULL for both Q3.4 fields, the conversion RPCs succeed untouched, and
 -- the autosave path persists a rep-selected value only on the Proposal tier.
