@@ -44,6 +44,120 @@
 BEGIN;
 
 -- ---------------------------------------------------------------------
+-- 0. PREFLIGHT — fail loudly on ANY drift from the captured baseline.
+--    This migration deliberately contains NO silent "IF NOT EXISTS"
+--    tolerance: every Q3.4 object must be absent and the Section 2
+--    baseline must be intact, or the whole transaction aborts before a
+--    single object is created. If any assertion fires, STOP, re-run
+--    0_capture.sql and re-baseline the package — do not "fix" it by
+--    re-adding guards.
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE
+  n integer;
+BEGIN
+  -- 0a. Neither Q3.4 column may already exist.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes'
+    AND column_name IN ('billing_preference', 'billing_preference_other_detail');
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: % billing-preference column(s) already exist on public.quotes — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0b. public.quotes must still be the captured 60-column table.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes';
+  IF n <> 60 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: public.quotes has % columns, expected the captured 60 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0c. Neither Q3.4 constraint may already exist.
+  SELECT count(*) INTO n
+  FROM pg_constraint
+  WHERE conrelid = 'public.quotes'::regclass
+    AND conname IN ('quotes_billing_preference_check',
+                    'quotes_billing_preference_other_detail_check');
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: % billing-preference constraint(s) already exist — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0d. The Q3.4 trigger and its function may not already exist.
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+      AND tgname = 'quotes_enforce_billing_preference_authorization'
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: trigger quotes_enforce_billing_preference_authorization already exists — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF to_regprocedure('public.enforce_billing_preference_authorization()') IS NOT NULL THEN
+    RAISE EXCEPTION 'Q3.4 preflight: function public.enforce_billing_preference_authorization() already exists — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0e. The Section 2 pricing trigger and function MUST still be present
+  --     and are not touched by this migration.
+  IF to_regprocedure('public.enforce_pricing_schedule_authorization()') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_trigger
+       WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+         AND tgname = 'quotes_enforce_pricing_schedule_authorization'
+     ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: the Section 2 pricing authorization trigger/function is missing — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0f. quotes_scoped() must exist as the captured 60-output, SECURITY
+  --     DEFINER, STABLE, sql function owned by postgres. The replacement
+  --     below preserves outputs 1–60 and appends 61–62; if the live
+  --     function is not the captured shape, the append is not valid.
+  IF to_regprocedure('public.quotes_scoped()') IS NULL THEN
+    RAISE EXCEPTION 'Q3.4 preflight: public.quotes_scoped() does not exist — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  SELECT array_length(proargnames, 1) INTO n
+  FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
+  IF n <> 60 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() returns % outputs, expected the captured 60 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid = 'public.quotes_scoped()'::regprocedure
+      AND p.prosecdef
+      AND p.provolatile = 's'
+      AND p.prolang = (SELECT oid FROM pg_language WHERE lanname = 'sql')
+      AND pg_get_userbyid(p.proowner) = 'postgres'
+      AND p.proconfig @> ARRAY['search_path=public']
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() security properties differ from the capture (expected SECURITY DEFINER, STABLE, sql, owner postgres, search_path=public) — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0g. Positions 57–60 must still be the four Section 2 outputs, since
+  --     Q3.4 appends immediately after them.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid = 'public.quotes_scoped()'::regprocedure
+      AND p.proargnames[57:60] = ARRAY['geographic_scope',
+                                       'geographic_scope_other_detail',
+                                       'pricing_schedule',
+                                       'pricing_schedule_other_detail']
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() outputs 57-60 are not the captured Section 2 fields — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------
 -- 1. Columns — nullable text, NO database default, NO backfill.
 --    All 13 pre-existing rows therefore remain NULL for both fields and
 --    stay valid. Verified afterwards by VERIFY.sql A2.
