@@ -50,27 +50,57 @@ WHERE conrelid = 'public.quotes'::regclass
   AND conname IN ('quotes_billing_preference_check',
                   'quotes_billing_preference_other_detail_check');
 -- EXPECT: two rows, convalidated = true. The option check permits NULL or
---         one of monthly / annual_upfront / annual_quarterly / other; the
---         Other-detail check requires a nonblank (btrim) detail only when
---         billing_preference = 'other'.
+--         one of monthly / annual_upfront / annual_quarterly / other. The
+--         Other-detail check is the CASE form enforcing the COMPLETE
+--         relationship: when billing_preference = 'other' the detail must be
+--         present and nonblank; in every other case (including a NULL
+--         preference) the detail must be NULL.
 
-\echo '=== A4. Invalid option values rejected; approved values accepted ==='
+\echo '=== A4. Constraint truth table — all six cases ==='
 -- Operator note: run inside an explicit transaction that is ROLLED BACK. It
--- must not leave any of the 13 rows modified.
---   UPDATE public.quotes SET billing_preference = 'weekly' WHERE id = <id>;
---     -> check_violation (quotes_billing_preference_check)
---   UPDATE public.quotes SET billing_preference = 'annual_quarterly'
---     WHERE id = <id>; -> succeeds
---   UPDATE public.quotes SET billing_preference = 'other' WHERE id = <id>;
---     -> check_violation (quotes_billing_preference_other_detail_check:
---        NULL detail alongside Other is rejected at the database layer)
+-- must not leave any of the 13 rows modified. Use <id> = any existing row.
+--
+-- 1 VALID    pref NULL,               detail NULL
+--   UPDATE public.quotes SET billing_preference = NULL,
+--          billing_preference_other_detail = NULL WHERE id = <id>;
+--   -> succeeds (this is the state of all 13 captured rows)
+--
+-- 2 REJECTED pref NULL,               detail NOT NULL   <-- orphaned detail
+--   UPDATE public.quotes SET billing_preference = NULL,
+--          billing_preference_other_detail = 'stray' WHERE id = <id>;
+--   -> check_violation (quotes_billing_preference_other_detail_check)
+--
+-- 3 VALID    pref 'annual_quarterly', detail NULL
+--   UPDATE public.quotes SET billing_preference = 'annual_quarterly',
+--          billing_preference_other_detail = NULL WHERE id = <id>;
+--   -> succeeds
+--
+-- 4 REJECTED pref 'monthly',          detail NOT NULL   <-- detail on a
+--   non-Other preference
+--   UPDATE public.quotes SET billing_preference = 'monthly',
+--          billing_preference_other_detail = 'stray' WHERE id = <id>;
+--   -> check_violation (quotes_billing_preference_other_detail_check)
+--
+-- 5 REJECTED pref 'other', detail NULL, and pref 'other', detail '   '
+--   UPDATE public.quotes SET billing_preference = 'other',
+--          billing_preference_other_detail = NULL WHERE id = <id>;
 --   UPDATE public.quotes SET billing_preference = 'other',
 --          billing_preference_other_detail = '   ' WHERE id = <id>;
---     -> check_violation (whitespace-only detail is rejected via btrim)
+--   -> check_violation both times (NULL and whitespace-only via btrim)
+--
+-- 6 VALID    pref 'other',            nonblank detail
 --   UPDATE public.quotes SET billing_preference = 'other',
 --          billing_preference_other_detail = 'Milestone invoicing'
 --     WHERE id = <id>; -> succeeds
+--
+-- Invalid option value, independent of the detail rule:
+--   UPDATE public.quotes SET billing_preference = 'weekly' WHERE id = <id>;
+--   -> check_violation (quotes_billing_preference_check)
+--
 -- Then ROLLBACK and re-run A2 to confirm all rows are NULL again.
+-- Note: these run as an authorized role (estimator/admin or trusted
+-- context); otherwise the Q3.4 trigger raises 42501 before the constraint
+-- is ever evaluated.
 
 \echo '=== A5. quotes_scoped() output columns — count, order, append position ==='
 SELECT ordinality AS output_position, name AS output_column
