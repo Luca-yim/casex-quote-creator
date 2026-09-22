@@ -177,6 +177,65 @@ describe("Q3.4 Billing Preference options and persistence", () => {
     ).toBe(true);
   });
 
+  /**
+   * Complete two-column relationship, mirroring
+   * quotes_billing_preference_other_detail_check in
+   * docs/section-3/1_forward.sql. The Zod layer must reject exactly what the
+   * database rejects, so autosave can never send a violating pair.
+   */
+  it("enforces the full preference/detail relationship", () => {
+    const parse = (
+      billingPreference: string | null,
+      billingPreferenceOtherDetail: string | null,
+    ) =>
+      quoteSchema.safeParse({
+        ...VALID_BASE,
+        billingPreference,
+        billingPreferenceOtherDetail,
+      }).success;
+
+    // 1 NULL + NULL is valid — the state of all 13 existing rows.
+    expect(parse(null, null)).toBe(true);
+    // 2 a detail with no preference is rejected (no orphaned detail).
+    expect(parse(null, "stray")).toBe(false);
+    // 3 a non-Other preference with no detail is valid.
+    expect(parse("monthly", null)).toBe(true);
+    expect(parse("annual_upfront", null)).toBe(true);
+    expect(parse("annual_quarterly", null)).toBe(true);
+    // 4 a detail alongside a non-Other preference is rejected.
+    expect(parse("monthly", "stray")).toBe(false);
+    expect(parse("annual_quarterly", "stray")).toBe(false);
+    // 5 Other without a nonblank detail is rejected.
+    expect(parse("other", null)).toBe(false);
+    expect(parse("other", "   ")).toBe(false);
+    // 6 Other with a nonblank detail is valid.
+    expect(parse("other", "Milestone invoicing")).toBe(true);
+  });
+
+  it("matches the database CASE constraint in the forward SQL", () => {
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "quotes_billing_preference_other_detail_check",
+    );
+    // The CASE form is what makes rules 2 and 4 enforceable: a NULL or
+    // non-Other preference falls to ELSE, which demands a NULL detail.
+    expect(SECTION3_FORWARD_SQL).toContain("WHEN billing_preference = 'other'");
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "ELSE billing_preference_other_detail IS NULL",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "btrim(billing_preference_other_detail) <> ''",
+    );
+    // Both constraints are added guarded and then validated.
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "VALIDATE CONSTRAINT quotes_billing_preference_check",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check",
+    );
+  });
+
+
+
   it("stays optional for Proposal completion, submission and approval", () => {
     // A Proposal parses (and therefore submits and approves) with both Q3.4
     // fields NULL — Section 2's pricing-schedule gate is the only addition.
