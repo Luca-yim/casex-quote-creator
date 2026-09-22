@@ -31,10 +31,12 @@ DROP FUNCTION IF EXISTS public.enforce_billing_preference_authorization();
 -- ---------------------------------------------------------------------
 -- 2. Drop Q3.4 constraints (before the columns; no CASCADE anywhere).
 -- ---------------------------------------------------------------------
+-- No IF EXISTS: the preflight in §0 asserted both constraints exist, so a
+-- missing constraint is drift and must abort the transaction.
 ALTER TABLE public.quotes
-  DROP CONSTRAINT IF EXISTS quotes_billing_preference_other_detail_check;
+  DROP CONSTRAINT quotes_billing_preference_other_detail_check;
 ALTER TABLE public.quotes
-  DROP CONSTRAINT IF EXISTS quotes_billing_preference_check;
+  DROP CONSTRAINT quotes_billing_preference_check;
 
 -- ---------------------------------------------------------------------
 -- 3. Drop Q3.4 columns, returning public.quotes to its captured 60-column
