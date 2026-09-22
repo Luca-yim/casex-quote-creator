@@ -46,9 +46,11 @@ ALTER TABLE public.quotes
 --      WHERE billing_preference IS NOT NULL
 --         OR billing_preference_other_detail IS NOT NULL;
 -- ---------------------------------------------------------------------
+-- No IF EXISTS: the preflight in §0 asserted both columns exist, so a
+-- missing column is drift and must abort the transaction.
 ALTER TABLE public.quotes
-  DROP COLUMN IF EXISTS billing_preference_other_detail,
-  DROP COLUMN IF EXISTS billing_preference;
+  DROP COLUMN billing_preference_other_detail,
+  DROP COLUMN billing_preference;
 
 -- ---------------------------------------------------------------------
 -- 4. Restore quotes_scoped() to the captured pre-change 60-column state:
