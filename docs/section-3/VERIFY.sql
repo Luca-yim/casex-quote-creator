@@ -265,6 +265,300 @@ SELECT '=== A13. PostgREST schema reload was issued ===' AS verification_step;
 --   Accept-Profile check, or a single authenticated application request.
 
 -- =====================================================================
+-- PART A — FINAL CONSOLIDATED REPORT (LAST STATEMENT IN THE SCRIPT)
+--
+-- The Supabase SQL editor only displays the result of the final statement,
+-- so every static Part A check above is re-evaluated here and returned as a
+-- single result set: one row per check.
+--   status = PASS   -> verified statically by this query
+--   status = FAIL   -> the check did not meet its expected criteria
+--   status = REVIEW -> CANNOT be decided statically; requires operator
+--                      comparison against the capture, an authorized
+--                      transactional test, or a real authenticated session.
+-- No temporary tables, no persistent objects, no data modification.
+-- =====================================================================
+
+WITH col AS (
+  SELECT column_name, data_type, is_nullable, column_default, ordinal_position
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes'
+),
+q34 AS (
+  SELECT count(*) AS n_rows,
+         count(*) FILTER (WHERE billing_preference IS NOT NULL)              AS pref_populated,
+         count(*) FILTER (WHERE billing_preference_other_detail IS NOT NULL) AS detail_populated,
+         count(*) FILTER (WHERE geographic_scope IS NOT NULL)                AS gs_populated,
+         count(*) FILTER (WHERE geographic_scope_other_detail IS NOT NULL)   AS gsd_populated,
+         count(*) FILTER (WHERE pricing_schedule IS NOT NULL)                AS ps_populated,
+         count(*) FILTER (WHERE pricing_schedule_other_detail IS NOT NULL)   AS psd_populated
+  FROM public.quotes
+),
+fn AS (
+  SELECT p.oid,
+         p.prosecdef,
+         p.provolatile,
+         p.prolang::regproc::text AS lang,
+         pg_get_userbyid(p.proowner) AS owner,
+         array_to_string(p.proconfig, ',') AS settings,
+         p.proargnames
+  FROM pg_proc p
+  WHERE p.oid = to_regprocedure('public.quotes_scoped()')
+),
+cons AS (
+  SELECT conname, convalidated
+  FROM pg_constraint
+  WHERE conrelid = 'public.quotes'::regclass
+),
+trg AS (
+  SELECT tgname, pg_get_triggerdef(oid) AS def
+  FROM pg_trigger
+  WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+),
+grants AS (
+  SELECT grantee, privilege_type
+  FROM information_schema.routine_privileges
+  WHERE routine_schema = 'public' AND routine_name = 'quotes_scoped'
+),
+pol AS (
+  SELECT count(*) AS n,
+         md5(string_agg(policyname || '|' || cmd || '|' || roles::text || '|' ||
+                        coalesce(qual, '') || '|' || coalesce(with_check, ''), E'\n'
+                        ORDER BY policyname)) AS policy_md5
+  FROM pg_policies
+  WHERE schemaname = 'public' AND tablename = 'quotes'
+),
+report AS (
+  -- A0
+  SELECT 'A0'::text AS check_id,
+         'public.quotes column count'::text AS check_name,
+         CASE WHEN (SELECT count(*) FROM col) = 62 THEN 'PASS' ELSE 'FAIL' END AS status,
+         '62'::text AS expected,
+         (SELECT count(*)::text FROM col) AS actual,
+         'Baseline 60 + 2 Q3.4 columns.'::text AS details
+  UNION ALL
+  -- A1
+  SELECT 'A1',
+         'Q3.4 columns: text, nullable, no default, positions 61-62',
+         CASE WHEN (SELECT count(*) FROM col
+                    WHERE column_name IN ('billing_preference','billing_preference_other_detail')
+                      AND data_type = 'text' AND is_nullable = 'YES'
+                      AND column_default IS NULL) = 2
+               AND (SELECT count(*) FROM col
+                    WHERE column_name = 'billing_preference' AND ordinal_position = 61) = 1
+               AND (SELECT count(*) FROM col
+                    WHERE column_name = 'billing_preference_other_detail' AND ordinal_position = 62) = 1
+              THEN 'PASS' ELSE 'FAIL' END,
+         '2 text / nullable / no default at ordinals 61,62',
+         (SELECT coalesce(string_agg(column_name || '=' || data_type || '/' || is_nullable ||
+                                     '/default:' || coalesce(column_default,'none') ||
+                                     '/pos:' || ordinal_position, '; ' ORDER BY ordinal_position),
+                          'missing')
+            FROM col
+           WHERE column_name IN ('billing_preference','billing_preference_other_detail')),
+         'No DEFAULT is authorized on either column.'
+  UNION ALL
+  -- A2
+  SELECT 'A2',
+         'Row count and Q3.4 NULL / non-NULL counts',
+         CASE WHEN (SELECT pref_populated + detail_populated FROM q34) = 0
+                   AND (SELECT n_rows FROM q34) >= 18
+              THEN 'PASS' ELSE 'FAIL' END,
+         '>= 18 rows (captured baseline 18); 0 populated Q3.4 values',
+         (SELECT 'rows=' || n_rows || '; pref_populated=' || pref_populated ||
+                 '; detail_populated=' || detail_populated FROM q34),
+         'Rows above 18 are tolerated only as normal application activity; all rows must still be NULL.'
+  UNION ALL
+  -- A2a
+  SELECT 'A2a',
+         'No backfill and no column defaults',
+         CASE WHEN (SELECT pref_populated + detail_populated FROM q34) = 0
+                   AND (SELECT count(*) FROM col
+                        WHERE column_name IN ('billing_preference','billing_preference_other_detail')
+                          AND column_default IS NOT NULL) = 0
+              THEN 'PASS' ELSE 'FAIL' END,
+         '0 populated values; 0 defaults',
+         (SELECT 'populated=' || (pref_populated + detail_populated) FROM q34) || '; defaults=' ||
+           (SELECT count(*)::text FROM col
+             WHERE column_name IN ('billing_preference','billing_preference_other_detail')
+               AND column_default IS NOT NULL),
+         'Mirrors the A2a DO block assertion.'
+  UNION ALL
+  -- A2b
+  SELECT 'A2b',
+         'Section 2 baseline counts unchanged',
+         'REVIEW',
+         'Identical to 0_capture.sql query 13 (README §1b)',
+         (SELECT 'rows=' || n_rows ||
+                 '; geographic_scope_populated=' || gs_populated ||
+                 '; geographic_scope_other_detail_populated=' || gsd_populated ||
+                 '; pricing_schedule_populated=' || ps_populated ||
+                 '; pricing_schedule_other_detail_populated=' || psd_populated FROM q34),
+         'Operator must compare these counts against the captured baseline; they cannot be self-verified.'
+  UNION ALL
+  -- A3
+  SELECT 'A3',
+         'Q3.4 constraints present and validated',
+         CASE WHEN (SELECT count(*) FROM cons
+                    WHERE conname IN ('quotes_billing_preference_check',
+                                      'quotes_billing_preference_other_detail_check')
+                      AND convalidated) = 2
+              THEN 'PASS' ELSE 'FAIL' END,
+         '2 constraints, convalidated = true',
+         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+            FROM cons
+           WHERE conname IN ('quotes_billing_preference_check',
+                             'quotes_billing_preference_other_detail_check')),
+         'Option check plus the CASE-form complete Other-detail relationship.'
+  UNION ALL
+  -- A4 (never auto-passed)
+  SELECT 'A4',
+         'Constraint truth table — six cases',
+         'REVIEW',
+         'All six cases behave as documented above',
+         'not executed by this report',
+         'Requires an authorized transactional test with a real row ID, rolled back. Never marked PASS statically.'
+  UNION ALL
+  -- A5 / A5b
+  SELECT 'A5/A5b',
+         'quotes_scoped() has 62 outputs with Q3.4 at 61-62',
+         CASE WHEN (SELECT count(*) FROM fn) = 0 THEN 'FAIL'
+              WHEN (SELECT array_length(proargnames, 1) FROM fn) = 62
+                   AND (SELECT proargnames[61] FROM fn) = 'billing_preference'
+                   AND (SELECT proargnames[62] FROM fn) = 'billing_preference_other_detail'
+                   AND (SELECT proargnames[57] FROM fn) = 'geographic_scope'
+                   AND (SELECT proargnames[58] FROM fn) = 'geographic_scope_other_detail'
+                   AND (SELECT proargnames[59] FROM fn) = 'pricing_schedule'
+                   AND (SELECT proargnames[60] FROM fn) = 'pricing_schedule_other_detail'
+              THEN 'PASS' ELSE 'FAIL' END,
+         '62 outputs; 57-60 Section 2; 61 billing_preference; 62 billing_preference_other_detail',
+         coalesce((SELECT 'count=' || array_length(proargnames, 1) ||
+                          '; 57-62=' || array_to_string(proargnames[57:62], ',') FROM fn),
+                  'quotes_scoped() not found'),
+         'Byte-identity of outputs 1-60 against the captured definition is an operator diff (see A5 note).'
+  UNION ALL
+  -- A6
+  SELECT 'A6',
+         'quotes_scoped() security properties',
+         CASE WHEN (SELECT count(*) FROM fn) = 0 THEN 'FAIL'
+              WHEN (SELECT prosecdef FROM fn)
+                   AND (SELECT provolatile FROM fn) = 's'
+                   AND (SELECT lang FROM fn) = 'sql'
+                   AND (SELECT owner FROM fn) = 'postgres'
+                   AND (SELECT settings FROM fn) = 'search_path=public'
+              THEN 'PASS' ELSE 'FAIL' END,
+         'SECURITY DEFINER / STABLE / sql / owner postgres / search_path=public',
+         coalesce((SELECT 'secdef=' || prosecdef || '; volatility=' || provolatile ||
+                          '; lang=' || lang || '; owner=' || owner ||
+                          '; settings=' || coalesce(settings, 'none') FROM fn),
+                  'quotes_scoped() not found'),
+         'Captured pre-change properties must be preserved exactly.'
+  UNION ALL
+  -- A7
+  SELECT 'A7',
+         'quotes_scoped() grants are least privilege',
+         CASE WHEN (SELECT count(*) FROM grants WHERE grantee NOT IN ('postgres','authenticated')) = 0
+                   AND (SELECT count(*) FROM grants WHERE grantee = 'authenticated' AND privilege_type = 'EXECUTE') = 1
+              THEN 'PASS' ELSE 'FAIL' END,
+         'EXECUTE for postgres and authenticated only; no anon, PUBLIC or service_role',
+         (SELECT coalesce(string_agg(grantee || ':' || privilege_type, '; ' ORDER BY grantee), 'none')
+            FROM grants),
+         'PUBLIC would appear as an empty/PUBLIC grantee row.'
+  UNION ALL
+  -- A8
+  SELECT 'A8',
+         'Q3.4 trigger and function exist with correct scope',
+         CASE WHEN (SELECT count(*) FROM trg
+                    WHERE tgname = 'quotes_enforce_billing_preference_authorization'
+                      AND def ILIKE '%BEFORE INSERT OR UPDATE%'
+                      AND def ILIKE '%FOR EACH ROW%'
+                      AND def ILIKE '%enforce_billing_preference_authorization()%') = 1
+                   AND to_regprocedure('public.enforce_billing_preference_authorization()') IS NOT NULL
+              THEN 'PASS' ELSE 'FAIL' END,
+         'Trigger BEFORE INSERT OR UPDATE FOR EACH ROW + function present',
+         coalesce((SELECT 'trigger present' FROM trg
+                    WHERE tgname = 'quotes_enforce_billing_preference_authorization'), 'trigger missing') ||
+           '; function=' ||
+           CASE WHEN to_regprocedure('public.enforce_billing_preference_authorization()') IS NOT NULL
+                THEN 'present' ELSE 'missing' END,
+         'Function body details (42501 paths, role rules) are inspected by the A8 pg_get_functiondef output above.'
+  UNION ALL
+  -- A9
+  SELECT 'A9',
+         'Section 2 pricing trigger/function present (hash for comparison)',
+         CASE WHEN (SELECT count(*) FROM trg
+                    WHERE tgname = 'quotes_enforce_pricing_schedule_authorization') = 1
+                   AND to_regprocedure('public.enforce_pricing_schedule_authorization()') IS NOT NULL
+              THEN 'REVIEW' ELSE 'FAIL' END,
+         'Trigger + function present; body md5 identical to the pre-change capture',
+         coalesce(
+           (SELECT 'md5=' || md5(pg_get_functiondef(to_regprocedure('public.enforce_pricing_schedule_authorization()')))),
+           'function missing'),
+         'PRESENCE is verified here; UNCHANGED requires the operator to compare this md5 with the captured value.'
+  UNION ALL
+  -- A10
+  SELECT 'A10',
+         'All five original triggers plus the new Q3.4 trigger',
+         CASE WHEN (SELECT count(*) FROM trg
+                    WHERE tgname IN ('enforce_quote_state',
+                                     'notify_quote_reassignment',
+                                     'notify_quote_state_change',
+                                     'quotes_enforce_pricing_schedule_authorization',
+                                     'quotes_updated_at',
+                                     'quotes_enforce_billing_preference_authorization')) = 6
+                   AND (SELECT count(*) FROM trg) = 6
+              THEN 'PASS' ELSE 'FAIL' END,
+         '6 non-internal triggers: the 5 captured + quotes_enforce_billing_preference_authorization',
+         (SELECT coalesce(string_agg(tgname, '; ' ORDER BY tgname), 'none') FROM trg),
+         'No captured trigger may be dropped, renamed or replaced.'
+  UNION ALL
+  -- A11
+  SELECT 'A11',
+         'Section 2 constraints present and validated',
+         CASE WHEN (SELECT count(*) FROM cons
+                    WHERE conname IN ('quotes_geographic_scope_check',
+                                      'quotes_geographic_scope_other_detail_check',
+                                      'quotes_pricing_schedule_check',
+                                      'quotes_pricing_schedule_other_detail_check')
+                      AND convalidated) = 4
+              THEN 'PASS' ELSE 'FAIL' END,
+         '4 Section 2 constraints, convalidated = true',
+         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+            FROM cons
+           WHERE conname IN ('quotes_geographic_scope_check',
+                             'quotes_geographic_scope_other_detail_check',
+                             'quotes_pricing_schedule_check',
+                             'quotes_pricing_schedule_other_detail_check')),
+         'Section 2 behaviour must be untouched by Q3.4.'
+  UNION ALL
+  -- A12
+  SELECT 'A12',
+         'RLS policies unchanged (canonical hash)',
+         'REVIEW',
+         'Policy set and md5 identical to 0_capture.sql query 8',
+         (SELECT 'policies=' || n || '; md5=' || coalesce(policy_md5, 'none') FROM pol),
+         'Q3.4 protection comes from the new trigger, not from any RLS change. Operator compares this md5 with the capture.'
+  UNION ALL
+  -- A13
+  SELECT 'A13',
+         'PostgREST schema reload',
+         'REVIEW',
+         'NOTIFY pgrst, ''reload schema'' issued and API cache refreshed',
+         'not observable from the database catalog',
+         'Confirm via an authenticated application request or a REST call before running Part B.'
+  UNION ALL
+  -- PART B
+  SELECT 'PART B',
+         'Authenticated role behaviour (B1-B7)',
+         'REVIEW',
+         'Each B case verified in a real authenticated session',
+         'not executed by this report',
+         'Requires real per-role sessions (estimator, admin, sales_rep, external, anonymous, trusted context). Never marked PASS statically.'
+)
+SELECT check_id, check_name, status, expected, actual, details
+FROM report
+ORDER BY CASE status WHEN 'FAIL' THEN 0 WHEN 'REVIEW' THEN 1 ELSE 2 END, check_id;
+
+-- =====================================================================
 -- PART B — REAL AUTHENTICATED SESSION TESTS
 -- REQUIRES REAL AUTHENTICATED SESSIONS (one per role) via the published
 -- application or minted sessions. Cannot be satisfied statically or by
@@ -272,14 +566,14 @@ SELECT '=== A13. PostgREST schema reload was issued ===' AS verification_step;
 -- is deleted afterwards; the 18 live rows are never modified.
 -- =====================================================================
 
-SELECT '=== B1. Estimator/Admin can read and write both fields ===' AS verification_step;
+-- === B1. Estimator/Admin can read and write both fields === (documentation only — not executed; see PART B note)
 -- As estimator (and again as admin):
 --   UPDATE public.quotes SET billing_preference = 'annual_upfront'
 --     WHERE id = <test-row-id>;                       -> succeeds
 --   SELECT billing_preference, billing_preference_other_detail
 --     FROM quotes_scoped() WHERE id = <test-row-id>;  -> values returned
 
-SELECT '=== B2. Sales Representative: owned + editable + row visible succeeds ===' AS verification_step;
+-- === B2. Sales Representative: owned + editable + row visible succeeds === (documentation only — not executed; see PART B note)
 -- Authoritative rule: a rep reads/writes Q3.4 only when BOTH hold —
 --   (a) the UNCHANGED row-scope predicate exposes the row, and
 --   (b) owner_id = auth.uid() AND state IN ('draft','estimator_adjusted').
@@ -301,7 +595,7 @@ SELECT '=== B2. Sales Representative: owned + editable + row visible succeeds ==
 --     WHERE id = <owned-unrequested-draft-id>;        -> 0 rows
 -- Record this asymmetry; do NOT widen the predicate to fix it.
 
-SELECT '=== B3. Sales Representative: requested-but-not-owned draft is denied ===' AS verification_step;
+-- === B3. Sales Representative: requested-but-not-owned draft is denied === (documentation only — not executed; see PART B note)
 -- B3a — requested but NOT owned draft (requested_by = rep, owner_id = other
 -- rep). The row IS visible through the unchanged predicate, and must show
 -- NULL for both Q3.4 outputs and refuse writes:
@@ -327,7 +621,7 @@ SELECT '=== B3. Sales Representative: requested-but-not-owned draft is denied ==
 -- pre-change and post-change row counts returned by quotes_scoped() for the
 -- same rep session: they must be identical.
 
-SELECT '=== B4. External user: no read, no write ===' AS verification_step;
+-- === B4. External user: no read, no write === (documentation only — not executed; see PART B note)
 -- As an external user (including on their own draft):
 --   SELECT billing_preference FROM quotes_scoped()    -> NULL for both
 --     outputs on every visible row;
@@ -338,7 +632,7 @@ SELECT '=== B4. External user: no read, no write ===' AS verification_step;
 -- Direct PostgREST reads of the raw columns are additionally blocked by the
 -- revoked table SELECT (quotes_scoped() is the only read path).
 
-SELECT '=== B5. Anonymous role: no execute, no write ===' AS verification_step;
+-- === B5. Anonymous role: no execute, no write === (documentation only — not executed; see PART B note)
 -- Without a session:
 --   SELECT * FROM quotes_scoped();                    -> permission denied
 --   INSERT INTO public.quotes (...) VALUES (..., 'monthly', ...);
@@ -346,12 +640,12 @@ SELECT '=== B5. Anonymous role: no execute, no write ===' AS verification_step;
 -- Public anonymous lead intake must still succeed unchanged
 -- (anon_lead_intakes INSERT path; no Q3.4 columns involved).
 
-SELECT '=== B6. Trusted system context (auth.uid() IS NULL) ===' AS verification_step;
+-- === B6. Trusted system context (auth.uid() IS NULL) === (documentation only — not executed; see PART B note)
 -- From a service/system context with no user claim, setting either field
 -- succeeds. This is the documented trusted-context convention shared with
 -- the Section 2 trigger. Do NOT run this as a client-callable privilege.
 
-SELECT '=== B7. Ballpark and lead-converted compatibility ===' AS verification_step;
+-- === B7. Ballpark and lead-converted compatibility === (documentation only — not executed; see PART B note)
 -- Convert a lead (or create a Ballpark draft) as usual; confirm the new row
 -- has NULL for both Q3.4 fields, the conversion RPCs succeed untouched, and
 -- the autosave path persists a rep-selected value only on the Proposal tier.
