@@ -308,9 +308,14 @@ CREATE TRIGGER quotes_enforce_billing_preference_authorization
 --      61 billing_preference
 --      62 billing_preference_other_detail
 -- ---------------------------------------------------------------------
-DROP FUNCTION IF EXISTS public.quotes_scoped();
+-- No IF EXISTS: §0f already asserted the captured 60-output function is
+-- present, so a missing function here is drift and must abort. The DROP is
+-- required because CREATE OR REPLACE cannot change a function's RETURNS
+-- TABLE signature; the CREATE OR REPLACE form below is retained so the
+-- statement matches the captured pg_get_functiondef() text.
+DROP FUNCTION public.quotes_scoped();
 
-CREATE FUNCTION public.quotes_scoped()
+CREATE OR REPLACE FUNCTION public.quotes_scoped()
  RETURNS TABLE(id uuid, owner_id uuid, requested_by uuid, reviewed_by uuid, approved_by uuid, last_reviewed_by uuid, name text, customer_name text, customer_type text, customer_email text, compliance text[], vertical text, solution text, vertical_other_detail text, repeatable_activation text, module_tier text, contract_years integer, expected_award_date date, case_worker_count integer, include_b2c boolean, b2c_mau integer, include_b2b_portal boolean, b2b_user_count integer, hosting_model text, environment_count integer, has_integrations boolean, integration_count integer, integration_difficulty text, support_tier text, rep_confidence text, tier text, state text, submitted_at timestamp with time zone, approved_at timestamp with time zone, sent_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, margin_percent integer, margin_justification text, contingency_pct numeric, converted_from_lead_id uuid, converted_from_lead_notes text, migration_required boolean, migration_volume_range text, migration_cleanup_required boolean, external_idp_required boolean, worker_idp_required boolean, idp_documented boolean, portal_form_count_range text, lead_id uuid, needs_attention boolean, integrations jsonb, opportunity_stage text, deal_priority text, deal_template text, quote_validity_date date, geographic_scope text, geographic_scope_other_detail text, pricing_schedule text, pricing_schedule_other_detail text, billing_preference text, billing_preference_other_detail text)
  LANGUAGE sql
  STABLE SECURITY DEFINER
