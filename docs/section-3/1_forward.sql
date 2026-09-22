@@ -174,8 +174,9 @@ COMMENT ON COLUMN public.quotes.billing_preference_other_detail IS
   'v6.4 Q3.4 Other detail (free text); required when billing_preference = other';
 
 -- ---------------------------------------------------------------------
--- 2. Constraints — guarded (NOT VALID then VALIDATE) so the table is not
---    long-locked and the 13 pre-existing NULL rows cannot fail.
+-- 2. Constraints — added NOT VALID then VALIDATE so the table is not
+--    long-locked and the 13 pre-existing NULL rows cannot fail. No
+--    existence guard: §0c asserted both constraints are absent.
 -- ---------------------------------------------------------------------
 -- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
 -- collision is drift and must abort the transaction.
