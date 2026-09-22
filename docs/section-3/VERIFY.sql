@@ -211,21 +211,53 @@ ORDER BY policyname;
 --   SELECT billing_preference, billing_preference_other_detail
 --     FROM quotes_scoped() WHERE id = <test-row-id>;  -> values returned
 
-\echo '=== B2. Sales Representative: owned + editable state succeeds ==='
--- As a sales rep who OWNS a test row in state 'draft' (and again in
--- 'estimator_adjusted'):
+\echo '=== B2. Sales Representative: owned + editable + row visible succeeds ==='
+-- Authoritative rule: a rep reads/writes Q3.4 only when BOTH hold —
+--   (a) the UNCHANGED row-scope predicate exposes the row, and
+--   (b) owner_id = auth.uid() AND state IN ('draft','estimator_adjusted').
+-- For drafts the row predicate keys on requested_by, so the draft case needs
+-- requested_by = owner_id = the rep.
+--
+-- B2a — owned draft that the rep also requested (requested_by = owner_id =
+-- rep), and again in state 'estimator_adjusted':
 --   UPDATE public.quotes SET billing_preference = 'monthly'
---     WHERE id = <owned-draft-row-id>;                -> succeeds
+--     WHERE id = <owned-visible-draft-id>;            -> succeeds
 --   SELECT billing_preference FROM quotes_scoped()
---     WHERE id = <owned-draft-row-id>;                -> 'monthly'
+--     WHERE id = <owned-visible-draft-id>;            -> 'monthly'
+--
+-- B2b — owned draft the rep did NOT request (owner_id = rep, requested_by =
+-- someone else). The write succeeds (the trigger keys on ownership), but the
+-- row is NOT returned by quotes_scoped() at all, because the draft branch of
+-- the unchanged row predicate keys on requested_by:
+--   SELECT count(*) FROM quotes_scoped()
+--     WHERE id = <owned-unrequested-draft-id>;        -> 0 rows
+-- Record this asymmetry; do NOT widen the predicate to fix it.
 
-\echo '=== B3. Sales Representative: unowned or non-editable state is rejected ==='
--- As a sales rep who does NOT own the row (state 'draft'):
+\echo '=== B3. Sales Representative: requested-but-not-owned draft is denied ==='
+-- B3a — requested but NOT owned draft (requested_by = rep, owner_id = other
+-- rep). The row IS visible through the unchanged predicate, and must show
+-- NULL for both Q3.4 outputs and refuse writes:
+--   SELECT billing_preference, billing_preference_other_detail
+--     FROM quotes_scoped()
+--     WHERE id = <requested-not-owned-draft-id>;      -> NULL, NULL
+--   UPDATE public.quotes SET billing_preference = 'monthly'
+--     WHERE id = <requested-not-owned-draft-id>;      -> 42501
+--   UPDATE public.quotes SET billing_preference_other_detail = 'x'
+--     WHERE id = <requested-not-owned-draft-id>;      -> 42501
+--
+-- B3b — owned but NOT in an editable state (e.g. 'approved' or
+-- 'submitted_for_review'):
+--   SELECT billing_preference FROM quotes_scoped()
+--     WHERE id = <owned-approved-id>;                 -> NULL
 --   UPDATE ... SET billing_preference = 'monthly'     -> 42501
--- As a sales rep who owns the row but it is in state 'approved':
---   UPDATE ... SET billing_preference = 'monthly'     -> 42501
--- Reading through quotes_scoped() for a non-editable owned state returns
--- NULL for both Q3.4 outputs.
+--
+-- B3c — neither owned nor requested: the row predicate already excludes it
+-- for drafts; for non-drafts the sales_rep branch requires owner_id, so the
+-- row is not visible and any write raises 42501.
+--
+-- B3d — draft row visibility is UNCHANGED by this migration. Compare the
+-- pre-change and post-change row counts returned by quotes_scoped() for the
+-- same rep session: they must be identical.
 
 \echo '=== B4. External user: no read, no write ==='
 -- As an external user (including on their own draft):
