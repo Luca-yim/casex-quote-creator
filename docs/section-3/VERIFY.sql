@@ -296,7 +296,7 @@ q34 AS (
 fn AS (
   SELECT p.oid,
          p.prosecdef,
-         p.provolatile,
+         p.provolatile::text AS provolatile,
          p.prolang::regproc::text AS lang,
          pg_get_userbyid(p.proowner) AS owner,
          array_to_string(p.proconfig, ',') AS settings,
@@ -404,7 +404,7 @@ report AS (
                       AND convalidated) = 2
               THEN 'PASS' ELSE 'FAIL' END,
          '2 constraints, convalidated = true',
-         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+         (SELECT coalesce(string_agg(conname || '=' || convalidated::text, '; ' ORDER BY conname), 'missing')
             FROM cons
            WHERE conname IN ('quotes_billing_preference_check',
                              'quotes_billing_preference_other_detail_check')),
@@ -447,7 +447,7 @@ report AS (
                    AND (SELECT settings FROM fn) = 'search_path=public'
               THEN 'PASS' ELSE 'FAIL' END,
          'SECURITY DEFINER / STABLE / sql / owner postgres / search_path=public',
-         coalesce((SELECT 'secdef=' || prosecdef || '; volatility=' || provolatile ||
+         coalesce((SELECT 'secdef=' || prosecdef::text || '; volatility=' || provolatile::text ||
                           '; lang=' || lang || '; owner=' || owner ||
                           '; settings=' || coalesce(settings, 'none') FROM fn),
                   'quotes_scoped() not found'),
@@ -522,7 +522,7 @@ report AS (
                       AND convalidated) = 4
               THEN 'PASS' ELSE 'FAIL' END,
          '4 Section 2 constraints, convalidated = true',
-         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+         (SELECT coalesce(string_agg(conname || '=' || convalidated::text, '; ' ORDER BY conname), 'missing')
             FROM cons
            WHERE conname IN ('quotes_geographic_scope_check',
                              'quotes_geographic_scope_other_detail_check',
