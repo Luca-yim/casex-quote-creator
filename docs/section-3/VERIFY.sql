@@ -190,7 +190,7 @@ FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
 SELECT '=== A6. quotes_scoped() security properties unchanged ===' AS verification_step;
 SELECT p.prosecdef AS is_security_definer,
        p.provolatile AS volatility,
-       p.prolang::regproc AS language,
+       (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang) AS language,
        pg_get_userbyid(p.proowner) AS owner,
        p.proconfig AS settings
 FROM pg_proc p
@@ -297,7 +297,7 @@ fn AS (
   SELECT p.oid,
          p.prosecdef,
          p.provolatile::text AS provolatile,
-         p.prolang::regproc::text AS lang,
+         (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang) AS lang,
          pg_get_userbyid(p.proowner) AS owner,
          array_to_string(p.proconfig, ',') AS settings,
          p.proargnames
