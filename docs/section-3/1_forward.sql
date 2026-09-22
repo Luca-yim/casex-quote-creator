@@ -33,7 +33,7 @@
 --   owner postgres, search_path = public; EXECUTE for authenticated;
 --   five non-internal triggers; Section 2 constraints validated.
 --
--- Scope ceiling: two nullable columns, two guarded constraints, one new
+-- Scope ceiling: two nullable columns, two constraints, one new
 -- trigger + function, and an APPEND to quotes_scoped() after position 60.
 -- Nothing else. Pricing, WBS, rate cards, NASPO, margin, contingency,
 -- scoring, approval locks, snapshots, realtime, lead-conversion RPCs,
@@ -44,13 +44,129 @@
 BEGIN;
 
 -- ---------------------------------------------------------------------
+-- 0. PREFLIGHT — fail loudly on ANY drift from the captured baseline.
+--    This migration deliberately contains NO silent "IF NOT EXISTS"
+--    tolerance: every Q3.4 object must be absent and the Section 2
+--    baseline must be intact, or the whole transaction aborts before a
+--    single object is created. If any assertion fires, STOP, re-run
+--    0_capture.sql and re-baseline the package — do not "fix" it by
+--    re-adding guards.
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE
+  n integer;
+BEGIN
+  -- 0a. Neither Q3.4 column may already exist.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes'
+    AND column_name IN ('billing_preference', 'billing_preference_other_detail');
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: % billing-preference column(s) already exist on public.quotes — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0b. public.quotes must still be the captured 60-column table.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes';
+  IF n <> 60 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: public.quotes has % columns, expected the captured 60 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0c. Neither Q3.4 constraint may already exist.
+  SELECT count(*) INTO n
+  FROM pg_constraint
+  WHERE conrelid = 'public.quotes'::regclass
+    AND conname IN ('quotes_billing_preference_check',
+                    'quotes_billing_preference_other_detail_check');
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: % billing-preference constraint(s) already exist — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0d. The Q3.4 trigger and its function may not already exist.
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+      AND tgname = 'quotes_enforce_billing_preference_authorization'
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: trigger quotes_enforce_billing_preference_authorization already exists — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF to_regprocedure('public.enforce_billing_preference_authorization()') IS NOT NULL THEN
+    RAISE EXCEPTION 'Q3.4 preflight: function public.enforce_billing_preference_authorization() already exists — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0e. The Section 2 pricing trigger and function MUST still be present
+  --     and are not touched by this migration.
+  IF to_regprocedure('public.enforce_pricing_schedule_authorization()') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_trigger
+       WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+         AND tgname = 'quotes_enforce_pricing_schedule_authorization'
+     ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: the Section 2 pricing authorization trigger/function is missing — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0f. quotes_scoped() must exist as the captured 60-output, SECURITY
+  --     DEFINER, STABLE, sql function owned by postgres. The replacement
+  --     below preserves outputs 1–60 and appends 61–62; if the live
+  --     function is not the captured shape, the append is not valid.
+  IF to_regprocedure('public.quotes_scoped()') IS NULL THEN
+    RAISE EXCEPTION 'Q3.4 preflight: public.quotes_scoped() does not exist — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  SELECT array_length(proargnames, 1) INTO n
+  FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
+  IF n <> 60 THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() returns % outputs, expected the captured 60 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid = 'public.quotes_scoped()'::regprocedure
+      AND p.prosecdef
+      AND p.provolatile = 's'
+      AND p.prolang = (SELECT oid FROM pg_language WHERE lanname = 'sql')
+      AND pg_get_userbyid(p.proowner) = 'postgres'
+      AND p.proconfig @> ARRAY['search_path=public']
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() security properties differ from the capture (expected SECURITY DEFINER, STABLE, sql, owner postgres, search_path=public) — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0g. Positions 57–60 must still be the four Section 2 outputs, since
+  --     Q3.4 appends immediately after them.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid = 'public.quotes_scoped()'::regprocedure
+      AND p.proargnames[57:60] = ARRAY['geographic_scope',
+                                       'geographic_scope_other_detail',
+                                       'pricing_schedule',
+                                       'pricing_schedule_other_detail']
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 preflight: quotes_scoped() outputs 57-60 are not the captured Section 2 fields — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------
 -- 1. Columns — nullable text, NO database default, NO backfill.
 --    All 13 pre-existing rows therefore remain NULL for both fields and
 --    stay valid. Verified afterwards by VERIFY.sql A2.
 -- ---------------------------------------------------------------------
+-- No IF NOT EXISTS: §0a asserted the columns are absent, so an existing
+-- column is drift and must abort the transaction.
 ALTER TABLE public.quotes
-  ADD COLUMN IF NOT EXISTS billing_preference              text,
-  ADD COLUMN IF NOT EXISTS billing_preference_other_detail text;
+  ADD COLUMN billing_preference              text,
+  ADD COLUMN billing_preference_other_detail text;
 
 COMMENT ON COLUMN public.quotes.billing_preference IS
   'v6.4 Q3.4 Billing Preference (Proposal-only; optional; no pricing effect)';
@@ -58,24 +174,18 @@ COMMENT ON COLUMN public.quotes.billing_preference_other_detail IS
   'v6.4 Q3.4 Other detail (free text); required when billing_preference = other';
 
 -- ---------------------------------------------------------------------
--- 2. Constraints — guarded (NOT VALID then VALIDATE) so the table is not
---    long-locked and the 13 pre-existing NULL rows cannot fail.
+-- 2. Constraints — added NOT VALID then VALIDATE so the table is not
+--    long-locked and the 13 pre-existing NULL rows cannot fail. No
+--    existence guard: §0c asserted both constraints are absent.
 -- ---------------------------------------------------------------------
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'public.quotes'::regclass
-      AND conname = 'quotes_billing_preference_check'
-  ) THEN
-    ALTER TABLE public.quotes
-      ADD CONSTRAINT quotes_billing_preference_check
-      CHECK (billing_preference IS NULL
-             OR billing_preference IN
-                ('monthly', 'annual_upfront', 'annual_quarterly', 'other'))
-      NOT VALID;
-  END IF;
-END $$;
+-- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
+-- collision is drift and must abort the transaction.
+ALTER TABLE public.quotes
+  ADD CONSTRAINT quotes_billing_preference_check
+  CHECK (billing_preference IS NULL
+         OR billing_preference IN
+            ('monthly', 'annual_upfront', 'annual_quarterly', 'other'))
+  NOT VALID;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
@@ -89,26 +199,19 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 --   preference  = 'other'    + NULL or blank   -> REJECTED (THEN branch)
 -- NULL preference falls to ELSE because `NULL = 'other'` is not true, so an
 -- orphaned detail can never be stored.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'public.quotes'::regclass
-      AND conname = 'quotes_billing_preference_other_detail_check'
-  ) THEN
-    ALTER TABLE public.quotes
-      ADD CONSTRAINT quotes_billing_preference_other_detail_check
-      CHECK (
-        CASE
-          WHEN billing_preference = 'other'
-            THEN billing_preference_other_detail IS NOT NULL
-                 AND btrim(billing_preference_other_detail) <> ''
-          ELSE billing_preference_other_detail IS NULL
-        END
-      )
-      NOT VALID;
-  END IF;
-END $$;
+-- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
+-- collision is drift and must abort the transaction.
+ALTER TABLE public.quotes
+  ADD CONSTRAINT quotes_billing_preference_other_detail_check
+  CHECK (
+    CASE
+      WHEN billing_preference = 'other'
+        THEN billing_preference_other_detail IS NOT NULL
+             AND btrim(billing_preference_other_detail) <> ''
+      ELSE billing_preference_other_detail IS NULL
+    END
+  )
+  NOT VALID;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check;
 
@@ -130,7 +233,9 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_de
 --    draft rows remain visible on requested_by, and no draft visibility is
 --    broadened by this migration.
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.enforce_billing_preference_authorization()
+-- Plain CREATE (not CREATE OR REPLACE): §0d asserted this function does not
+-- exist, so an existing definition is drift and must abort.
+CREATE FUNCTION public.enforce_billing_preference_authorization()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
@@ -173,7 +278,8 @@ BEGIN
 END;
 $function$;
 
-DROP TRIGGER IF EXISTS quotes_enforce_billing_preference_authorization ON public.quotes;
+-- No DROP TRIGGER IF EXISTS: §0d asserted the trigger is absent, so a name
+-- collision here is drift and must abort the transaction.
 
 CREATE TRIGGER quotes_enforce_billing_preference_authorization
   BEFORE INSERT OR UPDATE ON public.quotes
@@ -194,9 +300,14 @@ CREATE TRIGGER quotes_enforce_billing_preference_authorization
 --      61 billing_preference
 --      62 billing_preference_other_detail
 -- ---------------------------------------------------------------------
-DROP FUNCTION IF EXISTS public.quotes_scoped();
+-- No IF EXISTS: §0f already asserted the captured 60-output function is
+-- present, so a missing function here is drift and must abort. The DROP is
+-- required because CREATE OR REPLACE cannot change a function's RETURNS
+-- TABLE signature; the CREATE OR REPLACE form below is retained so the
+-- statement matches the captured pg_get_functiondef() text.
+DROP FUNCTION public.quotes_scoped();
 
-CREATE FUNCTION public.quotes_scoped()
+CREATE OR REPLACE FUNCTION public.quotes_scoped()
  RETURNS TABLE(id uuid, owner_id uuid, requested_by uuid, reviewed_by uuid, approved_by uuid, last_reviewed_by uuid, name text, customer_name text, customer_type text, customer_email text, compliance text[], vertical text, solution text, vertical_other_detail text, repeatable_activation text, module_tier text, contract_years integer, expected_award_date date, case_worker_count integer, include_b2c boolean, b2c_mau integer, include_b2b_portal boolean, b2b_user_count integer, hosting_model text, environment_count integer, has_integrations boolean, integration_count integer, integration_difficulty text, support_tier text, rep_confidence text, tier text, state text, submitted_at timestamp with time zone, approved_at timestamp with time zone, sent_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, margin_percent integer, margin_justification text, contingency_pct numeric, converted_from_lead_id uuid, converted_from_lead_notes text, migration_required boolean, migration_volume_range text, migration_cleanup_required boolean, external_idp_required boolean, worker_idp_required boolean, idp_documented boolean, portal_form_count_range text, lead_id uuid, needs_attention boolean, integrations jsonb, opportunity_stage text, deal_priority text, deal_template text, quote_validity_date date, geographic_scope text, geographic_scope_other_detail text, pricing_schedule text, pricing_schedule_other_detail text, billing_preference text, billing_preference_other_detail text)
  LANGUAGE sql
  STABLE SECURITY DEFINER

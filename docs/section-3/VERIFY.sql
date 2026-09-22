@@ -17,6 +17,17 @@
 
 -- =====================================================================
 -- PART A — STATIC / CATALOG CHECKS (no session role required)
+--
+-- DRIFT POLICY: neither migration file contains silent "IF NOT EXISTS"/
+-- "IF EXISTS" tolerance for Q3.4 objects any more. Both carry a §0
+-- preflight DO block that RAISES 55000 and aborts the transaction if any
+-- expected Q3.4 object already exists (forward) or is missing (rollback),
+-- or if the captured baseline (60 columns, 60-output quotes_scoped with
+-- Section 2 fields at 57–60, Section 2 pricing trigger present) has
+-- drifted. Both quotes_scoped() definitions are written as
+-- CREATE OR REPLACE FUNCTION to match the captured pg_get_functiondef()
+-- statement form; the drop/recreate around them still handles the
+-- signature change.
 -- =====================================================================
 
 \echo '=== A0. Column count moved from 60 to 62 ==='

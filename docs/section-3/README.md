@@ -106,9 +106,13 @@ detail input).
 ## 4. Proposed database changes (shape only — not approved)
 
 Nullable `text` column(s) on `public.quotes`, no database default, no
-backfill; guarded check constraint(s) added `NOT VALID` then validated;
-Q3.4 output(s) appended to `quotes_scoped()` after position 60;
-`NOTIFY pgrst, 'reload schema'`. Nothing else.
+backfill; check constraint(s) added `NOT VALID` then validated (no existence
+guard — a §0 preflight DO block in both migration files asserts the exact
+expected object state and aborts with SQLSTATE 55000 on any drift, so the
+migration fails loudly rather than tolerating surprises); `quotes_scoped()`
+is dropped and recreated via `CREATE OR REPLACE FUNCTION` (the statement form
+of the captured `pg_get_functiondef()`) with the Q3.4 output(s) appended
+after position 60; `NOTIFY pgrst, 'reload schema'`. Nothing else.
 
 Approved and now written concretely into `1_forward.sql`: two nullable text
 columns (`billing_preference`, `billing_preference_other_detail`), no database
