@@ -79,6 +79,16 @@ END $$;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
+-- Complete relationship between the two Q3.4 columns. The CASE form covers
+-- all four required rules in one expression:
+--   preference NULL          + detail NULL     -> VALID  (all 13 existing rows)
+--   preference NULL          + detail NOT NULL -> REJECTED (ELSE branch)
+--   preference <> 'other'    + detail NULL     -> VALID
+--   preference <> 'other'    + detail NOT NULL -> REJECTED (ELSE branch)
+--   preference  = 'other'    + nonblank detail -> VALID
+--   preference  = 'other'    + NULL or blank   -> REJECTED (THEN branch)
+-- NULL preference falls to ELSE because `NULL = 'other'` is not true, so an
+-- orphaned detail can never be stored.
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -88,10 +98,14 @@ BEGIN
   ) THEN
     ALTER TABLE public.quotes
       ADD CONSTRAINT quotes_billing_preference_other_detail_check
-      CHECK (billing_preference IS NULL
-             OR billing_preference <> 'other'
-             OR (billing_preference_other_detail IS NOT NULL
-                 AND btrim(billing_preference_other_detail) <> ''))
+      CHECK (
+        CASE
+          WHEN billing_preference = 'other'
+            THEN billing_preference_other_detail IS NOT NULL
+                 AND btrim(billing_preference_other_detail) <> ''
+          ELSE billing_preference_other_detail IS NULL
+        END
+      )
       NOT VALID;
   END IF;
 END $$;
@@ -104,6 +118,17 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_de
 --    triggers are unaffected. Trusted system context (auth.uid() IS NULL)
 --    passes, matching the Section 2 trigger convention. Ballpark and
 --    lead-converted quotes insert NULL/NULL, which is not a protected write.
+--
+--    SALES REPRESENTATIVE RULE (authoritative): own the quote AND the quote
+--    is editable under the existing lifecycle. Ownership is owner_id; the
+--    editable states are the ones canEditIntake/canEditQuote already use for
+--    sales_rep in src/lib/quote-workflow.ts, i.e. draft and
+--    estimator_adjusted. A rep who merely REQUESTED a draft they do not own
+--    (requested_by = auth.uid(), owner_id <> auth.uid()) is DENIED here and
+--    reads NULL from the masking in §4. This is intentional and is NOT a
+--    change to the row-scope predicate below, which is preserved verbatim:
+--    draft rows remain visible on requested_by, and no draft visibility is
+--    broadened by this migration.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.enforce_billing_preference_authorization()
 RETURNS trigger
@@ -237,6 +262,14 @@ AS $function$
     -- Q3.4: estimator/admin always; sales reps only on their OWN quote while
     -- the existing lifecycle considers it editable (draft / estimator_adjusted);
     -- external users always NULL. Mirrors the new authorization trigger.
+    --
+    -- Row scope vs. field scope, stated explicitly (no predicate change):
+    --   The WHERE clause below still admits drafts on requested_by. A rep
+    --   therefore reads a non-NULL Q3.4 value only when BOTH hold: the row
+    --   predicate exposes the row, AND owner_id = auth.uid() with the state
+    --   editable. A rep who requested but does not own a draft sees the row
+    --   with NULL in both Q3.4 outputs, and the trigger rejects their write
+    --   with 42501. Nothing here widens draft visibility.
     case
       when public.current_user_role() in ('estimator','admin') then q.billing_preference
       when public.current_user_role() = 'sales_rep' and auth.uid() = q.owner_id

@@ -177,6 +177,65 @@ describe("Q3.4 Billing Preference options and persistence", () => {
     ).toBe(true);
   });
 
+  /**
+   * Complete two-column relationship, mirroring
+   * quotes_billing_preference_other_detail_check in
+   * docs/section-3/1_forward.sql. The Zod layer must reject exactly what the
+   * database rejects, so autosave can never send a violating pair.
+   */
+  it("enforces the full preference/detail relationship", () => {
+    const parse = (
+      billingPreference: string | null,
+      billingPreferenceOtherDetail: string | null,
+    ) =>
+      quoteSchema.safeParse({
+        ...VALID_BASE,
+        billingPreference,
+        billingPreferenceOtherDetail,
+      }).success;
+
+    // 1 NULL + NULL is valid — the state of all 13 existing rows.
+    expect(parse(null, null)).toBe(true);
+    // 2 a detail with no preference is rejected (no orphaned detail).
+    expect(parse(null, "stray")).toBe(false);
+    // 3 a non-Other preference with no detail is valid.
+    expect(parse("monthly", null)).toBe(true);
+    expect(parse("annual_upfront", null)).toBe(true);
+    expect(parse("annual_quarterly", null)).toBe(true);
+    // 4 a detail alongside a non-Other preference is rejected.
+    expect(parse("monthly", "stray")).toBe(false);
+    expect(parse("annual_quarterly", "stray")).toBe(false);
+    // 5 Other without a nonblank detail is rejected.
+    expect(parse("other", null)).toBe(false);
+    expect(parse("other", "   ")).toBe(false);
+    // 6 Other with a nonblank detail is valid.
+    expect(parse("other", "Milestone invoicing")).toBe(true);
+  });
+
+  it("matches the database CASE constraint in the forward SQL", () => {
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "quotes_billing_preference_other_detail_check",
+    );
+    // The CASE form is what makes rules 2 and 4 enforceable: a NULL or
+    // non-Other preference falls to ELSE, which demands a NULL detail.
+    expect(SECTION3_FORWARD_SQL).toContain("WHEN billing_preference = 'other'");
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "ELSE billing_preference_other_detail IS NULL",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "btrim(billing_preference_other_detail) <> ''",
+    );
+    // Both constraints are added guarded and then validated.
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "VALIDATE CONSTRAINT quotes_billing_preference_check",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check",
+    );
+  });
+
+
+
   it("stays optional for Proposal completion, submission and approval", () => {
     // A Proposal parses (and therefore submits and approves) with both Q3.4
     // fields NULL — Section 2's pricing-schedule gate is the only addition.
@@ -386,6 +445,126 @@ describe("Q3.4 role visibility and write boundaries", () => {
       }),
     ).toBe(true);
   });
+
+  /**
+   * Row scope vs. field scope. The quotes_scoped() row predicate is NOT
+   * changed by Q3.4: draft rows are still exposed on requested_by, while the
+   * Q3.4 masking and the trigger both key on owner_id. A rep therefore reads
+   * a real value only when the row predicate exposes the row AND the rep
+   * owns it in an editable state.
+   */
+  const rowVisibleToRep = (row: {
+    state: Quote["state"];
+    requestedByRep: boolean;
+    ownedByRep: boolean;
+  }): boolean =>
+    row.state === "draft"
+      ? row.requestedByRep
+      : row.ownedByRep;
+
+  const repReadsQ34 = (row: {
+    state: Quote["state"];
+    requestedByRep: boolean;
+    ownedByRep: boolean;
+  }): boolean =>
+    rowVisibleToRep(row) &&
+    row.ownedByRep &&
+    canEditIntake("sales_rep", row.state);
+
+  it("gives a rep Q3.4 values only on an owned, editable, visible draft", () => {
+    expect(
+      repReadsQ34({ state: "draft", requestedByRep: true, ownedByRep: true }),
+    ).toBe(true);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: true,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: "monthly", detail: null },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns NULL and denies writes for a requested-but-not-owned draft", () => {
+    const row = {
+      state: "draft" as const,
+      requestedByRep: true,
+      ownedByRep: false,
+    };
+    // The unchanged row predicate still exposes the row...
+    expect(rowVisibleToRep(row)).toBe(true);
+    // ...but both Q3.4 outputs mask to NULL, and writes are rejected.
+    expect(repReadsQ34(row)).toBe(false);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: false,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: "monthly", detail: null },
+      }),
+    ).toBe(false);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: false,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: null, detail: "x" },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not broaden draft row visibility", () => {
+    // An owned draft the rep did not request stays invisible: the draft
+    // branch of the predicate keys on requested_by and Q3.4 does not change
+    // it. Q3.4 masking can only ever narrow what a visible row exposes.
+    expect(
+      rowVisibleToRep({
+        state: "draft",
+        requestedByRep: false,
+        ownedByRep: true,
+      }),
+    ).toBe(false);
+    // The forward SQL keeps the captured predicate verbatim.
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "(q.state = 'draft' and q.requested_by = auth.uid())",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "or (public.current_user_role() = 'sales_rep' and q.state <> 'draft' and q.owner_id = auth.uid())",
+    );
+  });
+
+  it("keeps external users masked on every visible row", () => {
+    for (const state of [...EDITABLE_STATES, ...NON_EDITABLE_STATES]) {
+      expect(
+        triggerAllows({
+          op: "UPDATE",
+          role: "external",
+          ownsQuote: true,
+          state,
+          prev: { pref: null, detail: null },
+          next: { pref: "monthly", detail: null },
+        }),
+      ).toBe(false);
+    }
+    // Neither Q3.4 masking branch mentions the external role: both CASE
+    // expressions fall through to `else null` for external users. The slice
+    // stops at the FROM clause so the (unchanged) row predicate, which does
+    // reference 'external', is not included.
+    const q34Masking = SECTION3_FORWARD_SQL.slice(
+      SECTION3_FORWARD_SQL.indexOf("then q.billing_preference"),
+      SECTION3_FORWARD_SQL.indexOf("from public.quotes q"),
+    );
+    expect(q34Masking).not.toContain("'external'");
+    expect(q34Masking).toContain("else null");
+  });
+
+
 
   it("enforces the server-side trigger in the forward migration SQL", () => {
     expect(SECTION3_FORWARD_SQL).toContain(

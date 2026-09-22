@@ -358,6 +358,20 @@ export const quoteSchema = z.object({
     });
   }
 
+  // Q3.4 — mirror of the database constraint: the detail may only exist
+  // alongside "other". This keeps autosave from ever sending a pair the
+  // quotes_billing_preference_other_detail_check constraint would reject.
+  if (
+    value.billingPreference !== "other" &&
+    (value.billingPreferenceOtherDetail ?? "") !== ""
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["billingPreferenceOtherDetail"],
+      message: "Billing preference detail applies only to \"Other\"",
+    });
+  }
+
   // Q2.3 — a Proposal must declare its pricing schedule before it is
   // submitted. Ballpark quotes never carry this requirement.
   if (value.tier === "proposal" && value.pricingSchedule == null) {

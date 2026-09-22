@@ -226,7 +226,12 @@ implementation instructions and are baked into `1_forward.sql`:
 - **D3 — resolved persisted.** `annual_quarterly` is a real stored value;
   there is still NO default at the UI or database layer — the Proposal UI
   starts blank and never auto-persists a value on mount.
-- **D4 — resolved, state-gated.** Sales Representatives may read and write
+- **D4 — resolved, state-gated, ownership-keyed.** Row visibility is
+  unchanged: the `quotes_scoped()` predicate still exposes drafts on
+  `requested_by`, while Q3.4 masking and the trigger key on `owner_id`. A rep
+  reads a value only when the row predicate exposes the row AND they own it
+  in an editable state; a rep who requested but does not own a draft sees
+  NULL and is denied writes (42501). No draft visibility is broadened. Sales Representatives may read and write
   the fields only on their OWN quote, and only in the states the existing
   lifecycle treats as editable (`canEditQuote` for `sales_rep`: `draft` or
   `estimator_adjusted`). Unowned quotes: never. This mirrors the existing
@@ -237,9 +242,11 @@ implementation instructions and are baked into `1_forward.sql`:
 - **D6 — resolved, separate trigger.** `quotes_enforce_billing_preference_
   authorization` is new and independent; the Section 2 trigger and its
   function are not modified (verified by `VERIFY.sql` A9).
-- **D7 — resolved, database-level.** Both the Zod layer and the database
-  enforce the required nonblank Other detail (unlike Q2.2/Q2.3, where the
-  database stays silent).
+- **D7 — resolved, database-level, complete relationship.** Both the Zod
+  layer and the database enforce the full two-column rule (unlike Q2.2/Q2.3,
+  where the database stays silent): NULL + NULL valid; a detail with a NULL
+  preference rejected; a detail with any non-`other` preference rejected;
+  `other` requires a nonblank trimmed detail.
 - **D8 — resolved none.** No approved PDF/export output target exists in the
   repository, so output code is unchanged.
 
