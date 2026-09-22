@@ -22,11 +22,93 @@
 BEGIN;
 
 -- ---------------------------------------------------------------------
+-- 0. PREFLIGHT — fail loudly on ANY drift from the expected Q3.4 state.
+--    Like the forward migration, this rollback contains NO silent
+--    "IF EXISTS" tolerance: every Q3.4 object must be present in the
+--    expected shape, or the transaction aborts before anything is dropped.
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE
+  n integer;
+BEGIN
+  -- 0a. Both Q3.4 columns must exist.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes'
+    AND column_name IN ('billing_preference', 'billing_preference_other_detail');
+  IF n <> 2 THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: % of the 2 billing-preference columns exist — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0b. public.quotes must be the post-forward 62-column table.
+  SELECT count(*) INTO n
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes';
+  IF n <> 62 THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: public.quotes has % columns, expected 62 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0c. Both Q3.4 constraints must exist.
+  SELECT count(*) INTO n
+  FROM pg_constraint
+  WHERE conrelid = 'public.quotes'::regclass
+    AND conname IN ('quotes_billing_preference_check',
+                    'quotes_billing_preference_other_detail_check');
+  IF n <> 2 THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: % of the 2 billing-preference constraints exist — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0d. The Q3.4 trigger and function must exist.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+      AND tgname = 'quotes_enforce_billing_preference_authorization'
+  ) OR to_regprocedure('public.enforce_billing_preference_authorization()') IS NULL THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: the billing-preference trigger/function is missing — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0e. The Section 2 pricing trigger must still be present and is not
+  --     touched by this rollback.
+  IF to_regprocedure('public.enforce_pricing_schedule_authorization()') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_trigger
+       WHERE tgrelid = 'public.quotes'::regclass AND NOT tgisinternal
+         AND tgname = 'quotes_enforce_pricing_schedule_authorization'
+     ) THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: the Section 2 pricing authorization trigger/function is missing — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+
+  -- 0f. quotes_scoped() must be the post-forward 62-output function with
+  --     the Q3.4 fields at positions 61–62.
+  SELECT array_length(proargnames, 1) INTO n
+  FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
+  IF n <> 62 THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: quotes_scoped() returns % outputs, expected 62 — STOP and re-baseline', n
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid = 'public.quotes_scoped()'::regprocedure
+      AND p.proargnames[61:62] = ARRAY['billing_preference',
+                                       'billing_preference_other_detail']
+  ) THEN
+    RAISE EXCEPTION 'Q3.4 rollback preflight: quotes_scoped() outputs 61-62 are not the Q3.4 fields — STOP and re-baseline'
+      USING ERRCODE = '55000';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------
 -- 1. Drop the Q3.4 trigger, then its function.
 -- ---------------------------------------------------------------------
-DROP TRIGGER IF EXISTS quotes_enforce_billing_preference_authorization
+DROP TRIGGER quotes_enforce_billing_preference_authorization
   ON public.quotes;
-DROP FUNCTION IF EXISTS public.enforce_billing_preference_authorization();
+DROP FUNCTION public.enforce_billing_preference_authorization();
 
 -- ---------------------------------------------------------------------
 -- 2. Drop Q3.4 constraints (before the columns; no CASCADE anywhere).
