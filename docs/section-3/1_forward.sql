@@ -33,7 +33,7 @@
 --   owner postgres, search_path = public; EXECUTE for authenticated;
 --   five non-internal triggers; Section 2 constraints validated.
 --
--- Scope ceiling: two nullable columns, two guarded constraints, one new
+-- Scope ceiling: two nullable columns, two constraints, one new
 -- trigger + function, and an APPEND to quotes_scoped() after position 60.
 -- Nothing else. Pricing, WBS, rate cards, NASPO, margin, contingency,
 -- scoring, approval locks, snapshots, realtime, lead-conversion RPCs,
