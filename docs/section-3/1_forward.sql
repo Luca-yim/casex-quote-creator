@@ -196,26 +196,19 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 --   preference  = 'other'    + NULL or blank   -> REJECTED (THEN branch)
 -- NULL preference falls to ELSE because `NULL = 'other'` is not true, so an
 -- orphaned detail can never be stored.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'public.quotes'::regclass
-      AND conname = 'quotes_billing_preference_other_detail_check'
-  ) THEN
-    ALTER TABLE public.quotes
-      ADD CONSTRAINT quotes_billing_preference_other_detail_check
-      CHECK (
-        CASE
-          WHEN billing_preference = 'other'
-            THEN billing_preference_other_detail IS NOT NULL
-                 AND btrim(billing_preference_other_detail) <> ''
-          ELSE billing_preference_other_detail IS NULL
-        END
-      )
-      NOT VALID;
-  END IF;
-END $$;
+-- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
+-- collision is drift and must abort the transaction.
+ALTER TABLE public.quotes
+  ADD CONSTRAINT quotes_billing_preference_other_detail_check
+  CHECK (
+    CASE
+      WHEN billing_preference = 'other'
+        THEN billing_preference_other_detail IS NOT NULL
+             AND btrim(billing_preference_other_detail) <> ''
+      ELSE billing_preference_other_detail IS NULL
+    END
+  )
+  NOT VALID;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_detail_check;
 
