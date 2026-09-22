@@ -244,7 +244,9 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_de
 --    draft rows remain visible on requested_by, and no draft visibility is
 --    broadened by this migration.
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.enforce_billing_preference_authorization()
+-- Plain CREATE (not CREATE OR REPLACE): §0d asserted this function does not
+-- exist, so an existing definition is drift and must abort.
+CREATE FUNCTION public.enforce_billing_preference_authorization()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
