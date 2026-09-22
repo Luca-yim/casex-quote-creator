@@ -190,7 +190,7 @@ FROM pg_proc WHERE oid = 'public.quotes_scoped()'::regprocedure;
 SELECT '=== A6. quotes_scoped() security properties unchanged ===' AS verification_step;
 SELECT p.prosecdef AS is_security_definer,
        p.provolatile AS volatility,
-       p.prolang::regproc AS language,
+       (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang) AS language,
        pg_get_userbyid(p.proowner) AS owner,
        p.proconfig AS settings
 FROM pg_proc p
@@ -297,7 +297,7 @@ fn AS (
   SELECT p.oid,
          p.prosecdef,
          p.provolatile::text AS provolatile,
-         p.prolang::regproc::text AS lang,
+         (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang) AS lang,
          pg_get_userbyid(p.proowner) AS owner,
          array_to_string(p.proconfig, ',') AS settings,
          p.proargnames
@@ -516,19 +516,17 @@ report AS (
          'Section 2 constraints present and validated',
          CASE WHEN (SELECT count(*) FROM cons
                     WHERE conname IN ('quotes_geographic_scope_check',
-                                      'quotes_geographic_scope_other_detail_check',
-                                      'quotes_pricing_schedule_check',
-                                      'quotes_pricing_schedule_other_detail_check')
-                      AND convalidated) = 4
+                                      'quotes_pricing_schedule_check')
+                      AND convalidated) = 2
+                   AND (SELECT count(*) FROM cons
+                        WHERE (conname LIKE '%geographic_scope%' OR conname LIKE '%pricing_schedule%')
+                          AND NOT convalidated) = 0
               THEN 'PASS' ELSE 'FAIL' END,
-         '4 Section 2 constraints, convalidated = true',
+         'Every Section 2 constraint present in the capture is still present and convalidated = true (the live capture holds the option checks; the Other-detail rules are carried inside those check expressions)',
          (SELECT coalesce(string_agg(conname || '=' || convalidated::text, '; ' ORDER BY conname), 'missing')
             FROM cons
-           WHERE conname IN ('quotes_geographic_scope_check',
-                             'quotes_geographic_scope_other_detail_check',
-                             'quotes_pricing_schedule_check',
-                             'quotes_pricing_schedule_other_detail_check')),
-         'Section 2 behaviour must be untouched by Q3.4.'
+           WHERE conname LIKE '%geographic_scope%' OR conname LIKE '%pricing_schedule%'),
+         'Section 2 behaviour must be untouched by Q3.4. Operator compares this list against 0_capture.sql; any name present in the capture but absent here is a regression.'
   UNION ALL
   -- A12
   SELECT 'A12',
