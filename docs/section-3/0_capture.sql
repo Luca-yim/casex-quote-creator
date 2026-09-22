@@ -35,9 +35,10 @@ ORDER BY conname;
 \echo '=== 4. quotes_scoped() full definition (authoritative pre-change baseline) ==='
 SELECT pg_get_functiondef('public.quotes_scoped()'::regprocedure);
 -- CAPTURED: the operator holds the authoritative pre-change definition. Its
--- verbatim text is NOT reproduced in this repository; it must be pasted into
--- the placeholders in 1_forward.sql §4 and 2_rollback.sql §1 at execution
--- time, directly from the capture output.
+-- verbatim baseline is reproduced in 2_rollback.sql §4 (60 outputs) and,
+-- with the two approved Q3.4 outputs appended, in 1_forward.sql §4 (62
+-- outputs). Diff this query's fresh output against both before executing
+-- either file; if the live function has drifted, STOP and re-baseline.
 
 \echo '=== 5. quotes_scoped() properties ==='
 SELECT p.oid::regprocedure          AS function_signature,
@@ -81,10 +82,10 @@ WHERE schemaname = 'public' AND tablename = 'quotes'
 ORDER BY policyname;
 -- CAPTURED: policies include an External draft-update path, a Sales
 -- Representative owned-quote update path, and Estimator/Admin update paths.
--- These are NOT modified by the Q3.4 migration. Note for open decision D6:
--- the External draft-update path means external users retain an UPDATE route
--- to their own draft rows, so column-level protection for Q3.4 is an open
--- question rather than an assumed outcome of RLS.
+-- These are NOT modified by the Q3.4 migration. The External draft-update
+-- path means external users retain an UPDATE route to their own draft rows,
+-- which is why the approved Q3.4 slice adds a separate column-level
+-- authorization trigger instead of relying on RLS alone.
 
 \echo '=== 8b. RLS enabled flag ==='
 SELECT relrowsecurity, relforcerowsecurity

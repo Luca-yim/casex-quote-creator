@@ -1,9 +1,11 @@
 # Section 3 — Q3.4 Billing Preference (design / migration package)
 
-**Status: PREPARED, NOT APPLIED. Implementation has not started.**
-No application code, generated types, tests, or database objects have been
-changed. No SQL has been executed. Every file in this folder is review-only.
-`1_forward.sql` and `2_rollback.sql` remain **drafts and NOT EXECUTABLE**.
+**Status: IMPLEMENTATION PREPARED — repository code and migration package
+complete; the live migration has NOT been applied.** Application code,
+generated types and tests now implement Q3.4. `1_forward.sql` and
+`2_rollback.sql` remain drafts: an authorized operator must review them
+against a fresh `0_capture.sql` run before applying. No SQL has ever been
+executed against the live database from this repository.
 
 ## 1. Current verified project state
 
@@ -108,9 +110,16 @@ backfill; guarded check constraint(s) added `NOT VALID` then validated;
 Q3.4 output(s) appended to `quotes_scoped()` after position 60;
 `NOTIFY pgrst, 'reload schema'`. Nothing else.
 
-The exact column set, stored option identifiers, constraint contents, masking
-role list, and any authorization mechanism are all held open by the decisions
-in §11 and appear in `1_forward.sql` only as clearly marked placeholders.
+Approved and now written concretely into `1_forward.sql`: two nullable text
+columns (`billing_preference`, `billing_preference_other_detail`), no database
+default, no backfill; the option constraint over exactly `monthly`,
+`annual_upfront`, `annual_quarterly`, `other`; the Other-detail constraint
+requiring a nonblank (`btrim`) detail only when the preference is `other`;
+a separate `enforce_billing_preference_authorization()` trigger function with
+trigger `quotes_enforce_billing_preference_authorization` (BEFORE INSERT OR
+UPDATE); and a 62-output `quotes_scoped()` preserving positions 1–60 and the
+captured masking byte-for-byte, appending `billing_preference` (61) and
+`billing_preference_other_detail` (62) with role-aware masking.
 
 **`quotes_scoped()` impact.** The function uses an explicit `RETURNS TABLE`
 list of 60 columns, so any Q3.4 output must be appended explicitly; it cannot
@@ -129,10 +138,11 @@ five must remain present and behaviourally unchanged, in particular
 `quotes_enforce_pricing_schedule_authorization`, whose function body hash is
 asserted unchanged by `VERIFY.sql` S2-3b.
 
-**External-write consideration.** The capture confirms an External
-draft-update RLS path exists. It therefore cannot be assumed that existing RLS
-alone keeps external users away from the Q3.4 columns; this is recorded as an
-open decision, not a settled outcome.
+**External-write resolution.** The capture confirmed an External draft-update
+RLS path exists, so RLS alone does NOT keep external users away from the Q3.4
+columns. The approved resolution is the separate Q3.4 authorization trigger:
+external writes to either field raise SQLSTATE 42501 on their own draft rows,
+server-side. The existing `quotes` RLS policies are untouched.
 
 ## 5. Migration safety requirements
 
@@ -168,7 +178,7 @@ After rollback, re-run `0_capture.sql` and diff against the §1b baseline.
 | `src/features/intake/IntakeForm.tsx` | Definitely | Import and render the new section once | Section order and all existing sections |
 | `src/features/intake/quote-mapper.ts` | Definitely | Map the column(s) in `rowToQuote`; add key(s) to `QUOTE_FIELD_COLUMNS` for autosave | All existing mappings |
 | `src/lib/quote-columns.ts` | Definitely (deliberate non-addition) | Confirm and test that Q3.4 column(s) never join `SAFE_QUOTE_COLUMNS` | The existing list contents |
-| `src/lib/database.types.ts` | Definitely | Regenerated after the migration only — never hand-edited | Everything else |
+| `src/lib/database.types.ts` | Definitely | Column entries added consistently with the final schema; regenerated properly by the platform once the migration is applied | Everything else |
 | `src/lib/quote-validation.ts`, `useQuoteTransition.ts`, `SubmitBar.tsx` | **Not** affected | Q3.4 is optional for completion, submission and approval, so no readiness or approval gate is added | All existing gates, including `assertPricingScheduleForApproval` |
 | `src/features/pdf-export/**` | Potentially | Only if an approved output requirement exists; none found. Held open as a decision | All existing PDF pages and content |
 | Tests | Definitely | New `section3-billing-preference.test.ts`; additions to `IntakeForm.test.tsx`, `LeadIntakeForm.test.tsx`, `e2e/external-visibility.spec.ts` | Existing Section 1/2 assertions |
@@ -203,32 +213,44 @@ NASPO, margin, contingency, scoring, approval locks, snapshots, realtime,
 Section 1, Section 2, Q3.1a, Q3.2, completed database security work, or
 customer PDFs / Excel exports.
 
-## 11. Open approval decisions — **all unresolved**
+## 11. Approval decisions — **resolved by the approved Q3.4 slice**
 
-None of these is settled by this package; each requires explicit approval
-before `1_forward.sql` can be finalised.
+All eight previously open decisions were settled by the approved
+implementation instructions and are baked into `1_forward.sql`:
 
-- **D1** — is a separate `billing_preference_other_detail` column required?
-- **D2** — exact stored option values (identifiers and spelling) for Monthly,
-  Annual upfront, Annual quarterly and Other.
-- **D3** — is "Annual quarterly" UI-only, or persisted?
-- **D4** — Sales Representative read/write timing: unconditional, or gated on
-  quote state as pricing visibility is elsewhere in this application?
-- **D5** — External-user write protection: the live capture confirms an
-  External draft-update RLS path, so the mechanism must be decided explicitly.
-- **D6** — separate new trigger versus extension of an existing trigger. Any
-  extension of `quotes_enforce_pricing_schedule_authorization` needs a
-  byte-level before/after review, because Section 2 behaviour must not change.
-- **D7** — database-level "Other"-detail validation, or Zod only (as Q2.2 and
-  Q2.3 do)?
-- **D8** — PDF/export inclusion.
+- **D1 — resolved YES.** A separate `billing_preference_other_detail` column
+  exists, following the established Q2.2/Q2.3 pattern.
+- **D2 — resolved.** Stored values are exactly `monthly`, `annual_upfront`,
+  `annual_quarterly`, `other` (labels: Monthly, Annual upfront, Annual
+  quarterly, Other).
+- **D3 — resolved persisted.** `annual_quarterly` is a real stored value;
+  there is still NO default at the UI or database layer — the Proposal UI
+  starts blank and never auto-persists a value on mount.
+- **D4 — resolved, state-gated.** Sales Representatives may read and write
+  the fields only on their OWN quote, and only in the states the existing
+  lifecycle treats as editable (`canEditQuote` for `sales_rep`: `draft` or
+  `estimator_adjusted`). Unowned quotes: never. This mirrors the existing
+  `canEditIntake` implementation; no second lifecycle was invented.
+- **D5 — resolved, trigger-enforced.** External users can never insert or
+  update either field (SQLSTATE 42501), including on their own drafts via the
+  External draft-update RLS path. Enforced server-side by the new trigger.
+- **D6 — resolved, separate trigger.** `quotes_enforce_billing_preference_
+  authorization` is new and independent; the Section 2 trigger and its
+  function are not modified (verified by `VERIFY.sql` A9).
+- **D7 — resolved, database-level.** Both the Zod layer and the database
+  enforce the required nonblank Other detail (unlike Q2.2/Q2.3, where the
+  database stays silent).
+- **D8 — resolved none.** No approved PDF/export output target exists in the
+  repository, so output code is unchanged.
 
 ## 12. Live database evidence status
 
-Capture **complete** — see §1b. Remaining item held outside the repository by
-design: the verbatim pre-change `quotes_scoped()` function body, which the
-operator pastes into the placeholders in `1_forward.sql` §4 and
-`2_rollback.sql` §1 at execution time, together with the captured grant
-statements.
+Capture **complete** — see §1b. The captured 60-output `quotes_scoped()`
+baseline (verified position-by-position against the live capture) is now
+reproduced in `2_rollback.sql` §4 as the pre-change rollback definition, and
+in `1_forward.sql` §4 as the 62-output post-change definition. The operator
+must still re-run `0_capture.sql` immediately before applying and confirm no
+drift; if the live function has drifted since the capture, STOP and
+re-baseline rather than overwrite.
 
-**Implementation has not started.**
+**Q3.4 repository implementation complete — live migration NOT applied.**

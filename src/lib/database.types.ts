@@ -271,6 +271,8 @@ export type Database = {
           geographic_scope_other_detail: string | null
           pricing_schedule: string | null
           pricing_schedule_other_detail: string | null
+          billing_preference: string | null
+          billing_preference_other_detail: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null
@@ -330,6 +332,8 @@ export type Database = {
           geographic_scope_other_detail?: string | null
           pricing_schedule?: string | null
           pricing_schedule_other_detail?: string | null
+          billing_preference?: string | null
+          billing_preference_other_detail?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -389,6 +393,8 @@ export type Database = {
           geographic_scope_other_detail?: string | null
           pricing_schedule?: string | null
           pricing_schedule_other_detail?: string | null
+          billing_preference?: string | null
+          billing_preference_other_detail?: string | null
           customer_email?: string | null
           compliance?: string[] | null
           vertical?: string | null
@@ -759,6 +765,8 @@ export type Database = {
           geographic_scope_other_detail: string | null
           pricing_schedule: string | null
           pricing_schedule_other_detail: string | null
+          billing_preference: string | null
+          billing_preference_other_detail: string | null
           customer_email: string | null
           compliance: string[] | null
           vertical: string | null

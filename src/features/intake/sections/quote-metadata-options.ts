@@ -68,6 +68,18 @@ export const PRICING_SCHEDULES = [
  * NASPO customers, list pricing otherwise. The stored value must always be
  * explicit; there is deliberately no database default.
  */
+/**
+ * Q3.4 — Billing Preference. Proposal-only, optional, metadata only: no
+ * pricing, WBS, NASPO, margin, contingency or scoring effect. There is
+ * deliberately no default at either the UI or the database layer.
+ */
+export const BILLING_PREFERENCES = [
+  { value: "monthly", label: "Monthly" },
+  { value: "annual_upfront", label: "Annual upfront" },
+  { value: "annual_quarterly", label: "Annual quarterly" },
+  { value: "other", label: "Other" },
+] as const;
+
 export function pricingScheduleDefaultFor(
   customerType: Quote["customerType"],
 ): "naspo" | "list" {

@@ -13,7 +13,14 @@ export const PRICING_SENSITIVE_QUOTE_COLUMNS = [
   "rep_confidence",
 ] as const;
 
-/** Every non-pricing column the app maps in `rowToQuote`. */
+/**
+ * Every non-pricing column the app maps in `rowToQuote`.
+ *
+ * Q3.4 (`billing_preference`, `billing_preference_other_detail`) is
+ * deliberately ABSENT: external users must never receive either field over
+ * the wire. Internal roles read the full row via `*`, so no addition is
+ * required for the Proposal surface.
+ */
 const SAFE_QUOTE_COLUMNS = [
   "id",
   "owner_id",

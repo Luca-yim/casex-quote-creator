@@ -56,6 +56,8 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
     geographicScopeOtherDetail: null,
     pricingSchedule: null,
     pricingScheduleOtherDetail: null,
+    billingPreference: null,
+    billingPreferenceOtherDetail: null,
     needsAttention: false,
   integrations: [],
   ownerId: "user-1",
