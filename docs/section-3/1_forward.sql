@@ -175,21 +175,14 @@ COMMENT ON COLUMN public.quotes.billing_preference_other_detail IS
 -- 2. Constraints — guarded (NOT VALID then VALIDATE) so the table is not
 --    long-locked and the 13 pre-existing NULL rows cannot fail.
 -- ---------------------------------------------------------------------
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'public.quotes'::regclass
-      AND conname = 'quotes_billing_preference_check'
-  ) THEN
-    ALTER TABLE public.quotes
-      ADD CONSTRAINT quotes_billing_preference_check
-      CHECK (billing_preference IS NULL
-             OR billing_preference IN
-                ('monthly', 'annual_upfront', 'annual_quarterly', 'other'))
-      NOT VALID;
-  END IF;
-END $$;
+-- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
+-- collision is drift and must abort the transaction.
+ALTER TABLE public.quotes
+  ADD CONSTRAINT quotes_billing_preference_check
+  CHECK (billing_preference IS NULL
+         OR billing_preference IN
+            ('monthly', 'annual_upfront', 'annual_quarterly', 'other'))
+  NOT VALID;
 
 ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
