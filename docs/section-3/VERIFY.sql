@@ -404,7 +404,7 @@ report AS (
                       AND convalidated) = 2
               THEN 'PASS' ELSE 'FAIL' END,
          '2 constraints, convalidated = true',
-         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+         (SELECT coalesce(string_agg(conname || '=' || convalidated::text, '; ' ORDER BY conname), 'missing')
             FROM cons
            WHERE conname IN ('quotes_billing_preference_check',
                              'quotes_billing_preference_other_detail_check')),
@@ -522,7 +522,7 @@ report AS (
                       AND convalidated) = 4
               THEN 'PASS' ELSE 'FAIL' END,
          '4 Section 2 constraints, convalidated = true',
-         (SELECT coalesce(string_agg(conname || '=' || convalidated, '; ' ORDER BY conname), 'missing')
+         (SELECT coalesce(string_agg(conname || '=' || convalidated::text, '; ' ORDER BY conname), 'missing')
             FROM cons
            WHERE conname IN ('quotes_geographic_scope_check',
                              'quotes_geographic_scope_other_detail_check',
