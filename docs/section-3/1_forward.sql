@@ -287,7 +287,8 @@ BEGIN
 END;
 $function$;
 
-DROP TRIGGER IF EXISTS quotes_enforce_billing_preference_authorization ON public.quotes;
+-- No DROP TRIGGER IF EXISTS: §0d asserted the trigger is absent, so a name
+-- collision here is drift and must abort the transaction.
 
 CREATE TRIGGER quotes_enforce_billing_preference_authorization
   BEFORE INSERT OR UPDATE ON public.quotes
