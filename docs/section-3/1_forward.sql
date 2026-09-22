@@ -26,7 +26,7 @@
 --   D8 — no PDF/export surface: output code is unchanged.
 --
 -- Live baseline (captured; README.md §1b):
---   public.quotes = 60 columns, 13 rows; no Q3.4 column/constraint existed;
+--   public.quotes = 60 columns, 18 rows; no Q3.4 column/constraint existed;
 --   quotes_scoped() = 60 outputs ending 57 geographic_scope,
 --   58 geographic_scope_other_detail, 59 pricing_schedule,
 --   60 pricing_schedule_other_detail; SECURITY DEFINER, STABLE, sql,
@@ -159,7 +159,7 @@ END $$;
 
 -- ---------------------------------------------------------------------
 -- 1. Columns — nullable text, NO database default, NO backfill.
---    All 13 pre-existing rows therefore remain NULL for both fields and
+--    All 18 pre-existing rows therefore remain NULL for both fields and
 --    stay valid. Verified afterwards by VERIFY.sql A2.
 -- ---------------------------------------------------------------------
 -- No IF NOT EXISTS: §0a asserted the columns are absent, so an existing
@@ -175,7 +175,7 @@ COMMENT ON COLUMN public.quotes.billing_preference_other_detail IS
 
 -- ---------------------------------------------------------------------
 -- 2. Constraints — added NOT VALID then VALIDATE so the table is not
---    long-locked and the 13 pre-existing NULL rows cannot fail. No
+--    long-locked and the 18 pre-existing NULL rows cannot fail. No
 --    existence guard: §0c asserted both constraints are absent.
 -- ---------------------------------------------------------------------
 -- No IF NOT EXISTS guard: §0c asserted this constraint is absent, so a name
@@ -191,7 +191,7 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_check;
 
 -- Complete relationship between the two Q3.4 columns. The CASE form covers
 -- all four required rules in one expression:
---   preference NULL          + detail NULL     -> VALID  (all 13 existing rows)
+--   preference NULL          + detail NULL     -> VALID  (all 18 existing rows)
 --   preference NULL          + detail NOT NULL -> REJECTED (ELSE branch)
 --   preference <> 'other'    + detail NULL     -> VALID
 --   preference <> 'other'    + detail NOT NULL -> REJECTED (ELSE branch)

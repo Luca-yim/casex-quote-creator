@@ -26,15 +26,16 @@ None of the completed work above is reopened, re-audited, or modified.
 
 ## 1b. Live database capture — **COMPLETE**
 
-Captured by an authorized operator via `0_capture.sql`. This is the newer
-verified fact set for Q3.4 work. (The historical State of Play statement about
-18 rows holding NULL Section 2 values is preserved as written and is not
-rewritten; the current live count below applies to this package only.)
+Captured by an authorized operator via `0_capture.sql`, then **re-captured
+fresh**. This is the newer verified fact set for Q3.4 work. The fresh capture
+reports **18** rows in `public.quotes`; the earlier figure of 13 is superseded
+everywhere in this package. Historical documents (State of Play, earlier
+planning notes) are preserved as written and are not rewritten.
 
 | Fact | Captured value |
 |---|---|
 | `public.quotes` column count | 60 |
-| `public.quotes` row count (`quote_count`) | **13** |
+| `public.quotes` row count (`quote_count`) | **18** |
 | Billing Preference column | absent |
 | Billing Preference Other-detail column | absent |
 | Billing Preference constraint | absent |
@@ -56,8 +57,24 @@ rewritten; the current live count below applies to this package only.)
 | RLS policies on `public.quotes` | include External draft updates, Sales Representative owned-quote updates, and Estimator/Admin update paths |
 
 **Consequence for Q3.4:** adding nullable Q3.4 column(s) with **no default and
-no backfill** must leave all **13** existing rows NULL for those columns. Every
-existing quote therefore remains valid. `VERIFY.sql` check A2 asserts this.
+no backfill** must leave all **18** existing rows NULL for those columns. Every
+existing quote therefore remains valid. `VERIFY.sql` checks A2 / A2a assert
+this: row count still 18 (subject only to normal application activity), all 18
+pre-existing rows NULL for `billing_preference`, all 18 NULL for
+`billing_preference_other_detail`, and no `DEFAULT` on either column. Check
+A2b re-runs the Section 2 NULL/populated count baseline recorded by
+`0_capture.sql` query 13 and must match it exactly.
+
+### Function-definition comparison status — **NOT YET CONFIRMED EXACT**
+
+The authoritative pre-change source is a fresh
+`pg_get_functiondef('public.quotes_scoped()'::regprocedure)`. That text has
+**not** been supplied to this package; only the fresh row count (18) was.
+The 60-output definition embedded in `2_rollback.sql` §4 and preserved as
+positions 1–60 in `1_forward.sql` §4 was assembled from the earlier capture,
+so the comparison is **unverified — no exactness claim is made**. Before any
+execution the operator must diff both embedded bodies against the fresh
+`pg_get_functiondef()` output byte for byte and **stop on any difference**.
 
 **Authoritative pre-change function definition.** The supplied
 `quotes_scoped()` definition is the authoritative rollback baseline. Its
@@ -153,7 +170,7 @@ server-side. The existing `quotes` RLS policies are untouched.
 Re-run `0_capture.sql` immediately before any execution and confirm no drift
 from §1b. Do not execute `1_forward.sql` while any placeholder remains.
 Single transaction. No `SELECT *`. No `DROP CASCADE`. Constraints added
-`NOT VALID` then validated. No backfill and no default, so all 13 existing
+`NOT VALID` then validated. No backfill and no default, so all 18 existing
 rows stay NULL and no table rewrite occurs. Preserve the captured owner,
 security mode, volatility, language, search_path and grant set exactly. Leave
 Section 2 constraints, the Section 2 trigger, the other four triggers, and all

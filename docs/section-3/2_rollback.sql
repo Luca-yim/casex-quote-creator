@@ -241,7 +241,7 @@ NOTIFY pgrst, 'reload schema';
 COMMIT;
 
 -- After rollback: re-run 0_capture.sql and diff against the pre-change
--- capture. Expect 60 columns, 13 rows (unless rows changed through normal
+-- capture. Expect 60 columns, 18 rows (unless rows changed through normal
 -- application use), the captured 60-output function definition and
 -- properties, the captured grants, the captured RLS policies, and all five
 -- original non-internal triggers (enforce_quote_state,

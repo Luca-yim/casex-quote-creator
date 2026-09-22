@@ -107,7 +107,7 @@ ORDER BY t.tgname;
 
 \echo '=== 10. Row count (baseline; all existing rows must stay NULL) ==='
 SELECT count(*) AS quotes_row_count FROM public.quotes;
--- CAPTURED: quote_count = 13.
+-- CAPTURED: quote_count = 18 (fresh re-capture; supersedes the earlier 13).
 
 \echo '=== 11. Name-collision probe for Q3.4 objects ==='
 SELECT conname FROM pg_constraint
@@ -129,3 +129,19 @@ WHERE table_schema = 'public' AND table_name = 'quotes'
 ORDER BY column_name;
 -- CAPTURED: Section 2 columns present; Section 2 constraints validated.
 -- VERIFY.sql asserts this list is unchanged after any future migration.
+
+\echo '=== 13. Section 2 field value baseline (NULL / populated counts) ==='
+SELECT count(*)                                                              AS total_rows,
+       count(*) FILTER (WHERE geographic_scope IS NULL)                      AS geographic_scope_null,
+       count(*) FILTER (WHERE geographic_scope IS NOT NULL)                  AS geographic_scope_populated,
+       count(*) FILTER (WHERE geographic_scope_other_detail IS NULL)         AS geographic_scope_other_detail_null,
+       count(*) FILTER (WHERE geographic_scope_other_detail IS NOT NULL)     AS geographic_scope_other_detail_populated,
+       count(*) FILTER (WHERE pricing_schedule IS NULL)                      AS pricing_schedule_null,
+       count(*) FILTER (WHERE pricing_schedule IS NOT NULL)                  AS pricing_schedule_populated,
+       count(*) FILTER (WHERE pricing_schedule_other_detail IS NULL)         AS pricing_schedule_other_detail_null,
+       count(*) FILTER (WHERE pricing_schedule_other_detail IS NOT NULL)     AS pricing_schedule_other_detail_populated
+FROM public.quotes;
+-- CAPTURED: total_rows = 18. Record the eight per-field counts from this run
+-- as the Section 2 value baseline. VERIFY.sql check A2b re-runs this query
+-- after the migration; every count must be identical (subject only to normal
+-- application activity). Q3.4 must not read, write, or alter Section 2 values.

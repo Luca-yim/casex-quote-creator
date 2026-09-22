@@ -4,7 +4,7 @@
 -- confirm no drift).
 --
 -- Baseline from the COMPLETED live capture (0_capture.sql; README.md §1b):
---   public.quotes = 60 columns, 13 rows.
+--   public.quotes = 60 columns, 18 rows.
 --   quotes_scoped() = exactly 60 output columns; positions 57–60 are
 --     geographic_scope, geographic_scope_other_detail, pricing_schedule,
 --     pricing_schedule_other_detail.
@@ -44,15 +44,72 @@ WHERE table_schema = 'public' AND table_name = 'quotes'
 ORDER BY ordinal_position;
 -- EXPECT: two rows, text / YES / null. Expected ordinal positions 61 and 62.
 
-\echo '=== A2. All 13 captured rows remain NULL; row count unchanged ==='
+\echo '=== A2. All 18 captured rows remain NULL; row count unchanged ==='
 SELECT count(*) AS total,
-       count(*) FILTER (WHERE billing_preference IS NULL)              AS pref_null,
-       count(*) FILTER (WHERE billing_preference_other_detail IS NULL) AS detail_null
+       count(*) FILTER (WHERE billing_preference IS NULL)                  AS pref_null,
+       count(*) FILTER (WHERE billing_preference_other_detail IS NULL)     AS detail_null,
+       count(*) FILTER (WHERE billing_preference IS NOT NULL)              AS pref_populated,
+       count(*) FILTER (WHERE billing_preference_other_detail IS NOT NULL) AS detail_populated
 FROM public.quotes;
--- EXPECT: total = 13 (captured baseline; higher only if rows were created
---         through normal application use since capture), and
---         pref_null = detail_null = total. Nullable columns with no default
---         and no backfill must leave every pre-existing row NULL.
+-- EXPECT: total = 18 (fresh captured baseline; higher only if rows were
+--         created through normal application use since capture), and
+--         pref_null = detail_null = total, pref_populated = detail_populated = 0.
+--         Nullable columns with no default and no backfill must leave every
+--         pre-existing row NULL.
+
+\echo '=== A2a. Hard assertion — 18 pre-existing rows, no backfill, no default ==='
+DO $$
+DECLARE
+  n_rows integer;
+  n_pref integer;
+  n_detail integer;
+  n_default integer;
+BEGIN
+  SELECT count(*),
+         count(*) FILTER (WHERE billing_preference IS NOT NULL),
+         count(*) FILTER (WHERE billing_preference_other_detail IS NOT NULL)
+    INTO n_rows, n_pref, n_detail
+  FROM public.quotes;
+
+  IF n_rows < 18 THEN
+    RAISE EXCEPTION 'A2a: public.quotes has % rows, expected at least the 18 captured rows', n_rows
+      USING ERRCODE = '55000';
+  END IF;
+  IF n_pref <> 0 OR n_detail <> 0 THEN
+    RAISE EXCEPTION 'A2a: % non-NULL billing_preference and % non-NULL detail values found — a backfill occurred', n_pref, n_detail
+      USING ERRCODE = '55000';
+  END IF;
+
+  SELECT count(*) INTO n_default
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'quotes'
+    AND column_name IN ('billing_preference','billing_preference_other_detail')
+    AND column_default IS NOT NULL;
+  IF n_default <> 0 THEN
+    RAISE EXCEPTION 'A2a: % Q3.4 column(s) carry a DEFAULT — none is authorized', n_default
+      USING ERRCODE = '55000';
+  END IF;
+END $$;
+-- EXPECT: no output. Any RAISE means the migration deviated from the approved
+-- no-default / no-backfill rule. (n_rows > 18 is tolerated only as normal
+-- application activity; the NULL assertions apply to every row regardless.)
+
+\echo '=== A2b. Section 2 field baseline unchanged (NULL / populated counts) ==='
+SELECT count(*)                                                              AS total_rows,
+       count(*) FILTER (WHERE geographic_scope IS NULL)                      AS geographic_scope_null,
+       count(*) FILTER (WHERE geographic_scope IS NOT NULL)                  AS geographic_scope_populated,
+       count(*) FILTER (WHERE geographic_scope_other_detail IS NULL)         AS geographic_scope_other_detail_null,
+       count(*) FILTER (WHERE geographic_scope_other_detail IS NOT NULL)     AS geographic_scope_other_detail_populated,
+       count(*) FILTER (WHERE pricing_schedule IS NULL)                      AS pricing_schedule_null,
+       count(*) FILTER (WHERE pricing_schedule IS NOT NULL)                  AS pricing_schedule_populated,
+       count(*) FILTER (WHERE pricing_schedule_other_detail IS NULL)         AS pricing_schedule_other_detail_null,
+       count(*) FILTER (WHERE pricing_schedule_other_detail IS NOT NULL)     AS pricing_schedule_other_detail_populated
+FROM public.quotes;
+-- EXPECT: identical to the counts recorded by 0_capture.sql query 13 (subject
+--         only to normal application activity). Q3.4 adds no read, write, or
+--         default affecting Section 2 values. Also confirm via A3/A9 that the
+--         Section 2 constraints and the pricing authorization trigger/function
+--         are unchanged.
 
 \echo '=== A3. Both constraints present and VALIDATED ==='
 SELECT conname, convalidated, pg_get_constraintdef(oid) AS definition
@@ -69,12 +126,12 @@ WHERE conrelid = 'public.quotes'::regclass
 
 \echo '=== A4. Constraint truth table — all six cases ==='
 -- Operator note: run inside an explicit transaction that is ROLLED BACK. It
--- must not leave any of the 13 rows modified. Use <id> = any existing row.
+-- must not leave any of the 18 rows modified. Use <id> = any existing row.
 --
 -- 1 VALID    pref NULL,               detail NULL
 --   UPDATE public.quotes SET billing_preference = NULL,
 --          billing_preference_other_detail = NULL WHERE id = <id>;
---   -> succeeds (this is the state of all 13 captured rows)
+--   -> succeeds (this is the state of all 18 captured rows)
 --
 -- 2 REJECTED pref NULL,               detail NOT NULL   <-- orphaned detail
 --   UPDATE public.quotes SET billing_preference = NULL,
@@ -212,7 +269,7 @@ ORDER BY policyname;
 -- REQUIRES REAL AUTHENTICATED SESSIONS (one per role) via the published
 -- application or minted sessions. Cannot be satisfied statically or by
 -- running as postgres. Every write below targets a dedicated test row that
--- is deleted afterwards; the 13 live rows are never modified.
+-- is deleted afterwards; the 18 live rows are never modified.
 -- =====================================================================
 
 \echo '=== B1. Estimator/Admin can read and write both fields ==='
