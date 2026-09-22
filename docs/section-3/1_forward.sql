@@ -162,9 +162,11 @@ END $$;
 --    All 13 pre-existing rows therefore remain NULL for both fields and
 --    stay valid. Verified afterwards by VERIFY.sql A2.
 -- ---------------------------------------------------------------------
+-- No IF NOT EXISTS: §0a asserted the columns are absent, so an existing
+-- column is drift and must abort the transaction.
 ALTER TABLE public.quotes
-  ADD COLUMN IF NOT EXISTS billing_preference              text,
-  ADD COLUMN IF NOT EXISTS billing_preference_other_detail text;
+  ADD COLUMN billing_preference              text,
+  ADD COLUMN billing_preference_other_detail text;
 
 COMMENT ON COLUMN public.quotes.billing_preference IS
   'v6.4 Q3.4 Billing Preference (Proposal-only; optional; no pricing effect)';
