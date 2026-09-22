@@ -262,6 +262,14 @@ AS $function$
     -- Q3.4: estimator/admin always; sales reps only on their OWN quote while
     -- the existing lifecycle considers it editable (draft / estimator_adjusted);
     -- external users always NULL. Mirrors the new authorization trigger.
+    --
+    -- Row scope vs. field scope, stated explicitly (no predicate change):
+    --   The WHERE clause below still admits drafts on requested_by. A rep
+    --   therefore reads a non-NULL Q3.4 value only when BOTH hold: the row
+    --   predicate exposes the row, AND owner_id = auth.uid() with the state
+    --   editable. A rep who requested but does not own a draft sees the row
+    --   with NULL in both Q3.4 outputs, and the trigger rejects their write
+    --   with 42501. Nothing here widens draft visibility.
     case
       when public.current_user_role() in ('estimator','admin') then q.billing_preference
       when public.current_user_role() = 'sales_rep' and auth.uid() = q.owner_id
