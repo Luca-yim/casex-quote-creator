@@ -118,6 +118,17 @@ ALTER TABLE public.quotes VALIDATE CONSTRAINT quotes_billing_preference_other_de
 --    triggers are unaffected. Trusted system context (auth.uid() IS NULL)
 --    passes, matching the Section 2 trigger convention. Ballpark and
 --    lead-converted quotes insert NULL/NULL, which is not a protected write.
+--
+--    SALES REPRESENTATIVE RULE (authoritative): own the quote AND the quote
+--    is editable under the existing lifecycle. Ownership is owner_id; the
+--    editable states are the ones canEditIntake/canEditQuote already use for
+--    sales_rep in src/lib/quote-workflow.ts, i.e. draft and
+--    estimator_adjusted. A rep who merely REQUESTED a draft they do not own
+--    (requested_by = auth.uid(), owner_id <> auth.uid()) is DENIED here and
+--    reads NULL from the masking in §4. This is intentional and is NOT a
+--    change to the row-scope predicate below, which is preserved verbatim:
+--    draft rows remain visible on requested_by, and no draft visibility is
+--    broadened by this migration.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.enforce_billing_preference_authorization()
 RETURNS trigger
