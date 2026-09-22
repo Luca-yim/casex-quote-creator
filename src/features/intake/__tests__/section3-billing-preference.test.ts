@@ -387,6 +387,121 @@ describe("Q3.4 role visibility and write boundaries", () => {
     ).toBe(true);
   });
 
+  /**
+   * Row scope vs. field scope. The quotes_scoped() row predicate is NOT
+   * changed by Q3.4: draft rows are still exposed on requested_by, while the
+   * Q3.4 masking and the trigger both key on owner_id. A rep therefore reads
+   * a real value only when the row predicate exposes the row AND the rep
+   * owns it in an editable state.
+   */
+  const rowVisibleToRep = (row: {
+    state: Quote["state"];
+    requestedByRep: boolean;
+    ownedByRep: boolean;
+  }): boolean =>
+    row.state === "draft"
+      ? row.requestedByRep
+      : row.ownedByRep;
+
+  const repReadsQ34 = (row: {
+    state: Quote["state"];
+    requestedByRep: boolean;
+    ownedByRep: boolean;
+  }): boolean =>
+    rowVisibleToRep(row) &&
+    row.ownedByRep &&
+    canEditIntake("sales_rep", row.state);
+
+  it("gives a rep Q3.4 values only on an owned, editable, visible draft", () => {
+    expect(
+      repReadsQ34({ state: "draft", requestedByRep: true, ownedByRep: true }),
+    ).toBe(true);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: true,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: "monthly", detail: null },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns NULL and denies writes for a requested-but-not-owned draft", () => {
+    const row = {
+      state: "draft" as const,
+      requestedByRep: true,
+      ownedByRep: false,
+    };
+    // The unchanged row predicate still exposes the row...
+    expect(rowVisibleToRep(row)).toBe(true);
+    // ...but both Q3.4 outputs mask to NULL, and writes are rejected.
+    expect(repReadsQ34(row)).toBe(false);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: false,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: "monthly", detail: null },
+      }),
+    ).toBe(false);
+    expect(
+      triggerAllows({
+        op: "UPDATE",
+        role: "sales_rep",
+        ownsQuote: false,
+        state: "draft",
+        prev: { pref: null, detail: null },
+        next: { pref: null, detail: "x" },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not broaden draft row visibility", () => {
+    // An owned draft the rep did not request stays invisible: the draft
+    // branch of the predicate keys on requested_by and Q3.4 does not change
+    // it. Q3.4 masking can only ever narrow what a visible row exposes.
+    expect(
+      rowVisibleToRep({
+        state: "draft",
+        requestedByRep: false,
+        ownedByRep: true,
+      }),
+    ).toBe(false);
+    // The forward SQL keeps the captured predicate verbatim.
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "(q.state = 'draft' and q.requested_by = auth.uid())",
+    );
+    expect(SECTION3_FORWARD_SQL).toContain(
+      "or (public.current_user_role() = 'sales_rep' and q.state <> 'draft' and q.owner_id = auth.uid())",
+    );
+  });
+
+  it("keeps external users masked on every visible row", () => {
+    for (const state of [...EDITABLE_STATES, ...NON_EDITABLE_STATES]) {
+      expect(
+        triggerAllows({
+          op: "UPDATE",
+          role: "external",
+          ownsQuote: true,
+          state,
+          prev: { pref: null, detail: null },
+          next: { pref: "monthly", detail: null },
+        }),
+      ).toBe(false);
+    }
+    // Neither Q3.4 masking branch mentions the external role.
+    const q34Masking = SECTION3_FORWARD_SQL.slice(
+      SECTION3_FORWARD_SQL.indexOf("then q.billing_preference"),
+    );
+    expect(q34Masking).not.toContain("'external'");
+  });
+
+
+
   it("enforces the server-side trigger in the forward migration SQL", () => {
     expect(SECTION3_FORWARD_SQL).toContain(
       "enforce_billing_preference_authorization",
