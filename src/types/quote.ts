@@ -109,6 +109,12 @@ export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
 /** Number of forms expected across the portals. */
 export type PortalFormCountRange = "1-3" | "4-10" | "11-25" | "26+";
 
+/** Q4.3 — Proposal-only; does not add users to the quote. */
+export type ExpectedUserGrowth = "flat" | "moderate" | "high" | "rapid" | "other";
+
+/** Q4.6 — Proposal-only categorical load profile (stored in `peak_load_multiplier`). */
+export type PeakLoadProfile = "steady" | "seasonal" | "high_burst" | "other";
+
 
 /** Full quote shape including workflow metadata. */
 export interface Quote {
@@ -180,6 +186,20 @@ export interface Quote {
   workerIdpRequired: boolean | null;
   idpDocumented: boolean | null;
   portalFormCountRange: PortalFormCountRange | null;
+  /** Section 4 — Proposal-only, persist-only sizing. Never affects pricing. */
+  /** Q4.2 — integer 0–50. */
+  caseWorkerStudioUsers: number | null;
+  /** Q4.3 */
+  expectedUserGrowth: ExpectedUserGrowth | null;
+  expectedUserGrowthOtherDetail: string | null;
+  /** Q4.6 — categorical label despite the column name. */
+  peakLoadMultiplier: PeakLoadProfile | null;
+  peakLoadMultiplierOtherDetail: string | null;
+  /** Q4.8 */
+  b2bOrgCount: number | null;
+  /** Q4.9 */
+  b2bAvgUsersPerOrg: number | null;
+
 
   /** Flags a draft that was handed to this rep and still needs review. */
   needsAttention: boolean;
@@ -327,6 +347,16 @@ export const quoteSchema = z.object({
     .enum(["1-3", "4-10", "11-25", "26+"])
     .nullable()
     .default(null),
+  // Section 4 — Proposal-only, persist-only sizing. NO .default(): a Zod
+  // default would be autosaved onto Ballpark quotes.
+  caseWorkerStudioUsers: z.number().int().min(0).max(50).nullable().optional(),
+  expectedUserGrowth: z.enum(["flat", "moderate", "high", "rapid", "other"]).nullable().optional(),
+  expectedUserGrowthOtherDetail: z.string().nullable().optional(),
+  peakLoadMultiplier: z.enum(["steady", "seasonal", "high_burst", "other"]).nullable().optional(),
+  peakLoadMultiplierOtherDetail: z.string().nullable().optional(),
+  b2bOrgCount: z.number().int().min(0).nullable().optional(),
+  b2bAvgUsersPerOrg: z.number().int().min(0).nullable().optional(),
+
 
 }).superRefine((value, ctx) => {
   // Q2.2/Q2.3 — the universal "Other" rule: choosing Other requires detail.
@@ -406,6 +436,38 @@ export const quoteSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["solution"],
       message: "Solution is required",
+    });
+  }
+}).superRefine((val, ctx) => {
+  // Section 4 (Q4.3 / Q4.6) — mirrors the DB CASE-form constraints. Gated on
+  // tier so Proposal-only rules can never block Ballpark submission.
+  if (val.tier !== "proposal") return;
+  if (val.expectedUserGrowth === "other" && !val.expectedUserGrowthOtherDetail?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["expectedUserGrowthOtherDetail"],
+      message: "Please describe the expected growth pattern.",
+    });
+  }
+  if (val.expectedUserGrowth !== "other" && val.expectedUserGrowthOtherDetail) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["expectedUserGrowthOtherDetail"],
+      message: 'Detail is only allowed when "Other" is selected.',
+    });
+  }
+  if (val.peakLoadMultiplier === "other" && !val.peakLoadMultiplierOtherDetail?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["peakLoadMultiplierOtherDetail"],
+      message: "Please describe the peak load profile.",
+    });
+  }
+  if (val.peakLoadMultiplier !== "other" && val.peakLoadMultiplierOtherDetail) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["peakLoadMultiplierOtherDetail"],
+      message: 'Detail is only allowed when "Other" is selected.',
     });
   }
 });
