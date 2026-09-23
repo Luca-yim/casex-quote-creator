@@ -15,7 +15,6 @@ import { ModuleTierSection } from "./sections/ModuleTierSection";
 import { CaseWorkerSection } from "./sections/CaseWorkerSection";
 import { B2cPortalSection } from "./sections/B2cPortalSection";
 import { B2bPortalSection } from "./sections/B2bPortalSection";
-import { UserSizingSection } from "./sections/UserSizingSection";
 import { HostingSection } from "./sections/HostingSection";
 import { IntegrationsSection } from "./sections/IntegrationsSection";
 import { SupportTierSection } from "./sections/SupportTierSection";
@@ -100,14 +99,6 @@ export function IntakeForm() {
       workerIdpRequired: quote.workerIdpRequired,
       idpDocumented: quote.idpDocumented,
       portalFormCountRange: quote.portalFormCountRange,
-      // Section 4 — hydrate stored values only; never prefilled.
-      caseWorkerStudioUsers: quote.caseWorkerStudioUsers,
-      expectedUserGrowth: quote.expectedUserGrowth,
-      expectedUserGrowthOtherDetail: quote.expectedUserGrowthOtherDetail,
-      peakLoadMultiplier: quote.peakLoadMultiplier,
-      peakLoadMultiplierOtherDetail: quote.peakLoadMultiplierOtherDetail,
-      b2bOrgCount: quote.b2bOrgCount,
-      b2bAvgUsersPerOrg: quote.b2bAvgUsersPerOrg,
 
     } as Partial<QuoteFormData> as QuoteFormData,
   });
@@ -176,7 +167,6 @@ export function IntakeForm() {
         <CaseWorkerSection />
         <B2cPortalSection />
         <B2bPortalSection />
-        <UserSizingSection />
         <PortalFormsSection />
         <HostingSection />
         <IntegrationsSection />
