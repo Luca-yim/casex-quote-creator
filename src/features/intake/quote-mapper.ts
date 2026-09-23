@@ -77,6 +77,15 @@ export function rowToQuote(row: QuoteRow): Quote {
     idpDocumented: r["idp_documented"] ?? null,
     portalFormCountRange: (r["portal_form_count_range"] ??
       null) as Quote["portalFormCountRange"],
+    // Section 4 — passed through as-is; NULL means "unanswered".
+    caseWorkerStudioUsers: r["case_worker_studio_users"] ?? null,
+    expectedUserGrowth: (r["expected_user_growth"] ?? null) as Quote["expectedUserGrowth"],
+    expectedUserGrowthOtherDetail: r["expected_user_growth_other_detail"] ?? null,
+    peakLoadMultiplier: (r["peak_load_multiplier"] ?? null) as Quote["peakLoadMultiplier"],
+    peakLoadMultiplierOtherDetail: r["peak_load_multiplier_other_detail"] ?? null,
+    b2bOrgCount: r["b2b_org_count"] ?? null,
+    b2bAvgUsersPerOrg: r["b2b_avg_users_per_org"] ?? null,
+
 
     needsAttention: Boolean(r["needs_attention"]),
     state: (r["state"] ?? "draft") as Quote["state"],
@@ -136,6 +145,13 @@ export const QUOTE_FIELD_COLUMNS: Record<string, string> = {
   workerIdpRequired: "worker_idp_required",
   idpDocumented: "idp_documented",
   portalFormCountRange: "portal_form_count_range",
+  caseWorkerStudioUsers: "case_worker_studio_users",
+  expectedUserGrowth: "expected_user_growth",
+  expectedUserGrowthOtherDetail: "expected_user_growth_other_detail",
+  peakLoadMultiplier: "peak_load_multiplier",
+  peakLoadMultiplierOtherDetail: "peak_load_multiplier_other_detail",
+  b2bOrgCount: "b2b_org_count",
+  b2bAvgUsersPerOrg: "b2b_avg_users_per_org",
   needsAttention: "needs_attention",
 };
 
