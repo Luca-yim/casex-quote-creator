@@ -109,6 +109,12 @@ export type MigrationVolumeRange = "<100k" | "100k-1m" | "1m-5m" | "5m+";
 /** Number of forms expected across the portals. */
 export type PortalFormCountRange = "1-3" | "4-10" | "11-25" | "26+";
 
+/** Q4.3 — Proposal-only expected user growth. No pricing effect. */
+export type ExpectedUserGrowth = "flat" | "moderate" | "high" | "rapid" | "other";
+
+/** Q4.6 — Proposal-only peak load profile (categorical). No pricing effect. */
+export type PeakLoadProfile = "steady" | "seasonal" | "high_burst" | "other";
+
 
 /** Full quote shape including workflow metadata. */
 export interface Quote {
