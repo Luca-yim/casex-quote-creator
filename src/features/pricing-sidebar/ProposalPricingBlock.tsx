@@ -86,8 +86,12 @@ export function ProposalPricingBlock({
           step={1}
           disabled={!canEdit}
           value={[Math.round(contingency * 100)]}
-          onValueChange={(v) => setDraftContingency((v[0] ?? 0) / 100)}
-          onValueCommit={(v) => commitContingency((v[0] ?? 0) / 100)}
+          onValueChange={(v) => {
+            if (v[0] !== undefined) setDraftContingency(v[0] / 100);
+          }}
+          onValueCommit={(v) => {
+            if (v[0] !== undefined) commitContingency(v[0] / 100);
+          }}
         />
         <p className="text-xs text-muted-foreground">
           Suggested {Math.round(suggested * 1000) / 10}% based on migration,
