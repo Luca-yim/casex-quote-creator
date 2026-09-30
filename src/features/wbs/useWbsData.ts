@@ -203,6 +203,36 @@ export function useAddWbsLine(quoteId: string) {
   });
 }
 
+/** Editable WBS fields. Rates are only included when role/location changed. */
+export type WbsLinePatch = Partial<NewWbsLine>;
+
+/**
+ * Update an existing WBS line. Only the supplied fields are written; rates
+ * stay at their original snapshot unless the caller passes new ones (which
+ * it does only when the role/location pairing changes).
+ */
+export function useUpdateWbsLine(quoteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: WbsLinePatch }) => {
+      const row: Record<string, string | number> = {};
+      if (patch.phase !== undefined) row.phase = patch.phase;
+      if (patch.area !== undefined) row.area = patch.area;
+      if (patch.role !== undefined) row.role = patch.role;
+      if (patch.location !== undefined) row.location = patch.location;
+      if (patch.costHours !== undefined) row.cost_hours = patch.costHours;
+      if (patch.revenueHours !== undefined) row.revenue_hours = patch.revenueHours;
+      if (patch.costRate !== undefined) row.cost_rate = patch.costRate;
+      if (patch.billRate !== undefined) row.bill_rate = patch.billRate;
+      if (Object.keys(row).length === 0) return;
+      const { error } = await supabase.from("quote_wbs_lines").update(row).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY.lines(quoteId) }),
+    onError: (e: Error) => toast.error("Could not update line", { description: e.message }),
+  });
+}
+
 /** Delete a WBS line. */
 export function useDeleteWbsLine(quoteId: string) {
   const qc = useQueryClient();
@@ -240,6 +270,26 @@ export function useAddCostItem(quoteId: string) {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY.items(quoteId) }),
     onError: (e: Error) => toast.error("Could not add cost item", { description: e.message }),
+  });
+}
+
+/** Update an existing cost item; only supplied fields are written. */
+export function useUpdateCostItem(quoteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<NewCostItem> }) => {
+      const row: Record<string, string | number | boolean> = {};
+      if (patch.name !== undefined) row.cost_name = patch.name;
+      if (patch.itemType !== undefined) row.cost_type = patch.itemType;
+      if (patch.amount !== undefined) row.amount = patch.amount;
+      if (patch.customerVisible !== undefined) row.is_customer_visible = patch.customerVisible;
+      if (Object.keys(row).length === 0) return;
+      const { error } = await supabase.from("quote_cost_items").update(row).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY.items(quoteId) }),
+    onError: (e: Error) =>
+      toast.error("Could not update cost item", { description: e.message }),
   });
 }
 

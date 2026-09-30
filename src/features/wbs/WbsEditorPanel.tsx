@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -40,7 +40,12 @@ import {
   usePhaseOptions,
   useQuoteCostItems,
   useRateCardOptions,
+  useUpdateCostItem,
+  useUpdateWbsLine,
   useWbsLines,
+  type CostItemRow,
+  type WbsLineRow,
+  type WbsLinePatch,
 } from "./useWbsData";
 
 const ITEM_TYPES = ["travel", "license", "hardware", "subcontractor", "other"];
@@ -75,9 +80,14 @@ export function WbsEditorPanel() {
   const deleteLine = useDeleteWbsLine(quoteId);
   const addItem = useAddCostItem(quoteId);
   const deleteItem = useDeleteCostItem(quoteId);
+  const updateLine = useUpdateWbsLine(quoteId);
+  const updateItem = useUpdateCostItem(quoteId);
 
   const [line, setLine] = useState(emptyLine);
   const [item, setItem] = useState(emptyItem);
+  /** Row being edited; the entry form doubles as the edit form. */
+  const [editingLine, setEditingLine] = useState<WbsLineRow | null>(null);
+  const [editingItem, setEditingItem] = useState<CostItemRow | null>(null);
 
   const lines = useMemo(() => linesQuery.data ?? [], [linesQuery.data]);
   const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
@@ -99,14 +109,51 @@ export function WbsEditorPanel() {
   );
 
   const selectedRate = rates.find((r) => `${r.role}|${r.location}` === line.roleKey);
+  const editingKey = editingLine ? `${editingLine.role}|${editingLine.location}` : null;
+  // When editing, the line's own role/location stays valid even if it is no
+  // longer on the active rate card — its rates are kept as snapshotted.
+  const roleValid = Boolean(selectedRate) || (editingKey !== null && line.roleKey === editingKey);
   const canAddLine =
     Boolean(line.phase) &&
     Boolean(line.area.trim()) &&
-    Boolean(selectedRate) &&
+    roleValid &&
     line.costHours !== "";
 
+  const startEditLine = (l: WbsLineRow) => {
+    setEditingLine(l);
+    setLine({
+      phase: l.phase,
+      area: l.area,
+      roleKey: `${l.role}|${l.location}`,
+      costHours: String(l.costHours),
+      revenueHours: String(l.revenueHours),
+    });
+  };
+  const cancelEditLine = () => {
+    setEditingLine(null);
+    setLine(emptyLine);
+  };
+
   const submitLine = () => {
-    if (!canAddLine || !selectedRate) return;
+    if (!canAddLine) return;
+    if (editingLine) {
+      const patch: WbsLinePatch = {
+        phase: line.phase,
+        area: line.area.trim(),
+        costHours: Number(line.costHours),
+        revenueHours: Number(line.revenueHours || line.costHours),
+      };
+      // Re-snapshot rates only when the role/location pairing changed.
+      if (line.roleKey !== editingKey && selectedRate) {
+        patch.role = selectedRate.role;
+        patch.location = selectedRate.location;
+        patch.costRate = selectedRate.costRate;
+        patch.billRate = selectedRate.billRate;
+      }
+      updateLine.mutate({ id: editingLine.id, patch }, { onSuccess: cancelEditLine });
+      return;
+    }
+    if (!selectedRate) return;
     addLine.mutate(
       {
         phase: line.phase,
@@ -123,8 +170,37 @@ export function WbsEditorPanel() {
     );
   };
 
+  const startEditItem = (i: CostItemRow) => {
+    setEditingItem(i);
+    setItem({
+      name: i.name,
+      itemType: i.itemType,
+      amount: String(i.amount),
+      customerVisible: i.customerVisible,
+    });
+  };
+  const cancelEditItem = () => {
+    setEditingItem(null);
+    setItem(emptyItem);
+  };
+
   const submitItem = () => {
     if (!item.name || item.amount === "") return;
+    if (editingItem) {
+      updateItem.mutate(
+        {
+          id: editingItem.id,
+          patch: {
+            name: item.name,
+            itemType: item.itemType,
+            amount: Number(item.amount),
+            customerVisible: item.customerVisible,
+          },
+        },
+        { onSuccess: cancelEditItem },
+      );
+      return;
+    }
     addItem.mutate(
       {
         name: item.name,
@@ -182,6 +258,14 @@ export function WbsEditorPanel() {
                       {formatCurrency(l.costHours * l.costRate)}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Edit line ${l.phase} ${l.role}`}
+                        onClick={() => startEditLine(l)}
+                      >
+                        <Pencil className="size-4" aria-hidden="true" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -246,6 +330,11 @@ export function WbsEditorPanel() {
                 <SelectValue placeholder="Select role..." />
               </SelectTrigger>
               <SelectContent>
+                {editingLine && editingKey && !rates.some((r) => `${r.role}|${r.location}` === editingKey) && (
+                  <SelectItem value={editingKey}>
+                    {editingLine.role} — {editingLine.location} (current)
+                  </SelectItem>
+                )}
                 {rates.map((r) => (
                   <SelectItem key={`${r.role}|${r.location}`} value={`${r.role}|${r.location}`}>
                     {r.role} — {r.location}
@@ -274,11 +363,19 @@ export function WbsEditorPanel() {
               onChange={(e) => setLine((s) => ({ ...s, revenueHours: e.target.value }))}
             />
           </div>
-          <div className="flex items-end">
-            <Button onClick={submitLine} disabled={!canAddLine || addLine.isPending}>
-              <Plus className="size-4" aria-hidden="true" />
-              Add line
+          <div className="flex items-end gap-2">
+            <Button
+              onClick={submitLine}
+              disabled={!canAddLine || addLine.isPending || updateLine.isPending}
+            >
+              {editingLine ? null : <Plus className="size-4" aria-hidden="true" />}
+              {editingLine ? "Save line" : "Add line"}
             </Button>
+            {editingLine && (
+              <Button variant="outline" onClick={cancelEditLine}>
+                Cancel
+              </Button>
+            )}
           </div>
         </div>
 
@@ -314,6 +411,14 @@ export function WbsEditorPanel() {
                       </TableCell>
                       <TableCell>{i.customerVisible ? "Yes" : "No"}</TableCell>
                       <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Edit cost item ${i.name}`}
+                          onClick={() => startEditItem(i)}
+                        >
+                          <Pencil className="size-4" aria-hidden="true" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -378,13 +483,22 @@ export function WbsEditorPanel() {
                 />
                 <Label htmlFor="ci-visible">Visible</Label>
               </div>
-              <Button
-                onClick={submitItem}
-                disabled={!item.name || item.amount === "" || addItem.isPending}
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                Add
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={submitItem}
+                  disabled={
+                    !item.name || item.amount === "" || addItem.isPending || updateItem.isPending
+                  }
+                >
+                  {editingItem ? null : <Plus className="size-4" aria-hidden="true" />}
+                  {editingItem ? "Save" : "Add"}
+                </Button>
+                {editingItem && (
+                  <Button variant="outline" onClick={cancelEditItem}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
