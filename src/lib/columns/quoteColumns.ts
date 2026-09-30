@@ -312,7 +312,7 @@ export const QUOTE_COLUMNS: Record<string, QuoteColumn> = {
     sortable: true,
     align: "right",
     accessor: (r) => r.marginPercent,
-    format: (v) => (v === null || v === undefined ? "—" : `${v}%`),
+    format: (v) => (v === null || v === undefined ? "Not set" : `${v}%`),
   }),
   total_estimated_value: column({
     key: "total_estimated_value",

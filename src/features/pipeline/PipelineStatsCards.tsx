@@ -110,6 +110,11 @@ export function PipelineStatsCards({
           icon={<Clock className="size-4" />}
         />
       </div>
+      {stats.unpricedCount > 0 ? (
+        <p className="text-xs text-muted-foreground" data-testid="unpriced-count">
+          {stats.unpricedCount} of {stats.valuedCandidateCount} quotes not priced (margin not set) — excluded from total values.
+        </p>
+      ) : null}
       {stats.capReached ? (
         <p className="text-xs text-muted-foreground">
           Based on first {STATS_CAP.toLocaleString()} quotes matching filters.
