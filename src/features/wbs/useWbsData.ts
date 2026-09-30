@@ -185,6 +185,8 @@ export function useAddWbsLine(quoteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (line: NewWbsLine) => {
+      // quote_wbs_lines.area is NOT NULL; the form-level rule is pending (W2).
+      if (!line.area) throw new Error("Area is required.");
       const { error } = await supabase.from("quote_wbs_lines").insert({
         quote_id: quoteId,
         phase: line.phase,
