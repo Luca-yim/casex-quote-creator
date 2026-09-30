@@ -26,19 +26,17 @@ export interface PipelineQuotesResult {
   count: number;
 }
 
-const EMBED = `
-  *,
-  owner:profiles!quotes_owner_id_fkey(id, email, full_name),
-  estimator:profiles!quotes_approved_by_fkey(id, email, full_name),
-  requester:profiles!quotes_requested_by_fkey(id, email, full_name)
-`;
-
-type EmbeddedProfile = { id: string; email: string | null; full_name: string | null } | null;
-
-function toContact(value: unknown): ContactRef | null {
-  const p = (Array.isArray(value) ? value[0] : value) as EmbeddedProfile;
-  if (!p) return null;
-  return { id: p.id, email: p.email, name: p.full_name };
+/**
+ * `quotes_scoped()` returns a set, not a table, so PostgREST cannot follow
+ * foreign keys from it (resource embedding fails with PGRST200). People are
+ * resolved with a second `profiles` query keyed by the ids on the page.
+ */
+function toContact(
+  id: string | null | undefined,
+  people: Map<string, ContactRef>,
+): ContactRef | null {
+  if (!id) return null;
+  return people.get(id) ?? { id, email: null, name: null };
 }
 
 /** Display label for a contact, falling back to the email then a placeholder. */
@@ -76,11 +74,7 @@ function dbSort(sort: PipelineSort): { column: string; ascending: boolean } {
   }
 }
 
-/**
- * Paginated pipeline query. Row-level visibility is enforced by the
- * `estimator_reads_all_quotes` RLS policy (estimator/admin only); the UI guard
- * is defense-in-depth, not the primary control.
- */
+/** Paginated pipeline query over `quotes_scoped()`. */
 export function usePipelineQuotes({
   filters,
   page,
@@ -106,7 +100,7 @@ export function usePipelineQuotes({
       // not inherit policy changes automatically.
       let query = supabase
         .rpc("quotes_scoped", {}, { count: "exact" })
-        .select(EMBED)
+        .select("*")
         .in("state", effectiveStates(filters));
 
       if (filters.vertical) query = query.eq("vertical", filters.vertical);
@@ -130,13 +124,32 @@ export function usePipelineQuotes({
 
       if (error) throw new Error(error.message);
 
-      const rows: PipelineRow[] = ((data ?? []) as unknown as Array<
-        QuoteRow & Record<string, unknown>
-      >).map((row) => ({
+      const raw = (data ?? []) as QuoteRow[];
+      const ids = [
+        ...new Set(
+          raw.flatMap((r) => [r.owner_id, r.approved_by, r.requested_by]).filter(
+            (v): v is string => Boolean(v),
+          ),
+        ),
+      ];
+
+      const people = new Map<string, ContactRef>();
+      if (ids.length > 0) {
+        const { data: profs, error: profErr } = await supabase
+          .from("profiles")
+          .select("id, email, full_name")
+          .in("id", ids);
+        if (profErr) throw new Error(profErr.message);
+        for (const p of profs ?? []) {
+          people.set(p.id, { id: p.id, email: p.email, name: p.full_name });
+        }
+      }
+
+      const rows: PipelineRow[] = raw.map((row) => ({
         quote: rowToQuote(row),
-        owner: toContact(row["owner"]),
-        estimator: toContact(row["estimator"]),
-        requester: toContact(row["requester"]),
+        owner: toContact(row.owner_id, people),
+        estimator: toContact(row.approved_by, people),
+        requester: toContact(row.requested_by, people),
       }));
 
       return { rows, count: count ?? rows.length };

@@ -4,7 +4,8 @@
  * transform of the dump only; no hand-maintained content carried over.
  * quotes_scoped Returns: the 17 role-scoped (CASE-wrapped) fields are `| null`;
  * all other fields inherit nullability from the quotes table entry in the dump.
- * quote_versions_scoped Returns: no nullability in the dump; typed `| null`.
+ * quote_versions_scoped Returns: no role-scoped nulls (snapshot has keys removed but
+ * is never NULL); all seven fields inherit nullability from the quote_versions table.
  */
 export type Json =
   | string
@@ -1145,13 +1146,13 @@ export type Database = {
       quote_versions_scoped: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string | null
-          quote_id: string | null
-          version_number: number | null
+          id: string
+          quote_id: string
+          version_number: number
           change_reason: string | null
           changed_by: string | null
-          changed_at: string | null
-          snapshot: Json | null
+          changed_at: string
+          snapshot: Json
         }[]
       }
       quotes_scoped: {
