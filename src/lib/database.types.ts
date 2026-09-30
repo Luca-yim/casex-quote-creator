@@ -1,988 +1,1368 @@
 /**
- * ============================================================================
- * ⚠️  HAND-PATCHED FILE — NOT GENERATOR OUTPUT
- * ============================================================================
- *
- * Base:      Generated from the Supabase schema of project `lsmrxbpvmvrzpbtjqygh`
- *            (public schema, via the Data API definition).
- *
- * Patched:   Section 4 (User Sizing) — 7 columns added by hand.
- * Patch date: 2026-10-01
- *
- * WHY HAND-PATCHED:
- *   This workspace has TWO Supabase projects:
- *     1. Lovable Cloud DB  — contains only `profiles` and `user_roles`.
- *     2. Live quotes DB (`lsmrxbpvmvrzpbtjqygh`) — contains the 69-column
- *        `quotes` table and `quotes_scoped()`.
- *   Only the Lovable Cloud secret key is available in the agent workspace, and
- *   the live project's schema endpoint rejects the public key (401). Therefore
- *   neither the CLI nor the in-workspace agent can introspect the live schema.
- *   These 7 columns were added manually from the verified Section 4 migration
- *   (applied and verified: 69 columns / 69 scoped outputs / 7 triggers /
- *   7 validated constraints / Part A 28-test PASS / Part B 11-case PASS).
- *
- * WHAT WAS ADDED (4 blocks, fenced with `// --- Section 4 ---` markers):
- *   - Tables.quotes.Row              +7  (non-optional, nullable)
- *   - Tables.quotes.Insert           +7  (optional — no DB default)
- *   - Tables.quotes.Update           +7  (optional)
- *   - Views.quotes_scoped.Row        +7  (nullable — role-masked)
- *
- *   Columns, matching live ordinals 63–69:
- *     case_worker_studio_users           integer  NULL   (0–50)
- *     expected_user_growth               text     NULL   (flat|moderate|high|rapid|other)
- *     expected_user_growth_other_detail  text     NULL
- *     peak_load_multiplier               text     NULL   (steady|seasonal|high_burst|other)
- *     peak_load_multiplier_other_detail  text     NULL
- *     b2b_org_count                      integer  NULL   (>= 0)
- *     b2b_avg_users_per_org              integer  NULL   (>= 0)
- *
- * DELIBERATE CHOICE — NO LITERAL UNIONS:
- *   `expected_user_growth` and `peak_load_multiplier` are CHECK-constrained
- *   TEXT columns, not Postgres enums. The real generator emits `string | null`
- *   for these. Narrowing them here would be silently reverted by the next
- *   genuine regeneration. Literal unions belong in `src/types/quote.ts`.
- *
- * ACTION REQUIRED:
- *   Replace this file with genuine generator output at the first opportunity:
- *     supabase gen types typescript --project-id lsmrxbpvmvrzpbtjqygh \
- *       --schema public > src/lib/database.types.ts
- *   Then delete this header.
- *
- * PRE-EXISTING GAPS (present before this patch — NOT introduced here; left
- * untouched so the Section 4 diff stays clean. A genuine regeneration fixes
- * them automatically):
- *   - Deferred #9:  Tables.quotes.Row is missing `converted_from_lead_id`
- *                   and `converted_from_lead_notes`.
- *   - Deferred #10: Tables.quotes.Insert / .Update are missing `lead_id`;
- *                   Views.quotes_scoped.Row is missing `lead_id`,
- *                   `converted_from_lead_id`, `converted_from_lead_notes`.
- *   Practical effect: quotes_scoped.Row lists 66 keys here, not the live 69.
- *   Any mapper code touching `lead_id` on insert/update will not typecheck.
- *
- * DO NOT:
- *   - hand-edit further without updating this header
- *   - narrow any string type to a literal union
- *   - switch imports to `src/integrations/supabase/types.ts` (that file
- *     describes the Lovable Cloud DB only and is WRONG about `quotes`)
- * ============================================================================
+ * Generated from the live schema catalogue dump (enums_tables_functions_pasted.json).
+ * Source: live quotes project public schema. Generated 2026-09-30 by mechanical
+ * transform of the dump only; no hand-maintained content carried over.
+ * Function RETURNS TABLE columns carry no nullability in the dump and are typed
+ * `| null` (quotes_scoped deliberately nulls columns per role).
  */
-
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: "12"
+  }
   public: {
     Tables: {
-      past_deployments: {
+      admin_audit_log: {
         Row: {
-          id: number;
-          customer_name: string;
-          vertical_l1: string;
-          solution_l2: string;
-          deployment_year: number | null;
-          final_tcv: number | null;
-          status: string | null;
-          metadata: Json | null;
-        };
+          action: string
+          admin_id: string
+          after_value: Json | null
+          before_value: Json | null
+          created_at: string
+          id: string
+          reason: string | null
+          target_id: string | null
+          target_type: string
+        }
         Insert: {
-          id: number;
-          customer_name: string;
-          vertical_l1: string;
-          solution_l2: string;
-          deployment_year?: number | null;
-          final_tcv?: number | null;
-          status?: string | null;
-          metadata?: Json | null;
-        };
+          action: string
+          admin_id: string
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string | null
+          target_type: string
+        }
         Update: {
-          id?: number;
-          customer_name?: string;
-          vertical_l1?: string;
-          solution_l2?: string;
-          deployment_year?: number | null;
-          final_tcv?: number | null;
-          status?: string | null;
-          metadata?: Json | null;
-        };
-        Relationships: [];
-      };
-      pricing_catalog: {
-        Row: {
-          sku_id: string;
-          name: string;
-          category: string;
-          unit_price: number;
-          unit_type: string;
-          tier_range: string[] | null;
-          effective_date: string;
-          expiration_date: string | null;
-          metadata: Json | null;
-        };
-        Insert: {
-          sku_id: string;
-          name: string;
-          category: string;
-          unit_price: number;
-          unit_type: string;
-          tier_range?: string[] | null;
-          effective_date?: string;
-          expiration_date?: string | null;
-          metadata?: Json | null;
-        };
-        Update: {
-          sku_id?: string;
-          name?: string;
-          category?: string;
-          unit_price?: number;
-          unit_type?: string;
-          tier_range?: string[] | null;
-          effective_date?: string;
-          expiration_date?: string | null;
-          metadata?: Json | null;
-        };
-        Relationships: [];
-      };
-      pricing_reviews: {
-        Row: {
-          id: string;
-          quote_id: string;
-          estimator_id: string;
-          original_snapshot: Json;
-          final_snapshot: Json;
-          adjustment_notes: string | null;
-          price_delta: number | null;
-          status: string;
-          created_at: string;
-          completed_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          quote_id: string;
-          estimator_id: string;
-          original_snapshot: Json;
-          final_snapshot: Json;
-          adjustment_notes?: string | null;
-          price_delta?: number | null;
-          status?: string;
-          created_at?: string;
-          completed_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          quote_id?: string;
-          estimator_id?: string;
-          original_snapshot?: Json;
-          final_snapshot?: Json;
-          adjustment_notes?: string | null;
-          price_delta?: number | null;
-          status?: string;
-          created_at?: string;
-          completed_at?: string | null;
-        };
+          action?: string
+          admin_id?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "pricing_reviews_quote_id_fkey";
-            columns: ["quote_id"];
-            isOneToOne: false;
-            referencedRelation: "quotes";
-            referencedColumns: ["id"];
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "pricing_reviews_estimator_id_fkey";
-            columns: ["estimator_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          role: string;
-          created_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          role?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          role?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      quote_comments: {
-        Row: {
-          id: string;
-          quote_id: string;
-          author_id: string;
-          author_role: string;
-          body: string;
-          visibility: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          quote_id: string;
-          author_id: string;
-          author_role: string;
-          body: string;
-          visibility?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          quote_id?: string;
-          author_id?: string;
-          author_role?: string;
-          body?: string;
-          visibility?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "quote_comments_quote_id_fkey";
-            columns: ["quote_id"];
-            isOneToOne: false;
-            referencedRelation: "quotes";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quote_comments_author_id_fkey";
-            columns: ["author_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      quote_versions: {
-        Row: {
-          id: string;
-          quote_id: string;
-          version_number: number;
-          snapshot: Json;
-          change_reason: string | null;
-          changed_by: string | null;
-          changed_at: string;
-        };
-        Insert: {
-          id?: string;
-          quote_id: string;
-          version_number: number;
-          snapshot: Json;
-          change_reason?: string | null;
-          changed_by?: string | null;
-          changed_at?: string;
-        };
-        Update: {
-          id?: string;
-          quote_id?: string;
-          version_number?: number;
-          snapshot?: Json;
-          change_reason?: string | null;
-          changed_by?: string | null;
-          changed_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "quote_versions_quote_id_fkey";
-            columns: ["quote_id"];
-            isOneToOne: false;
-            referencedRelation: "quotes";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quote_versions_changed_by_fkey";
-            columns: ["changed_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      quotes: {
-        Row: {
-          id: string;
-          lead_id: string | null;
-          owner_id: string | null;
-          requested_by: string;
-          reviewed_by: string | null;
-          last_reviewed_by: string | null;
-          approved_by: string | null;
-          name: string;
-          customer_name: string | null;
-          customer_type: string | null;
-          opportunity_stage: string | null;
-          deal_priority: string | null;
-          deal_template: string | null;
-          quote_validity_date: string | null;
-          geographic_scope: string | null;
-          geographic_scope_other_detail: string | null;
-          pricing_schedule: string | null;
-          pricing_schedule_other_detail: string | null;
-          billing_preference: string | null;
-          billing_preference_other_detail: string | null;
-          customer_email: string | null;
-          compliance: string[] | null;
-          vertical: string | null;
-          vertical_other_detail: string | null;
-          solution: string | null;
-          repeatable_activation: string;
-          module_tier: string | null;
-          contract_years: number;
-          expected_award_date: string | null;
-          case_worker_count: number | null;
-          include_b2c: boolean;
-          b2c_mau: number | null;
-          include_b2b_portal: boolean;
-          b2b_user_count: number | null;
-          // --- Section 4 (User Sizing) — live ordinals 63–69. Proposal-only. ---
-          case_worker_studio_users: number | null;
-          expected_user_growth: string | null;
-          expected_user_growth_other_detail: string | null;
-          peak_load_multiplier: string | null;
-          peak_load_multiplier_other_detail: string | null;
-          b2b_org_count: number | null;
-          b2b_avg_users_per_org: number | null;
-          // --- end Section 4 ---
-          hosting_model: string | null;
-          environment_count: number;
-          has_integrations: boolean;
-          integration_count: number;
-          integration_difficulty: string | null;
-          migration_required: boolean | null;
-          migration_volume_range: string | null;
-          migration_cleanup_required: boolean | null;
-          external_idp_required: boolean | null;
-          worker_idp_required: boolean | null;
-          idp_documented: boolean | null;
-          portal_form_count_range: string | null;
-          support_tier: string | null;
-          margin_percent: number;
-          contingency_pct: number;
-          margin_justification: string | null;
-          rep_confidence: string | null;
-          tier: string;
-          state: string;
-          submitted_at: string | null;
-          approved_at: string | null;
-          sent_at: string | null;
-          created_at: string;
-          updated_at: string;
-          needs_attention: boolean;
-          integrations: Json;
-        };
-        Insert: {
-          id?: string;
-          owner_id?: string | null;
-          requested_by: string;
-          reviewed_by?: string | null;
-          last_reviewed_by?: string | null;
-          approved_by?: string | null;
-          name?: string;
-          customer_name?: string | null;
-          customer_type?: string | null;
-          opportunity_stage?: string | null;
-          deal_priority?: string | null;
-          deal_template?: string | null;
-          quote_validity_date?: string | null;
-          geographic_scope?: string | null;
-          geographic_scope_other_detail?: string | null;
-          pricing_schedule?: string | null;
-          pricing_schedule_other_detail?: string | null;
-          billing_preference?: string | null;
-          billing_preference_other_detail?: string | null;
-          customer_email?: string | null;
-          compliance?: string[] | null;
-          vertical?: string | null;
-          vertical_other_detail?: string | null;
-          solution?: string | null;
-          repeatable_activation?: string;
-          module_tier?: string | null;
-          contract_years?: number;
-          expected_award_date?: string | null;
-          case_worker_count?: number | null;
-          include_b2c?: boolean;
-          b2c_mau?: number | null;
-          include_b2b_portal?: boolean;
-          b2b_user_count?: number | null;
-          // --- Section 4 (User Sizing) — nullable, no DB default. ---
-          case_worker_studio_users?: number | null;
-          expected_user_growth?: string | null;
-          expected_user_growth_other_detail?: string | null;
-          peak_load_multiplier?: string | null;
-          peak_load_multiplier_other_detail?: string | null;
-          b2b_org_count?: number | null;
-          b2b_avg_users_per_org?: number | null;
-          // --- end Section 4 ---
-          hosting_model?: string | null;
-          environment_count?: number;
-          has_integrations?: boolean;
-          integration_count?: number;
-          integration_difficulty?: string | null;
-          migration_required?: boolean | null;
-          migration_volume_range?: string | null;
-          migration_cleanup_required?: boolean | null;
-          external_idp_required?: boolean | null;
-          worker_idp_required?: boolean | null;
-          idp_documented?: boolean | null;
-          portal_form_count_range?: string | null;
-          support_tier?: string | null;
-          margin_percent?: number;
-          contingency_pct?: number;
-          margin_justification?: string | null;
-          rep_confidence?: string | null;
-          tier?: string;
-          state?: string;
-          submitted_at?: string | null;
-          approved_at?: string | null;
-          sent_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          needs_attention?: boolean;
-          integrations?: Json;
-        };
-        Update: {
-          id?: string;
-          owner_id?: string | null;
-          requested_by?: string;
-          reviewed_by?: string | null;
-          last_reviewed_by?: string | null;
-          approved_by?: string | null;
-          name?: string;
-          customer_name?: string | null;
-          customer_type?: string | null;
-          opportunity_stage?: string | null;
-          deal_priority?: string | null;
-          deal_template?: string | null;
-          quote_validity_date?: string | null;
-          geographic_scope?: string | null;
-          geographic_scope_other_detail?: string | null;
-          pricing_schedule?: string | null;
-          pricing_schedule_other_detail?: string | null;
-          billing_preference?: string | null;
-          billing_preference_other_detail?: string | null;
-          customer_email?: string | null;
-          compliance?: string[] | null;
-          vertical?: string | null;
-          vertical_other_detail?: string | null;
-          solution?: string | null;
-          repeatable_activation?: string;
-          module_tier?: string | null;
-          contract_years?: number;
-          expected_award_date?: string | null;
-          case_worker_count?: number | null;
-          include_b2c?: boolean;
-          b2c_mau?: number | null;
-          include_b2b_portal?: boolean;
-          b2b_user_count?: number | null;
-          // --- Section 4 (User Sizing) — nullable, no DB default. ---
-          case_worker_studio_users?: number | null;
-          expected_user_growth?: string | null;
-          expected_user_growth_other_detail?: string | null;
-          peak_load_multiplier?: string | null;
-          peak_load_multiplier_other_detail?: string | null;
-          b2b_org_count?: number | null;
-          b2b_avg_users_per_org?: number | null;
-          // --- end Section 4 ---
-          hosting_model?: string | null;
-          environment_count?: number;
-          has_integrations?: boolean;
-          integration_count?: number;
-          integration_difficulty?: string | null;
-          migration_required?: boolean | null;
-          migration_volume_range?: string | null;
-          migration_cleanup_required?: boolean | null;
-          external_idp_required?: boolean | null;
-          worker_idp_required?: boolean | null;
-          idp_documented?: boolean | null;
-          portal_form_count_range?: string | null;
-          support_tier?: string | null;
-          margin_percent?: number;
-          contingency_pct?: number;
-          margin_justification?: string | null;
-          rep_confidence?: string | null;
-          tier?: string;
-          state?: string;
-          submitted_at?: string | null;
-          approved_at?: string | null;
-          sent_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          needs_attention?: boolean;
-          integrations?: Json;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "quotes_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quotes_requested_by_fkey";
-            columns: ["requested_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quotes_reviewed_by_fkey";
-            columns: ["reviewed_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quotes_approved_by_fkey";
-            columns: ["approved_by"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      vertical_labels: {
-        Row: {
-          vertical_l1: string;
-          friendly_label: string;
-          display_order: number;
-        };
-        Insert: {
-          vertical_l1: string;
-          friendly_label: string;
-          display_order?: number;
-        };
-        Update: {
-          vertical_l1?: string;
-          friendly_label?: string;
-          display_order?: number;
-        };
-        Relationships: [];
-      };
-      vertical_solutions: {
-        Row: {
-          id: number;
-          vertical_l1: string;
-          solution_l2: string;
-          display_label: string;
-          is_active: boolean;
-          display_order: number;
-        };
-        Insert: {
-          id: number;
-          vertical_l1: string;
-          solution_l2: string;
-          display_label: string;
-          is_active?: boolean;
-          display_order?: number;
-        };
-        Update: {
-          id?: number;
-          vertical_l1?: string;
-          solution_l2?: string;
-          display_label?: string;
-          is_active?: boolean;
-          display_order?: number;
-        };
-        Relationships: [];
-      };
+        ]
+      }
       ballpark_sizing_reference: {
         Row: {
-          tier: number;
-          tier_label: string | null;
-          hours_low: number;
-          hours_high: number;
-          commercial_rate_low: number;
-          commercial_rate_high: number;
-          public_sector_rate_low: number;
-          public_sector_rate_high: number;
-        };
+          commercial_rate_high: number
+          commercial_rate_low: number
+          hours_high: number
+          hours_low: number
+          id: string
+          public_sector_rate_high: number
+          public_sector_rate_low: number
+          tier: number
+          tier_label: string
+          updated_at: string
+        }
         Insert: {
-          tier: number;
-          tier_label?: string | null;
-          hours_low: number;
-          hours_high: number;
-          commercial_rate_low: number;
-          commercial_rate_high: number;
-          public_sector_rate_low: number;
-          public_sector_rate_high: number;
-        };
+          commercial_rate_high: number
+          commercial_rate_low: number
+          hours_high: number
+          hours_low: number
+          id?: string
+          public_sector_rate_high: number
+          public_sector_rate_low: number
+          tier: number
+          tier_label: string
+          updated_at?: string
+        }
         Update: {
-          tier?: number;
-          tier_label?: string | null;
-          hours_low?: number;
-          hours_high?: number;
-          commercial_rate_low?: number;
-          commercial_rate_high?: number;
-          public_sector_rate_low?: number;
-          public_sector_rate_high?: number;
-        };
-        Relationships: [];
-      };
-      quote_wbs_lines: {
-        Row: {
-          id: string;
-          quote_id: string;
-          phase: string;
-          area: string | null;
-          role: string;
-          location: string;
-          cost_hours: number;
-          revenue_hours: number;
-          cost_rate: number;
-          bill_rate: number;
-          person_days: number | null;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          quote_id: string;
-          phase: string;
-          area?: string | null;
-          role: string;
-          location: string;
-          cost_hours: number;
-          revenue_hours: number;
-          cost_rate: number;
-          bill_rate: number;
-        };
-        Update: {
-          phase?: string;
-          area?: string | null;
-          role?: string;
-          location?: string;
-          cost_hours?: number;
-          revenue_hours?: number;
-          cost_rate?: number;
-          bill_rate?: number;
-        };
-        Relationships: [];
-      };
-      quote_cost_items: {
-        Row: {
-          id: string;
-          quote_id: string;
-          name: string;
-          cost_type: string;
-          amount: number;
-          is_customer_visible: boolean;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          quote_id: string;
-          name: string;
-          cost_type: string;
-          amount: number;
-          is_customer_visible?: boolean;
-        };
-        Update: {
-          name?: string;
-          cost_type?: string;
-          amount?: number;
-          is_customer_visible?: boolean;
-        };
-        Relationships: [];
-      };
-      rate_cards: {
-        Row: {
-          id: string;
-          program_type: string;
-          role: string;
-          location: string;
-          bill_rate: number;
-          cost_rate: number;
-          effective_start: string | null;
-          effective_end: string | null;
-        };
-        Insert: {
-          id?: string;
-          program_type: string;
-          role: string;
-          location: string;
-          bill_rate: number;
-          cost_rate: number;
-          effective_start?: string | null;
-          effective_end?: string | null;
-        };
-        Update: {
-          program_type?: string;
-          role?: string;
-          location?: string;
-          bill_rate?: number;
-          cost_rate?: number;
-          effective_start?: string | null;
-          effective_end?: string | null;
-        };
-        Relationships: [];
-      };
-      phase_weight_allocation: {
-        Row: {
-          id: number;
-          phase_name: string;
-          weight_percent: number | null;
-          display_order: number | null;
-        };
-        Insert: {
-          id?: number;
-          phase_name: string;
-          weight_percent?: number | null;
-          display_order?: number | null;
-        };
-        Update: {
-          phase_name?: string;
-          weight_percent?: number | null;
-          display_order?: number | null;
-        };
-        Relationships: [];
-      };
+          commercial_rate_high?: number
+          commercial_rate_low?: number
+          hours_high?: number
+          hours_low?: number
+          id?: string
+          public_sector_rate_high?: number
+          public_sector_rate_low?: number
+          tier?: number
+          tier_label?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
       lead_intakes: {
         Row: {
-          id: string;
-          lead_number: string | null;
-          submitted_by_anon_id: string | null;
-          organization_name: string;
-          contact_name: string;
-          contact_email: string;
-          contact_phone: string | null;
-          region: string | null;
-          vertical: string | null;
-          vertical_other_detail: string | null;
-          solution: string | null;
-          internal_user_count: number | null;
-          external_portal_required: boolean | null;
-          external_portal_monthly_logins: number | null;
-          b2b_portal_required: boolean | null;
-          b2b_user_count: number | null;
-          hosting_preference: string | null;
-          compliance_requirements: string[] | null;
-          integration_required: boolean | null;
-          integration_count: number | null;
-          integration_difficulty: string | null;
-          additional_notes: string | null;
-          status: string;
-          lead_score: number | null;
-          lead_score_label: string | null;
-          confidence_pct: number | null;
-          duplicate_of_lead_id: string | null;
-          assigned_rep_id: string | null;
-          claimed_by: string | null;
-          claimed_at: string | null;
-          converted_quote_id: string | null;
-          submitted_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          additional_notes: string | null
+          assigned_rep_id: string | null
+          b2b_portal_required: boolean | null
+          b2b_user_count: number | null
+          claimed_at: string | null
+          claimed_by: string | null
+          compliance_requirements: string[] | null
+          confidence_pct: number | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          converted_quote_id: string | null
+          created_at: string
+          duplicate_of_lead_id: string | null
+          external_portal_monthly_logins: number | null
+          external_portal_required: boolean | null
+          hosting_preference: string | null
+          id: string
+          integration_count: number | null
+          integration_difficulty: string | null
+          integration_required: boolean | null
+          internal_user_count: number | null
+          lead_number: string
+          lead_score: number | null
+          lead_score_label: string | null
+          organization_name: string
+          region: string | null
+          solution: string | null
+          status: string
+          submitted_at: string
+          submitted_by_anon_id: string | null
+          updated_at: string
+          vertical: string | null
+          vertical_other_detail: string | null
+        }
         Insert: {
-          id?: string;
-          submitted_by_anon_id?: string | null;
-          organization_name: string;
-          contact_name: string;
-          contact_email: string;
-          contact_phone?: string | null;
-          region?: string | null;
-          vertical?: string | null;
-          vertical_other_detail?: string | null;
-          solution?: string | null;
-          internal_user_count?: number | null;
-          external_portal_required?: boolean | null;
-          external_portal_monthly_logins?: number | null;
-          b2b_portal_required?: boolean | null;
-          b2b_user_count?: number | null;
-          hosting_preference?: string | null;
-          compliance_requirements?: string[] | null;
-          integration_required?: boolean | null;
-          integration_count?: number | null;
-          integration_difficulty?: string | null;
-          additional_notes?: string | null;
-        };
+          additional_notes?: string | null
+          assigned_rep_id?: string | null
+          b2b_portal_required?: boolean | null
+          b2b_user_count?: number | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          compliance_requirements?: string[] | null
+          confidence_pct?: number | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          converted_quote_id?: string | null
+          created_at?: string
+          duplicate_of_lead_id?: string | null
+          external_portal_monthly_logins?: number | null
+          external_portal_required?: boolean | null
+          hosting_preference?: string | null
+          id?: string
+          integration_count?: number | null
+          integration_difficulty?: string | null
+          integration_required?: boolean | null
+          internal_user_count?: number | null
+          lead_number?: string
+          lead_score?: number | null
+          lead_score_label?: string | null
+          organization_name: string
+          region?: string | null
+          solution?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by_anon_id?: string | null
+          updated_at?: string
+          vertical?: string | null
+          vertical_other_detail?: string | null
+        }
         Update: {
-          organization_name?: string;
-          contact_name?: string;
-          contact_email?: string;
-          contact_phone?: string | null;
-          region?: string | null;
-          additional_notes?: string | null;
-          status?: string;
-          assigned_rep_id?: string | null;
-          claimed_by?: string | null;
-          claimed_at?: string | null;
-          duplicate_of_lead_id?: string | null;
-          converted_quote_id?: string | null;
-        };
-        Relationships: [];
-      };
-    };
+          additional_notes?: string | null
+          assigned_rep_id?: string | null
+          b2b_portal_required?: boolean | null
+          b2b_user_count?: number | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          compliance_requirements?: string[] | null
+          confidence_pct?: number | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          converted_quote_id?: string | null
+          created_at?: string
+          duplicate_of_lead_id?: string | null
+          external_portal_monthly_logins?: number | null
+          external_portal_required?: boolean | null
+          hosting_preference?: string | null
+          id?: string
+          integration_count?: number | null
+          integration_difficulty?: string | null
+          integration_required?: boolean | null
+          internal_user_count?: number | null
+          lead_number?: string
+          lead_score?: number | null
+          lead_score_label?: string | null
+          organization_name?: string
+          region?: string | null
+          solution?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by_anon_id?: string | null
+          updated_at?: string
+          vertical?: string | null
+          vertical_other_detail?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_intakes_assigned_rep_id_fkey"
+            columns: ["assigned_rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intakes_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intakes_converted_quote_id_fkey"
+            columns: ["converted_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intakes_duplicate_of_lead_id_fkey"
+            columns: ["duplicate_of_lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_intakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          quote_id: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          quote_id?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          quote_id?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_deployments: {
+        Row: {
+          customer_name: string
+          deployment_year: number | null
+          final_tcv: number | null
+          id: number
+          metadata: Json | null
+          solution_l2: string
+          status: string | null
+          vertical_l1: string
+        }
+        Insert: {
+          customer_name: string
+          deployment_year?: number | null
+          final_tcv?: number | null
+          id?: number
+          metadata?: Json | null
+          solution_l2: string
+          status?: string | null
+          vertical_l1: string
+        }
+        Update: {
+          customer_name?: string
+          deployment_year?: number | null
+          final_tcv?: number | null
+          id?: number
+          metadata?: Json | null
+          solution_l2?: string
+          status?: string | null
+          vertical_l1?: string
+        }
+        Relationships: [
+        ]
+      }
+      phase_weight_allocation: {
+        Row: {
+          display_order: number
+          id: string
+          phase_name: string
+          weight_pct: number
+        }
+        Insert: {
+          display_order: number
+          id?: string
+          phase_name: string
+          weight_pct: number
+        }
+        Update: {
+          display_order?: number
+          id?: string
+          phase_name?: string
+          weight_pct?: number
+        }
+        Relationships: [
+        ]
+      }
+      pricing_catalog: {
+        Row: {
+          category: string
+          effective_date: string
+          expiration_date: string | null
+          metadata: Json | null
+          name: string
+          naspo_discount_price: number | null
+          sku_id: string
+          tier_range: string[] | null
+          unit_price: number
+          unit_type: string
+        }
+        Insert: {
+          category: string
+          effective_date?: string
+          expiration_date?: string | null
+          metadata?: Json | null
+          name: string
+          naspo_discount_price?: number | null
+          sku_id: string
+          tier_range?: string[] | null
+          unit_price: number
+          unit_type: string
+        }
+        Update: {
+          category?: string
+          effective_date?: string
+          expiration_date?: string | null
+          metadata?: Json | null
+          name?: string
+          naspo_discount_price?: number | null
+          sku_id?: string
+          tier_range?: string[] | null
+          unit_price?: number
+          unit_type?: string
+        }
+        Relationships: [
+        ]
+      }
+      pricing_reviews: {
+        Row: {
+          adjustment_notes: string | null
+          completed_at: string | null
+          created_at: string
+          estimator_id: string
+          final_snapshot: Json
+          id: string
+          original_snapshot: Json
+          price_delta: number | null
+          quote_id: string
+          status: string
+        }
+        Insert: {
+          adjustment_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          estimator_id: string
+          final_snapshot: Json
+          id?: string
+          original_snapshot: Json
+          price_delta?: number | null
+          quote_id: string
+          status?: string
+        }
+        Update: {
+          adjustment_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          estimator_id?: string
+          final_snapshot?: Json
+          id?: string
+          original_snapshot?: Json
+          price_delta?: number | null
+          quote_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_reviews_estimator_id_fkey"
+            columns: ["estimator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_reviews_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_scenarios: {
+        Row: {
+          blended_cost_rate: number | null
+          blended_revenue_rate: number | null
+          computed_at: string
+          id: string
+          margin_pct: number
+          quote_id: string
+          revenue_price: number
+          total_cost: number
+        }
+        Insert: {
+          blended_cost_rate?: number | null
+          blended_revenue_rate?: number | null
+          computed_at?: string
+          id?: string
+          margin_pct: number
+          quote_id: string
+          revenue_price: number
+          total_cost: number
+        }
+        Update: {
+          blended_cost_rate?: number | null
+          blended_revenue_rate?: number | null
+          computed_at?: string
+          id?: string
+          margin_pct?: number
+          quote_id?: string
+          revenue_price?: number
+          total_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_scenarios_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_comments: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          quote_id: string
+          visibility: string
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          id?: string
+          quote_id: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          quote_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_comments_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_cost_items: {
+        Row: {
+          amount: number
+          cost_name: string
+          cost_type: string
+          created_at: string
+          id: string
+          is_customer_visible: boolean
+          quote_id: string
+        }
+        Insert: {
+          amount: number
+          cost_name: string
+          cost_type: string
+          created_at?: string
+          id?: string
+          is_customer_visible?: boolean
+          quote_id: string
+        }
+        Update: {
+          amount?: number
+          cost_name?: string
+          cost_type?: string
+          created_at?: string
+          id?: string
+          is_customer_visible?: boolean
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_cost_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_pdfs: {
+        Row: {
+          file_size_bytes: number | null
+          generated_at: string
+          generated_by: string
+          id: string
+          quote_id: string
+          storage_path: string
+          version: string
+        }
+        Insert: {
+          file_size_bytes?: number | null
+          generated_at?: string
+          generated_by: string
+          id?: string
+          quote_id: string
+          storage_path: string
+          version: string
+        }
+        Update: {
+          file_size_bytes?: number | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          quote_id?: string
+          storage_path?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_pdfs_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_pdfs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_versions: {
+        Row: {
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          id: string
+          quote_id: string
+          snapshot: Json
+          version_number: number
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          quote_id: string
+          snapshot: Json
+          version_number: number
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          quote_id?: string
+          snapshot?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_versions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_wbs_lines: {
+        Row: {
+          area: string
+          bill_rate: number
+          cost_hours: number
+          cost_rate: number
+          created_at: string
+          id: string
+          location: string
+          person_days: number | null
+          phase: string
+          quote_id: string
+          revenue_hours: number
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          bill_rate: number
+          cost_hours?: number
+          cost_rate: number
+          created_at?: string
+          id?: string
+          location: string
+          phase: string
+          quote_id: string
+          revenue_hours?: number
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          bill_rate?: number
+          cost_hours?: number
+          cost_rate?: number
+          created_at?: string
+          id?: string
+          location?: string
+          phase?: string
+          quote_id?: string
+          revenue_hours?: number
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_wbs_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          b2b_avg_users_per_org: number | null
+          b2b_org_count: number | null
+          b2b_user_count: number | null
+          b2c_mau: number | null
+          billing_preference: string | null
+          billing_preference_other_detail: string | null
+          case_worker_count: number | null
+          case_worker_studio_users: number | null
+          compliance: string[] | null
+          contingency_pct: number
+          contract_years: number
+          converted_from_lead_id: string | null
+          converted_from_lead_notes: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_type: string | null
+          deal_priority: string
+          deal_template: string | null
+          environment_count: number
+          expected_award_date: string | null
+          expected_user_growth: string | null
+          expected_user_growth_other_detail: string | null
+          external_idp_required: boolean | null
+          geographic_scope: string | null
+          geographic_scope_other_detail: string | null
+          has_integrations: boolean
+          hosting_model: string | null
+          id: string
+          idp_documented: boolean | null
+          include_b2b_portal: boolean
+          include_b2c: boolean
+          integration_count: number | null
+          integration_difficulty: string | null
+          integrations: Json
+          last_reviewed_by: string | null
+          lead_id: string | null
+          margin_justification: string | null
+          margin_percent: number
+          migration_cleanup_required: boolean | null
+          migration_required: boolean | null
+          migration_volume_range: string | null
+          module_tier: string | null
+          name: string
+          needs_attention: boolean
+          opportunity_stage: string
+          owner_id: string | null
+          peak_load_multiplier: string | null
+          peak_load_multiplier_other_detail: string | null
+          portal_form_count_range: string | null
+          pricing_schedule: string | null
+          pricing_schedule_other_detail: string | null
+          quote_validity_date: string | null
+          rep_confidence: string | null
+          repeatable_activation: string
+          requested_by: string
+          reviewed_by: string | null
+          sent_at: string | null
+          solution: string | null
+          state: string
+          submitted_at: string | null
+          support_tier: string | null
+          tier: string
+          updated_at: string
+          vertical: string | null
+          vertical_other_detail: string | null
+          worker_idp_required: boolean | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          b2b_avg_users_per_org?: number | null
+          b2b_org_count?: number | null
+          b2b_user_count?: number | null
+          b2c_mau?: number | null
+          billing_preference?: string | null
+          billing_preference_other_detail?: string | null
+          case_worker_count?: number | null
+          case_worker_studio_users?: number | null
+          compliance?: string[] | null
+          contingency_pct?: number
+          contract_years?: number
+          converted_from_lead_id?: string | null
+          converted_from_lead_notes?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_type?: string | null
+          deal_priority?: string
+          deal_template?: string | null
+          environment_count?: number
+          expected_award_date?: string | null
+          expected_user_growth?: string | null
+          expected_user_growth_other_detail?: string | null
+          external_idp_required?: boolean | null
+          geographic_scope?: string | null
+          geographic_scope_other_detail?: string | null
+          has_integrations?: boolean
+          hosting_model?: string | null
+          id?: string
+          idp_documented?: boolean | null
+          include_b2b_portal?: boolean
+          include_b2c?: boolean
+          integration_count?: number | null
+          integration_difficulty?: string | null
+          integrations?: Json
+          last_reviewed_by?: string | null
+          lead_id?: string | null
+          margin_justification?: string | null
+          margin_percent?: number
+          migration_cleanup_required?: boolean | null
+          migration_required?: boolean | null
+          migration_volume_range?: string | null
+          module_tier?: string | null
+          name?: string
+          needs_attention?: boolean
+          opportunity_stage?: string
+          owner_id?: string | null
+          peak_load_multiplier?: string | null
+          peak_load_multiplier_other_detail?: string | null
+          portal_form_count_range?: string | null
+          pricing_schedule?: string | null
+          pricing_schedule_other_detail?: string | null
+          quote_validity_date?: string | null
+          rep_confidence?: string | null
+          repeatable_activation?: string
+          requested_by: string
+          reviewed_by?: string | null
+          sent_at?: string | null
+          solution?: string | null
+          state?: string
+          submitted_at?: string | null
+          support_tier?: string | null
+          tier?: string
+          updated_at?: string
+          vertical?: string | null
+          vertical_other_detail?: string | null
+          worker_idp_required?: boolean | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          b2b_avg_users_per_org?: number | null
+          b2b_org_count?: number | null
+          b2b_user_count?: number | null
+          b2c_mau?: number | null
+          billing_preference?: string | null
+          billing_preference_other_detail?: string | null
+          case_worker_count?: number | null
+          case_worker_studio_users?: number | null
+          compliance?: string[] | null
+          contingency_pct?: number
+          contract_years?: number
+          converted_from_lead_id?: string | null
+          converted_from_lead_notes?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_type?: string | null
+          deal_priority?: string
+          deal_template?: string | null
+          environment_count?: number
+          expected_award_date?: string | null
+          expected_user_growth?: string | null
+          expected_user_growth_other_detail?: string | null
+          external_idp_required?: boolean | null
+          geographic_scope?: string | null
+          geographic_scope_other_detail?: string | null
+          has_integrations?: boolean
+          hosting_model?: string | null
+          id?: string
+          idp_documented?: boolean | null
+          include_b2b_portal?: boolean
+          include_b2c?: boolean
+          integration_count?: number | null
+          integration_difficulty?: string | null
+          integrations?: Json
+          last_reviewed_by?: string | null
+          lead_id?: string | null
+          margin_justification?: string | null
+          margin_percent?: number
+          migration_cleanup_required?: boolean | null
+          migration_required?: boolean | null
+          migration_volume_range?: string | null
+          module_tier?: string | null
+          name?: string
+          needs_attention?: boolean
+          opportunity_stage?: string
+          owner_id?: string | null
+          peak_load_multiplier?: string | null
+          peak_load_multiplier_other_detail?: string | null
+          portal_form_count_range?: string | null
+          pricing_schedule?: string | null
+          pricing_schedule_other_detail?: string | null
+          quote_validity_date?: string | null
+          rep_confidence?: string | null
+          repeatable_activation?: string
+          requested_by?: string
+          reviewed_by?: string | null
+          sent_at?: string | null
+          solution?: string | null
+          state?: string
+          submitted_at?: string | null
+          support_tier?: string | null
+          tier?: string
+          updated_at?: string
+          vertical?: string | null
+          vertical_other_detail?: string | null
+          worker_idp_required?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_last_reviewed_by_fkey"
+            columns: ["last_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_cards: {
+        Row: {
+          bill_rate: number
+          cost_rate: number
+          created_at: string
+          effective_end: string | null
+          effective_start: string
+          id: string
+          location: string
+          program_type: string
+          role: string
+        }
+        Insert: {
+          bill_rate: number
+          cost_rate: number
+          created_at?: string
+          effective_end?: string | null
+          effective_start?: string
+          id?: string
+          location: string
+          program_type: string
+          role: string
+        }
+        Update: {
+          bill_rate?: number
+          cost_rate?: number
+          created_at?: string
+          effective_end?: string | null
+          effective_start?: string
+          id?: string
+          location?: string
+          program_type?: string
+          role?: string
+        }
+        Relationships: [
+        ]
+      }
+      vertical_labels: {
+        Row: {
+          description: string
+          display_order: number
+          friendly_label: string
+          vertical_l1: string
+        }
+        Insert: {
+          description: string
+          display_order: number
+          friendly_label: string
+          vertical_l1: string
+        }
+        Update: {
+          description?: string
+          display_order?: number
+          friendly_label?: string
+          vertical_l1?: string
+        }
+        Relationships: [
+        ]
+      }
+      vertical_solutions: {
+        Row: {
+          display_label: string
+          display_order: number
+          id: number
+          is_active: boolean
+          solution_l2: string
+          vertical_l1: string
+        }
+        Insert: {
+          display_label: string
+          display_order?: number
+          id?: number
+          is_active?: boolean
+          solution_l2: string
+          vertical_l1: string
+        }
+        Update: {
+          display_label?: string
+          display_order?: number
+          id?: number
+          is_active?: boolean
+          solution_l2?: string
+          vertical_l1?: string
+        }
+        Relationships: [
+        ]
+      }
+    }
     Views: {
-      /**
-       * Row shape returned by the read-only `public.quotes_scoped()` function.
-       * Pricing columns are nulled out for roles that must not see them; all
-       * writes still target the base `quotes` table.
-       */
-
-      quotes_scoped: {
-        Row: {
-          id: string;
-          owner_id: string | null;
-          requested_by: string;
-          reviewed_by: string | null;
-          last_reviewed_by: string | null;
-          approved_by: string | null;
-          name: string;
-          customer_name: string | null;
-          customer_type: string | null;
-          opportunity_stage: string | null;
-          deal_priority: string | null;
-          deal_template: string | null;
-          quote_validity_date: string | null;
-          geographic_scope: string | null;
-          geographic_scope_other_detail: string | null;
-          pricing_schedule: string | null;
-          pricing_schedule_other_detail: string | null;
-          billing_preference: string | null;
-          billing_preference_other_detail: string | null;
-          customer_email: string | null;
-          compliance: string[] | null;
-          vertical: string | null;
-          vertical_other_detail: string | null;
-          solution: string | null;
-          repeatable_activation: string;
-          module_tier: string | null;
-          contract_years: number;
-          expected_award_date: string | null;
-          case_worker_count: number | null;
-          include_b2c: boolean;
-          b2c_mau: number | null;
-          include_b2b_portal: boolean;
-          b2b_user_count: number | null;
-          // --- Section 4 (User Sizing) — scoped outputs 63–69. ---
-          // Role-masked: estimator/admin always; owning sales_rep only while
-          // state is draft | estimator_adjusted; external always NULL.
-          case_worker_studio_users: number | null;
-          expected_user_growth: string | null;
-          expected_user_growth_other_detail: string | null;
-          peak_load_multiplier: string | null;
-          peak_load_multiplier_other_detail: string | null;
-          b2b_org_count: number | null;
-          b2b_avg_users_per_org: number | null;
-          // --- end Section 4 ---
-          hosting_model: string | null;
-          environment_count: number;
-          has_integrations: boolean;
-          integration_count: number;
-          integration_difficulty: string | null;
-          migration_required: boolean | null;
-          migration_volume_range: string | null;
-          migration_cleanup_required: boolean | null;
-          external_idp_required: boolean | null;
-          worker_idp_required: boolean | null;
-          idp_documented: boolean | null;
-          portal_form_count_range: string | null;
-          support_tier: string | null;
-          margin_percent: number | null;
-          contingency_pct: number;
-          margin_justification: string | null;
-          rep_confidence: string | null;
-          tier: string;
-          state: string;
-          submitted_at: string | null;
-          approved_at: string | null;
-          sent_at: string | null;
-          created_at: string;
-          updated_at: string;
-          needs_attention: boolean;
-          integrations: Json;
-        };
-        Relationships: [];
-      };
-
-      /**
-       * Row shape returned by the read-only `public.quote_versions_scoped()`
-       * function: the same columns as `quote_versions`, with pricing keys
-       * removed from the `snapshot` jsonb for roles that must not see them.
-       */
-      quote_versions_scoped: {
-        Row: {
-          id: string;
-          quote_id: string;
-          version_number: number;
-          snapshot: Json;
-          change_reason: string | null;
-          changed_by: string | null;
-          changed_at: string;
-        };
-        Relationships: [];
-      };
-    };
-
+      [_ in never]: never
+    }
     Functions: {
-      /**
-       * Role-aware, read-only projection of `public.quotes`, returning
-       * `setof public.quotes` with pricing columns nulled out for roles that
-       * must not see them. SECURITY DEFINER: it bypasses RLS, so its WHERE
-       * clause must be kept in sync with the RLS policies on `quotes`.
-       */
-      quotes_scoped: {
-        Args: Record<PropertyKey, never>;
-        Returns: Database["public"]["Views"]["quotes_scoped"]["Row"][];
-      };
-      /**
-       * Role-aware, read-only projection of `public.quote_versions`, returning
-       * `setof public.quote_versions` with pricing keys stripped from the
-       * snapshot jsonb for roles that must not see them.
-       */
-      quote_versions_scoped: {
-        Args: Record<PropertyKey, never>;
-        Returns: Database["public"]["Views"]["quote_versions_scoped"]["Row"][];
-      };
-      /**
-       * Server-side state machine for quotes. Validates the requested
-       * transition against the caller's role and the current state, and is
-       * the only supported way to change `public.quotes.state`.
-       */
-      convert_lead_to_quote: {
-        Args: { p_lead_id: string };
-        Returns: Database["public"]["Tables"]["quotes"]["Row"];
-      };
-      estimator_assign_and_convert: {
-        Args: { p_lead_id: string; p_rep_id: string };
-        Returns: Database["public"]["Tables"]["quotes"]["Row"];
-      };
+      _convert_lead_core: {
+        Args: {
+          p_lead: Database["public"]["Tables"]["lead_intakes"]["Row"]
+          p_quote_owner: string
+          p_actor: string
+          p_needs_attention: boolean
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
       claim_and_convert_lead: {
-        Args: { p_lead_id: string };
-        Returns: Database["public"]["Tables"]["quotes"]["Row"];
-      };
+        Args: {
+          p_lead_id: string
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
+      convert_lead_to_quote: {
+        Args: {
+          p_lead_id: string
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
+      current_user_role: {
+        Args: never
+        Returns: string
+      }
+      estimator_assign_and_convert: {
+        Args: {
+          p_lead_id: string
+          p_rep_id: string
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
+      quote_versions_scoped: {
+        Args: never
+        Returns: {
+          id: string | null
+          quote_id: string | null
+          version_number: number | null
+          change_reason: string | null
+          changed_by: string | null
+          changed_at: string | null
+          snapshot: Json | null
+        }[]
+      }
+      quotes_scoped: {
+        Args: never
+        Returns: {
+          id: string | null
+          owner_id: string | null
+          requested_by: string | null
+          reviewed_by: string | null
+          approved_by: string | null
+          last_reviewed_by: string | null
+          name: string | null
+          customer_name: string | null
+          customer_type: string | null
+          customer_email: string | null
+          compliance: string[] | null
+          vertical: string | null
+          solution: string | null
+          vertical_other_detail: string | null
+          repeatable_activation: string | null
+          module_tier: string | null
+          contract_years: number | null
+          expected_award_date: string | null
+          case_worker_count: number | null
+          include_b2c: boolean | null
+          b2c_mau: number | null
+          include_b2b_portal: boolean | null
+          b2b_user_count: number | null
+          hosting_model: string | null
+          environment_count: number | null
+          has_integrations: boolean | null
+          integration_count: number | null
+          integration_difficulty: string | null
+          support_tier: string | null
+          rep_confidence: string | null
+          tier: string | null
+          state: string | null
+          submitted_at: string | null
+          approved_at: string | null
+          sent_at: string | null
+          created_at: string | null
+          updated_at: string | null
+          margin_percent: number | null
+          margin_justification: string | null
+          contingency_pct: number | null
+          converted_from_lead_id: string | null
+          converted_from_lead_notes: string | null
+          migration_required: boolean | null
+          migration_volume_range: string | null
+          migration_cleanup_required: boolean | null
+          external_idp_required: boolean | null
+          worker_idp_required: boolean | null
+          idp_documented: boolean | null
+          portal_form_count_range: string | null
+          lead_id: string | null
+          needs_attention: boolean | null
+          integrations: Json | null
+          opportunity_stage: string | null
+          deal_priority: string | null
+          deal_template: string | null
+          quote_validity_date: string | null
+          geographic_scope: string | null
+          geographic_scope_other_detail: string | null
+          pricing_schedule: string | null
+          pricing_schedule_other_detail: string | null
+          billing_preference: string | null
+          billing_preference_other_detail: string | null
+          case_worker_studio_users: number | null
+          expected_user_growth: string | null
+          expected_user_growth_other_detail: string | null
+          peak_load_multiplier: string | null
+          peak_load_multiplier_other_detail: string | null
+          b2b_org_count: number | null
+          b2b_avg_users_per_org: number | null
+        }[]
+      }
       transition_quote: {
         Args: {
-          p_quote_id: string;
-          p_new_state: Database["public"]["Tables"]["quotes"]["Row"]["state"];
-        };
-        Returns: Database["public"]["Tables"]["quotes"]["Row"];
-      };
-    };
-
+          p_quote_id: string
+          p_new_state: string
+        }
+        Returns: Database["public"]["Tables"]["quotes"]["Row"]
+      }
+    }
     Enums: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+      [_ in never]: never
+    }
+  }
+}
 
-type PublicSchema = Database["public"];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type Tables<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Row"];
-export type TablesInsert<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Insert"];
-export type TablesUpdate<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Update"];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
