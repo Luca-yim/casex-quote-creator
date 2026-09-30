@@ -95,7 +95,7 @@ export async function fetchQuoteCostItems(quoteId: string): Promise<CostItemRow[
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => ({
     id: r.id,
-    name: r.name,
+    name: r.cost_name,
     itemType: r.cost_type,
     amount: Number(r.amount),
     customerVisible: Boolean(r.is_customer_visible),
@@ -231,7 +231,7 @@ export function useAddCostItem(quoteId: string) {
     mutationFn: async (item: NewCostItem) => {
       const { error } = await supabase.from("quote_cost_items").insert({
         quote_id: quoteId,
-        name: item.name,
+        cost_name: item.name,
         cost_type: item.itemType,
         amount: item.amount,
         is_customer_visible: item.customerVisible,

@@ -3,7 +3,7 @@ import type { Quote } from "@/types/quote";
 import type { Database } from "@/lib/database.types";
 
 type QuoteTableRow = Database["public"]["Tables"]["quotes"]["Row"];
-type QuoteViewRow = Database["public"]["Views"]["quotes_scoped"]["Row"];
+type QuoteViewRow = Database["public"]["Functions"]["quotes_scoped"]["Returns"][number];
 
 /**
  * Accepts rows from either the base table or the role-scoped read view; the
