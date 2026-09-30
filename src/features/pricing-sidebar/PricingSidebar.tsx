@@ -88,6 +88,11 @@ export function PricingSidebar() {
   // discretion — any value 0–100 commits immediately, no band, no gate.
   const [draftMargin, setDraftMargin] = useState<number | null>(null);
   const margin = draftMargin ?? savedMargin;
+  /** Display text for the margin box; mirrors the stored/draft margin, blank only when null. */
+  const [marginText, setMarginText] = useState<string>(margin === null ? "" : String(margin));
+  useEffect(() => {
+    setMarginText(margin === null ? "" : String(margin));
+  }, [margin]);
 
   const commitMargin = (value: number) => {
     setDraftMargin(value);
@@ -275,30 +280,42 @@ export function PricingSidebar() {
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="margin-slider" className="text-sm">
+              <Label htmlFor="margin-input" className="text-sm">
                 Margin
               </Label>
               <span className="font-mono text-sm">{margin === null ? "Not set" : `${margin}% margin`}</span>
             </div>
-            {margin === null ? (
-              <Input
-                id="margin-slider"
-                type="number"
-                min={0}
-                max={99}
-                step={1}
-                placeholder="Margin not set — enter a percentage"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                }}
-                onBlur={(e) => {
-                  const raw = e.currentTarget.value.trim();
-                  if (raw === "") return;
-                  const n = Number(raw);
-                  if (Number.isFinite(n) && n >= 0 && n < 100) commitMargin(Math.round(n));
-                }}
-              />
-            ) : (
+            <Input
+              id="margin-input"
+              aria-label="Margin percentage"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              placeholder="Margin not set — enter a percentage"
+              value={marginText}
+              onChange={(e) => setMarginText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              onBlur={(e) => {
+                const raw = e.currentTarget.value.trim();
+                // Empty blur never writes; restore the stored value (or blank if null).
+                if (raw === "") {
+                  setMarginText(margin === null ? "" : String(margin));
+                  return;
+                }
+                const n = Number(raw);
+                if (!Number.isFinite(n) || n < 0 || n > 100) {
+                  setMarginText(margin === null ? "" : String(margin));
+                  return;
+                }
+                const rounded = Math.round(n);
+                if (rounded !== margin) commitMargin(rounded);
+                else setMarginText(String(rounded));
+              }}
+            />
+            {margin === null ? null : (
               <Slider
                 id="margin-slider"
                 min={0}

@@ -50,10 +50,34 @@ import {
 
 const ITEM_TYPES = ["travel", "license", "hardware", "subcontractor", "other"];
 
-const emptyLine = {
+/** The only location values the editor accepts. */
+const LOCATIONS = ["onshore", "nearshore", "offshore"] as const;
+type LocationValue = (typeof LOCATIONS)[number];
+const LOCATION_LABEL: Record<LocationValue, string> = {
+  onshore: "Onshore",
+  nearshore: "Nearshore",
+  offshore: "Offshore",
+};
+function toLocationValue(v: string): LocationValue | "" {
+  const l = v.trim().toLowerCase();
+  return (LOCATIONS as readonly string[]).includes(l) ? (l as LocationValue) : "";
+}
+
+/** Quote states whose cost basis has been committed to a customer price. */
+const COMMITTED_STATES = ["approved", "sent_to_customer", "accepted", "declined"];
+
+const emptyLine: {
+  phase: string;
+  area: string;
+  role: string;
+  location: LocationValue | "";
+  revenueHours: string;
+  costHours: string;
+} = {
   phase: "",
   area: "",
-  roleKey: "",
+  role: "",
+  location: "",
   revenueHours: "",
   costHours: "",
 };
@@ -108,11 +132,20 @@ export function WbsEditorPanel() {
     [lines, items],
   );
 
-  const selectedRate = rates.find((r) => `${r.role}|${r.location}` === line.roleKey);
-  const editingKey = editingLine ? `${editingLine.role}|${editingLine.location}` : null;
+  const committed = COMMITTED_STATES.includes(String((quote as { state?: string }).state ?? ""));
+  const roles = Array.from(new Set(rates.map((r) => r.role))).sort();
+  const selectedRate = rates.find(
+    (r) => r.role === line.role && toLocationValue(r.location) === line.location && line.location !== "",
+  );
+  const pairingUnchanged =
+    editingLine !== null &&
+    line.role === editingLine.role &&
+    line.location === toLocationValue(editingLine.location);
   // When editing, the line's own role/location stays valid even if it is no
-  // longer on the active rate card — its rates are kept as snapshotted.
-  const roleValid = Boolean(selectedRate) || (editingKey !== null && line.roleKey === editingKey);
+  // longer on the active rate card — its override rates are kept as-is.
+  const roleValid = Boolean(selectedRate) || pairingUnchanged;
+  /** True when saving would replace the line's rates with rate-card rates. */
+  const willReprice = editingLine !== null && !pairingUnchanged && Boolean(selectedRate);
   const canAddLine =
     Boolean(line.phase) &&
     Boolean(line.area.trim()) &&
@@ -124,7 +157,8 @@ export function WbsEditorPanel() {
     setLine({
       phase: l.phase,
       area: l.area,
-      roleKey: `${l.role}|${l.location}`,
+      role: l.role,
+      location: toLocationValue(l.location),
       costHours: String(l.costHours),
       revenueHours: String(l.revenueHours),
     });
@@ -144,7 +178,7 @@ export function WbsEditorPanel() {
         revenueHours: Number(line.revenueHours || line.costHours),
       };
       // Re-snapshot rates only when the role/location pairing changed.
-      if (line.roleKey !== editingKey && selectedRate) {
+      if (willReprice && selectedRate) {
         patch.role = selectedRate.role;
         patch.location = selectedRate.location;
         patch.costRate = selectedRate.costRate;
@@ -258,6 +292,7 @@ export function WbsEditorPanel() {
                       {formatCurrency(l.costHours * l.costRate)}
                     </TableCell>
                     <TableCell className="text-right">
+                      {committed ? null : (<>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -274,6 +309,7 @@ export function WbsEditorPanel() {
                       >
                         <Trash2 className="size-4" aria-hidden="true" />
                       </Button>
+                      </>)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -282,6 +318,11 @@ export function WbsEditorPanel() {
           </Table>
         </div>
 
+        {committed ? (
+          <p className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground" role="note">
+            This quote is committed — lines cannot be changed.
+          </p>
+        ) : (
         <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="wbs-phase">Phase</Label>
@@ -321,23 +362,39 @@ export function WbsEditorPanel() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wbs-role">Role / location</Label>
+            <Label htmlFor="wbs-role">Role</Label>
             <Select
-              value={line.roleKey}
-              onValueChange={(v) => setLine((s) => ({ ...s, roleKey: v }))}
+              value={line.role}
+              onValueChange={(v) => setLine((s) => ({ ...s, role: v }))}
             >
               <SelectTrigger id="wbs-role">
                 <SelectValue placeholder="Select role..." />
               </SelectTrigger>
               <SelectContent>
-                {editingLine && editingKey && !rates.some((r) => `${r.role}|${r.location}` === editingKey) && (
-                  <SelectItem value={editingKey}>
-                    {editingLine.role} — {editingLine.location} (current)
-                  </SelectItem>
+                {editingLine && !roles.includes(editingLine.role) && (
+                  <SelectItem value={editingLine.role}>{editingLine.role} (current)</SelectItem>
                 )}
-                {rates.map((r) => (
-                  <SelectItem key={`${r.role}|${r.location}`} value={`${r.role}|${r.location}`}>
-                    {r.role} — {r.location}
+                {roles.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wbs-location">Location</Label>
+            <Select
+              value={line.location}
+              onValueChange={(v) => setLine((s) => ({ ...s, location: toLocationValue(v) }))}
+            >
+              <SelectTrigger id="wbs-location">
+                <SelectValue placeholder="Select location..." />
+              </SelectTrigger>
+              <SelectContent>
+                {LOCATIONS.map((loc) => (
+                  <SelectItem key={loc} value={loc}>
+                    {LOCATION_LABEL[loc]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -363,6 +420,28 @@ export function WbsEditorPanel() {
               onChange={(e) => setLine((s) => ({ ...s, revenueHours: e.target.value }))}
             />
           </div>
+          {editingLine && (
+            <div
+              className="rounded-md border bg-muted/50 p-2 text-sm sm:col-span-2 lg:col-span-3"
+              data-testid="wbs-rate-preview"
+              role="status"
+            >
+              {willReprice && selectedRate ? (
+                <>
+                  <span className="font-medium">New rates will replace this line&apos;s rates on save:</span>{" "}
+                  cost rate {formatCurrency(selectedRate.costRate)} (was {formatCurrency(editingLine.costRate)}),
+                  bill rate {formatCurrency(selectedRate.billRate)} (was {formatCurrency(editingLine.billRate)}).
+                </>
+              ) : !pairingUnchanged && !selectedRate ? (
+                <>No rate on the active rate card for this role and location.</>
+              ) : (
+                <>
+                  Keeping this line&apos;s rates: cost rate {formatCurrency(editingLine.costRate)}, bill rate{" "}
+                  {formatCurrency(editingLine.billRate)}.
+                </>
+              )}
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <Button
               onClick={submitLine}
@@ -378,6 +457,7 @@ export function WbsEditorPanel() {
             )}
           </div>
         </div>
+        )}
 
         <Separator />
 
@@ -411,6 +491,7 @@ export function WbsEditorPanel() {
                       </TableCell>
                       <TableCell>{i.customerVisible ? "Yes" : "No"}</TableCell>
                       <TableCell className="text-right">
+                        {committed ? null : (<>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -427,6 +508,7 @@ export function WbsEditorPanel() {
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
                         </Button>
+                        </>)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -435,6 +517,7 @@ export function WbsEditorPanel() {
             </Table>
           </div>
 
+          {committed ? null : (
           <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="ci-name">Name</Label>
@@ -501,6 +584,7 @@ export function WbsEditorPanel() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         <Separator />

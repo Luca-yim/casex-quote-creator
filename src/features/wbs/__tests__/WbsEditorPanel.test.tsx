@@ -100,10 +100,10 @@ vi.mock("../useWbsData", () => ({
   }),
 }));
 
-function renderPanel() {
+function renderPanel(state = "under_review") {
   const quote = {
     ...makeQuote(),
-    state: "under_review",
+    state,
     tier: "proposal",
     customerType: "state_naspo",
   } as unknown as Quote;
@@ -158,6 +158,18 @@ describe("WbsEditorPanel", () => {
     expect(total()).toMatch(/\$0/);
   });
 
+  it.each(["approved", "sent_to_customer", "accepted", "declined"])(
+    "hides edit/delete controls and entry forms when state is %s",
+    (state) => {
+      store.lines = [NAIA_LINE];
+      store.items = [NAIA_ITEM];
+      renderPanel(state);
+      expect(screen.queryByRole("button", { name: /edit line|delete line|edit cost item|delete cost item/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /add line/i })).toBeNull();
+      expect(screen.getByText(/this quote is committed/i)).toBeInTheDocument();
+    },
+  );
+
   it("totals the NAIA fixture line plus its non-labor item", () => {
     store.lines = [NAIA_LINE];
     store.items = [NAIA_ITEM];
@@ -173,8 +185,10 @@ describe("WbsEditorPanel", () => {
 
     await user.click(screen.getByLabelText(/phase/i));
     await user.click(await screen.findByRole("option", { name: "Build" }));
-    await user.click(screen.getByLabelText(/role \/ location/i));
+    await user.click(screen.getByLabelText(/^role$/i));
     await user.click(await screen.findByRole("option", { name: /Developer/ }));
+    await user.click(screen.getByLabelText(/^location$/i));
+    await user.click(await screen.findByRole("option", { name: "Offshore" }));
     await user.type(screen.getByLabelText(/cost hours/i), "22880");
     await user.type(screen.getByLabelText(/revenue hours/i), "22880");
 
