@@ -170,20 +170,21 @@ export function usePhaseOptions(enabled = true) {
 
 export interface NewWbsLine {
   phase: string;
-  area: string | null;
+  area: string;
   role: string;
   location: string;
   costHours: number;
   revenueHours: number;
   /** Snapshotted from the rate card at insert time. */
+  costRate: number;
+  billRate: number;
+}
 
 /** Insert a WBS line with its rates frozen at insert time. */
 export function useAddWbsLine(quoteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (line: NewWbsLine) => {
-      // quote_wbs_lines.area is NOT NULL; the form-level rule is pending (W2).
-      if (!line.area) throw new Error("Area is required.");
       const { error } = await supabase.from("quote_wbs_lines").insert({
         quote_id: quoteId,
         phase: line.phase,
