@@ -61,7 +61,7 @@ async function archivePdf(
   quote: Quote,
   version: PdfVersion,
   blob: Blob,
-  userId: string | null,
+  userId: string,
 ): Promise<void> {
   const path = `${quote.id}/${version}-${isoStamp(new Date())}.pdf`;
 
@@ -70,8 +70,7 @@ async function archivePdf(
     .upload(path, blob, { contentType: "application/pdf", upsert: false });
   if (uploadError) throw new Error(uploadError.message);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: insertError } = await (supabase as any).from("quote_pdfs").insert({
+  const { error: insertError } = await supabase.from("quote_pdfs").insert({
     quote_id: quote.id,
     version,
     storage_path: path,
@@ -383,7 +382,10 @@ export function useQuotePdfDownload() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id ?? null;
 
-      const archiving = archivePdf(quote, version, blob, userId)
+      // quote_pdfs.generated_by is NOT NULL: without a signed-in user, report the archive failure.
+      const archiving = (userId
+        ? archivePdf(quote, version, blob, userId)
+        : Promise.reject(new Error("You must be signed in to archive a PDF.")))
         .then(() => {
           queryClient.invalidateQueries({ queryKey: quotePdfsKey(quote.id) });
           toast.success("PDF downloaded and archived");
