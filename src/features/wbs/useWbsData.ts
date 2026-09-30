@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 export interface WbsLineRow {
   id: string;
   phase: string;
-  area: string | null;
+  area: string;
   role: string;
   location: string;
   costHours: number;
@@ -176,9 +176,6 @@ export interface NewWbsLine {
   costHours: number;
   revenueHours: number;
   /** Snapshotted from the rate card at insert time. */
-  costRate: number;
-  billRate: number;
-}
 
 /** Insert a WBS line with its rates frozen at insert time. */
 export function useAddWbsLine(quoteId: string) {
