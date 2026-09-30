@@ -61,7 +61,7 @@ async function archivePdf(
   quote: Quote,
   version: PdfVersion,
   blob: Blob,
-  userId: string | null,
+  userId: string,
 ): Promise<void> {
   const path = `${quote.id}/${version}-${isoStamp(new Date())}.pdf`;
 
@@ -382,7 +382,10 @@ export function useQuotePdfDownload() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id ?? null;
 
-      const archiving = archivePdf(quote, version, blob, userId)
+      // quote_pdfs.generated_by is NOT NULL: without a signed-in user, report the archive failure.
+      const archiving = (userId
+        ? archivePdf(quote, version, blob, userId)
+        : Promise.reject(new Error("You must be signed in to archive a PDF.")))
         .then(() => {
           queryClient.invalidateQueries({ queryKey: quotePdfsKey(quote.id) });
           toast.success("PDF downloaded and archived");
