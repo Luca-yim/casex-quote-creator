@@ -33,7 +33,12 @@ const NAIA_ITEM: CostItemRow = {
   customerVisible: true,
 };
 
-const store: { lines: WbsLineRow[]; items: CostItemRow[] } = { lines: [], items: [] };
+const DEFAULT_RATES = [{ role: "Developer", location: "offshore", billRate: 55, costRate: 35 }];
+const store: {
+  lines: WbsLineRow[];
+  items: CostItemRow[];
+  rates: { role: string; location: string; billRate: number; costRate: number }[];
+} = { lines: [], items: [], rates: DEFAULT_RATES };
 const rerender = { fn: () => {} };
 const updateCalls: {
   lines: { id: string; patch: Record<string, unknown> }[];
@@ -43,10 +48,7 @@ const updateCalls: {
 vi.mock("../useWbsData", () => ({
   useWbsLines: () => ({ data: store.lines, isLoading: false }),
   useQuoteCostItems: () => ({ data: store.items, isLoading: false }),
-  useRateCardOptions: () => ({
-    data: [{ role: "Developer", location: "offshore", billRate: 55, costRate: 35 }],
-    isLoading: false,
-  }),
+  useRateCardOptions: () => ({ data: store.rates, isLoading: false }),
   usePhaseOptions: () => ({ data: ["Build"], isLoading: false }),
   useAddWbsLine: () => ({
     mutate: (line: Omit<WbsLineRow, "id" | "personDays">, opts?: { onSuccess?: () => void }) => {
@@ -149,6 +151,7 @@ describe("WbsEditorPanel", () => {
   beforeEach(() => {
     store.lines = [];
     store.items = [];
+    store.rates = DEFAULT_RATES;
     updateCalls.lines = [];
     updateCalls.items = [];
   });
@@ -256,5 +259,70 @@ describe("WbsEditorPanel", () => {
     await user.click(screen.getByRole("button", { name: /^save$/i }));
     expect(updateCalls.items[0]?.patch["amount"]).toBe(5000);
     expect(total()).toContain("5,000");
+  });
+
+  describe("Location list", () => {
+    const RATES = [
+      { role: "Developer", location: "offshore", billRate: 55, costRate: 35 },
+      { role: "Developer", location: "nearshore", billRate: 80, costRate: 50 },
+      { role: "Analyst", location: "onshore", billRate: 120, costRate: 80 },
+    ];
+    const optionNames = () => screen.getAllByRole("option").map((o) => o.textContent);
+
+    it("lists only locations with a rate for the selected role", async () => {
+      const user = userEvent.setup();
+      store.rates = RATES;
+      renderPanel();
+      await user.click(screen.getByLabelText(/^role$/i));
+      await user.click(await screen.findByRole("option", { name: "Developer" }));
+      await user.click(screen.getByLabelText(/^location$/i));
+      await screen.findByRole("option", { name: "Offshore" });
+      expect(optionNames()).toEqual(["Nearshore", "Offshore"]);
+    });
+
+    it("clears a location the newly chosen role has no rate for", async () => {
+      const user = userEvent.setup();
+      store.rates = RATES;
+      renderPanel();
+      await user.click(screen.getByLabelText(/^role$/i));
+      await user.click(await screen.findByRole("option", { name: "Developer" }));
+      await user.click(screen.getByLabelText(/^location$/i));
+      await user.click(await screen.findByRole("option", { name: "Offshore" }));
+      expect(screen.getByLabelText(/^location$/i)).toHaveTextContent("Offshore");
+
+      await user.click(screen.getByLabelText(/^role$/i));
+      await user.click(await screen.findByRole("option", { name: "Analyst" }));
+      expect(screen.getByLabelText(/^location$/i)).not.toHaveTextContent("Offshore");
+      expect(screen.getByLabelText(/^location$/i)).toHaveTextContent(/select location/i);
+    });
+
+    it("keeps the edited line's off-card location as a (current) entry", async () => {
+      const user = userEvent.setup();
+      store.rates = RATES;
+      store.lines = [{ ...NAIA_LINE, location: "onshore" }]; // Developer has no onshore rate
+      renderPanel();
+      await user.click(screen.getByRole("button", { name: /edit line/i }));
+      await user.click(screen.getByLabelText(/^location$/i));
+      await screen.findByRole("option", { name: "Onshore (current)" });
+      expect(optionNames()).toEqual(["Onshore (current)", "Nearshore", "Offshore"]);
+    });
+
+    it("shows the no-rate note when the chosen pair loses its rate", async () => {
+      const user = userEvent.setup();
+      store.rates = RATES;
+      renderPanel();
+      expect(screen.queryByText(/no rate for this role at this location/i)).toBeNull();
+      await user.click(screen.getByLabelText(/^role$/i));
+      await user.click(await screen.findByRole("option", { name: "Developer" }));
+      await user.click(screen.getByLabelText(/^location$/i));
+      await user.click(await screen.findByRole("option", { name: "Offshore" }));
+      expect(screen.queryByText(/no rate for this role at this location/i)).toBeNull();
+
+      // Rate card refreshes without Developer/offshore.
+      store.rates = RATES.filter((r) => !(r.role === "Developer" && r.location === "offshore"));
+      rerender.fn();
+      expect(screen.getByText(/no rate for this role at this location/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /add line/i })).toBeDisabled();
+    });
   });
 });
