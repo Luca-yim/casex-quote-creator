@@ -44,7 +44,7 @@ vi.mock("../useWbsData", () => ({
   useWbsLines: () => ({ data: store.lines, isLoading: false }),
   useQuoteCostItems: () => ({ data: store.items, isLoading: false }),
   useRateCardOptions: () => ({
-    data: [{ role: "Developer", location: "Offshore", billRate: 55, costRate: 35 }],
+    data: [{ role: "Developer", location: "offshore", billRate: 55, costRate: 35 }],
     isLoading: false,
   }),
   usePhaseOptions: () => ({ data: ["Build"], isLoading: false }),
