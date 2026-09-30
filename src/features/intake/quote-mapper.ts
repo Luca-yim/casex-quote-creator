@@ -3,7 +3,7 @@ import type { Quote } from "@/types/quote";
 import type { Database } from "@/lib/database.types";
 
 type QuoteTableRow = Database["public"]["Tables"]["quotes"]["Row"];
-type QuoteViewRow = Database["public"]["Views"]["quotes_scoped"]["Row"];
+type QuoteViewRow = Database["public"]["Functions"]["quotes_scoped"]["Returns"][number];
 
 /**
  * Accepts rows from either the base table or the role-scoped read view; the
@@ -11,13 +11,20 @@ type QuoteViewRow = Database["public"]["Views"]["quotes_scoped"]["Row"];
  */
 type QuoteRow = QuoteTableRow | QuoteViewRow;
 
+
+/** Reads a column that is NOT NULL on the base table; throws instead of fabricating. */
+function requireCol(r: Record<string, unknown>, col: string): string {
+  const v = r[col];
+  if (typeof v !== "string" || v === "") throw new Error(`quotes row missing required column ${col}`);
+  return v;
+}
 /** Maps a snake_case `quotes` row from the database into the `Quote` domain shape. */
 export function rowToQuote(row: QuoteRow): Quote {
   const r = row as QuoteRow & Record<string, any>;
   return {
-    id: r["id"],
+    id: requireCol(r, "id"),
     ownerId: r["owner_id"] ?? null,
-    requestedBy: r["requested_by"],
+    requestedBy: requireCol(r, "requested_by"),
     reviewedBy: r["reviewed_by"] ?? null,
     lastReviewedBy: r["last_reviewed_by"] ?? null,
     
@@ -94,8 +101,8 @@ export function rowToQuote(row: QuoteRow): Quote {
     submittedAt: r["submitted_at"] ?? null,
     approvedAt: r["approved_at"] ?? null,
     sentAt: r["sent_at"] ?? null,
-    createdAt: r["created_at"],
-    updatedAt: r["updated_at"],
+    createdAt: requireCol(r, "created_at"),
+    updatedAt: requireCol(r, "updated_at"),
   };
 }
 
