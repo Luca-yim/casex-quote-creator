@@ -149,8 +149,8 @@ describe("WbsEditorPanel", () => {
     await user.type(screen.getByLabelText(/revenue hours/i), "22880");
 
     const addLine = screen.getByRole("button", { name: /add line/i });
-    await user.click(addLine);
-    // Area is required — the button stays disabled and nothing is added.
+    // Area is required — the button stays disabled until Area is filled.
+    expect(addLine).toBeDisabled();
     expect(total()).toContain("28,000");
 
     await user.type(screen.getByLabelText(/area/i), "Core");
