@@ -59,7 +59,7 @@ function resolveHostingModel(
 export function calculatePricingBreakdown(
   quote: PricingQuoteInput,
   catalog: PricingCatalogRow[],
-): PricingBreakdown {
+): PricingBreakdown | null {
   const compliance = quote.compliance ?? [];
   const lineItems: LineItem[] = [];
   const useNaspoDiscount = quote.customerType === "state_naspo";
