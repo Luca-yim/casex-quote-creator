@@ -16,17 +16,13 @@ export interface QuotePdfRecord {
 /** Query key for the archived-PDF list of a quote. */
 export const quotePdfsKey = (quoteId: string) => ["quote-pdfs", quoteId] as const;
 
-// `quote_pdfs` is not in the generated types yet; use a loose client for it.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 /** Lists archived PDFs for a quote, newest first, with generator emails resolved. */
 export function useQuotePdfHistory(quoteId: string, enabled = true) {
   return useQuery({
     queryKey: quotePdfsKey(quoteId),
     enabled: enabled && Boolean(quoteId),
     queryFn: async (): Promise<QuotePdfRecord[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("quote_pdfs")
         .select("*")
         .eq("quote_id", quoteId)
