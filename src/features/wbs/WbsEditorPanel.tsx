@@ -423,12 +423,7 @@ export function WbsEditorPanel() {
                 ))}
               </SelectContent>
             </Select>
-            {line.role && line.location !== "" && !roleValid && (
-              <p className="text-xs text-destructive" role="alert">
-                No rate for this role at this location
-              </p>
-            )}
-            {line.role && locationOptions.length === 0 && (
+            {line.role && ((line.location !== "" && !roleValid) || locationOptions.length === 0) && (
               <p className="text-xs text-destructive" role="alert">
                 No rate for this role at this location
               </p>
