@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 export interface WbsLineRow {
   id: string;
   phase: string;
-  area: string | null;
+  area: string;
   role: string;
   location: string;
   costHours: number;
@@ -170,7 +170,7 @@ export function usePhaseOptions(enabled = true) {
 
 export interface NewWbsLine {
   phase: string;
-  area: string | null;
+  area: string;
   role: string;
   location: string;
   costHours: number;
@@ -185,8 +185,6 @@ export function useAddWbsLine(quoteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (line: NewWbsLine) => {
-      // quote_wbs_lines.area is NOT NULL; the form-level rule is pending (W2).
-      if (!line.area) throw new Error("Area is required.");
       const { error } = await supabase.from("quote_wbs_lines").insert({
         quote_id: quoteId,
         phase: line.phase,

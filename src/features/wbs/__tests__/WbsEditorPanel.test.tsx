@@ -147,6 +147,13 @@ describe("WbsEditorPanel", () => {
     await user.click(await screen.findByRole("option", { name: /Developer/ }));
     await user.type(screen.getByLabelText(/cost hours/i), "22880");
     await user.type(screen.getByLabelText(/revenue hours/i), "22880");
+
+    const addLine = screen.getByRole("button", { name: /add line/i });
+    // Area is required — the button stays disabled until Area is filled.
+    expect(addLine).toBeDisabled();
+    expect(total()).toContain("28,000");
+
+    await user.type(screen.getByLabelText(/area/i), "Core");
     await user.click(screen.getByRole("button", { name: /add line/i }));
 
     expect(total()).toContain("828,800");

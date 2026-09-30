@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
+import { RequiredLabel } from "@/features/intake/sections/RequiredLabel";
 import { grandTotalCost } from "@/lib/pricing-engine/fullQuote";
 import { programTypeForCustomerType } from "@/features/estimator-ballpark/computeBallparkForQuote";
 import { useIntake } from "@/features/intake/IntakeContext";
@@ -99,14 +100,17 @@ export function WbsEditorPanel() {
 
   const selectedRate = rates.find((r) => `${r.role}|${r.location}` === line.roleKey);
   const canAddLine =
-    Boolean(line.phase) && Boolean(selectedRate) && line.costHours !== "";
+    Boolean(line.phase) &&
+    Boolean(line.area.trim()) &&
+    Boolean(selectedRate) &&
+    line.costHours !== "";
 
   const submitLine = () => {
     if (!canAddLine || !selectedRate) return;
     addLine.mutate(
       {
         phase: line.phase,
-        area: line.area || null,
+        area: line.area.trim(),
         role: selectedRate.role,
         location: selectedRate.location,
         costHours: Number(line.costHours),
@@ -168,7 +172,7 @@ export function WbsEditorPanel() {
                 lines.map((l) => (
                   <TableRow key={l.id}>
                     <TableCell>{l.phase}</TableCell>
-                    <TableCell>{l.area ?? "—"}</TableCell>
+                    <TableCell>{l.area}</TableCell>
                     <TableCell>{l.role}</TableCell>
                     <TableCell>{l.location}</TableCell>
                     <TableCell className="text-right">{l.costHours}</TableCell>
@@ -222,9 +226,12 @@ export function WbsEditorPanel() {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wbs-area">Area</Label>
+            <Label htmlFor="wbs-area">
+              <RequiredLabel>Area</RequiredLabel>
+            </Label>
             <Input
               id="wbs-area"
+              aria-required="true"
               value={line.area}
               onChange={(e) => setLine((s) => ({ ...s, area: e.target.value }))}
             />
