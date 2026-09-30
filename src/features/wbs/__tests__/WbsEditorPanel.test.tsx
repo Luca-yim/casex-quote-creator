@@ -173,8 +173,10 @@ describe("WbsEditorPanel", () => {
 
     await user.click(screen.getByLabelText(/phase/i));
     await user.click(await screen.findByRole("option", { name: "Build" }));
-    await user.click(screen.getByLabelText(/role \/ location/i));
+    await user.click(screen.getByLabelText(/^role$/i));
     await user.click(await screen.findByRole("option", { name: /Developer/ }));
+    await user.click(screen.getByLabelText(/^location$/i));
+    await user.click(await screen.findByRole("option", { name: "Offshore" }));
     await user.type(screen.getByLabelText(/cost hours/i), "22880");
     await user.type(screen.getByLabelText(/revenue hours/i), "22880");
 
