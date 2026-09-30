@@ -2,8 +2,9 @@
  * Generated from the live schema catalogue dump (enums_tables_functions_pasted.json).
  * Source: live quotes project public schema. Generated 2026-09-30 by mechanical
  * transform of the dump only; no hand-maintained content carried over.
- * Function RETURNS TABLE columns carry no nullability in the dump and are typed
- * `| null` (quotes_scoped deliberately nulls columns per role).
+ * quotes_scoped Returns: the 17 role-scoped (CASE-wrapped) fields are `| null`;
+ * all other fields inherit nullability from the quotes table entry in the dump.
+ * quote_versions_scoped Returns: no nullability in the dump; typed `| null`.
  */
 export type Json =
   | string
@@ -1156,13 +1157,13 @@ export type Database = {
       quotes_scoped: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string | null
+          id: string
           owner_id: string | null
-          requested_by: string | null
+          requested_by: string
           reviewed_by: string | null
           approved_by: string | null
           last_reviewed_by: string | null
-          name: string | null
+          name: string
           customer_name: string | null
           customer_type: string | null
           customer_email: string | null
@@ -1170,29 +1171,29 @@ export type Database = {
           vertical: string | null
           solution: string | null
           vertical_other_detail: string | null
-          repeatable_activation: string | null
+          repeatable_activation: string
           module_tier: string | null
-          contract_years: number | null
+          contract_years: number
           expected_award_date: string | null
           case_worker_count: number | null
-          include_b2c: boolean | null
+          include_b2c: boolean
           b2c_mau: number | null
-          include_b2b_portal: boolean | null
+          include_b2b_portal: boolean
           b2b_user_count: number | null
           hosting_model: string | null
-          environment_count: number | null
-          has_integrations: boolean | null
+          environment_count: number
+          has_integrations: boolean
           integration_count: number | null
           integration_difficulty: string | null
           support_tier: string | null
           rep_confidence: string | null
-          tier: string | null
-          state: string | null
+          tier: string
+          state: string
           submitted_at: string | null
           approved_at: string | null
           sent_at: string | null
-          created_at: string | null
-          updated_at: string | null
+          created_at: string
+          updated_at: string
           margin_percent: number | null
           margin_justification: string | null
           contingency_pct: number | null
@@ -1206,10 +1207,10 @@ export type Database = {
           idp_documented: boolean | null
           portal_form_count_range: string | null
           lead_id: string | null
-          needs_attention: boolean | null
-          integrations: Json | null
-          opportunity_stage: string | null
-          deal_priority: string | null
+          needs_attention: boolean
+          integrations: Json
+          opportunity_stage: string
+          deal_priority: string
           deal_template: string | null
           quote_validity_date: string | null
           geographic_scope: string | null
