@@ -226,7 +226,9 @@ export function WbsEditorPanel() {
             )}
           </div>
           <div className="space-y-1.5">
-            <RequiredLabel>Area</RequiredLabel>
+            <Label htmlFor="wbs-area">
+              <RequiredLabel>Area</RequiredLabel>
+            </Label>
             <Input
               id="wbs-area"
               aria-required="true"
