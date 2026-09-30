@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { calculatePricingBreakdown } from "../baseline-calculator";
+import { calculatePricingBreakdown as calculateNullable } from "../baseline-calculator";
+
+/** Fixtures always carry an explicit margin; a null result here is a test failure. */
+function calculatePricingBreakdown(...args: Parameters<typeof calculateNullable>) {
+  const result = calculateNullable(...args);
+  if (!result) throw new Error("expected a priced breakdown (fixture margin missing)");
+  return result;
+}
 import { findSku, findTieredSku, toLineItem } from "../catalog-utils";
 import { TEST_CATALOG, makeQuote } from "../__test-fixtures__/catalog";
 
