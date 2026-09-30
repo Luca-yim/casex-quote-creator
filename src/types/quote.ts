@@ -173,10 +173,10 @@ export interface Quote {
   /** @deprecated legacy flat difficulty — retained, unused. */
   integrationDifficulty: IntegrationComplexity | null;
   supportTier: SupportTier | null;
-  marginPercent: number;
+  marginPercent: number | null;
   marginJustification: string | null;
   /** Contingency stored as a fraction (0–1); null means "never set". */
-  contingencyPct: number;
+  contingencyPct: number | null;
   repConfidence: RepConfidence | null;
   tier: QuoteTier;
   migrationRequired: boolean | null;
@@ -328,9 +328,9 @@ export const quoteSchema = z.object({
     .nullable()
     .default(null),
   supportTier: z.enum(["standard", "enhanced", "premium"]),
-  marginPercent: z.number().min(0).max(100).default(20),
+  marginPercent: z.number().min(0).max(100).nullable().default(null),
   marginJustification: z.string().nullable().default(null),
-  contingencyPct: z.number().min(0).max(1).default(0),
+  contingencyPct: z.number().min(0).max(1).nullable().default(null),
   repConfidence: z.enum(["high", "medium", "low"]).nullable().default(null),
   tier: z.enum(["ballpark", "proposal"]).default("ballpark"),
   // Additive complexity-driver inputs — all optional/nullable.

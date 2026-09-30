@@ -51,10 +51,26 @@ function renderBlock(quoteOverrides = {}, onChange = vi.fn()) {
 describe("ProposalPricingBlock", () => {
   it("displays the suggested contingency on first mount without writing it", () => {
     const onChange = vi.fn();
-    renderBlock({ contingencyPct: 0 }, onChange);
-    // base 3% + high migration 2% + undocumented integration 2% = 7%
-    expect(screen.getByText("7%")).toBeInTheDocument();
+    renderBlock({ contingencyPct: null }, onChange);
+    // NULL = never set. base 3% + high migration 2% + undocumented integration 2% = 7%
+    expect(screen.getByTestId("contingency-display")).toHaveTextContent("7% (suggested)");
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("honours a deliberate 0% contingency instead of substituting the suggestion", () => {
+    renderBlock({ contingencyPct: 0 });
+    expect(screen.getByTestId("contingency-display")).toHaveTextContent(/^0%$/);
+    expect(screen.getByTestId("computed-price")).toHaveTextContent(
+      formatCurrency(totalImplementationFee(30, COST, 0)),
+    );
+  });
+
+  it("shows 'margin not set' and no price when margin is NULL", () => {
+    renderBlock({ marginPercent: null, contingencyPct: 0.03 });
+    expect(screen.getByTestId("computed-price-not-set")).toHaveTextContent(
+      "Implementation fee not available: margin not set",
+    );
+    expect(screen.queryByTestId("computed-price")).toBeNull();
   });
 
   it("does not recompute over an estimator-set contingency across remounts", () => {

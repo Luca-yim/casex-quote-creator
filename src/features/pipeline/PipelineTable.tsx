@@ -112,7 +112,8 @@ export function PipelineTable({
   const withTcv = useMemo(() => {
     return rows.map((row) => ({
       row,
-      tcv: calculatePricingBreakdown(row.quote, catalog).finalTCV,
+      // null when margin is not set — shown as "Not set", never a guessed price.
+      tcv: calculatePricingBreakdown(row.quote, catalog)?.finalTCV ?? null,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.map((r) => `${r.quote.id}:${r.quote.updatedAt}`).join("|"), catalog]);
@@ -120,7 +121,12 @@ export function PipelineTable({
   const ordered = useMemo(() => {
     if (sort.column !== "tcv") return withTcv;
     const factor = sort.direction === "asc" ? 1 : -1;
-    return [...withTcv].sort((a, b) => (a.tcv - b.tcv) * factor);
+    // Unpriced rows always sort last.
+    return [...withTcv].sort((a, b) => {
+      if (a.tcv === null) return b.tcv === null ? 0 : 1;
+      if (b.tcv === null) return -1;
+      return (a.tcv - b.tcv) * factor;
+    });
   }, [withTcv, sort]);
 
   const columnCount =
@@ -232,7 +238,9 @@ export function PipelineTable({
                       {STATE_LABELS[quote.state] ?? quote.state}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(tcv)}</TableCell>
+                  <TableCell className="text-right font-mono">
+                    {tcv === null ? <span className="text-muted-foreground">Not set</span> : formatCurrency(tcv)}
+                  </TableCell>
                   <TableCell className="text-right">{quote.contractYears}</TableCell>
                   <TableCell
                     className="text-muted-foreground"
@@ -250,7 +258,7 @@ export function PipelineTable({
                   ) : null}
                   {isAdmin && adminColumns.margin_percent ? (
                     <TableCell className="text-right font-mono">
-                      {quote.marginPercent}%
+                      {quote.marginPercent === null ? "Not set" : `${quote.marginPercent}%`}
                     </TableCell>
                   ) : null}
                   {isAdmin && adminColumns.repeatable_activation ? (

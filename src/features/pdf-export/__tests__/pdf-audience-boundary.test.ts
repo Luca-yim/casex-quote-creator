@@ -234,3 +234,71 @@ describe("ballpark tier", () => {
     }
   });
 });
+
+describe("sidebar and customer PDF agree on the implementation fee", () => {
+  const SIDEBAR_LINES = [
+    { costHours: NAIA_HOURS, costRate: 35, revenueHours: NAIA_HOURS, billRate: 55 },
+  ];
+  const SIDEBAR_ITEMS = [{ amount: 28_000 }];
+
+  async function sidebarFeeText(quote: ReturnType<typeof makeQuote>) {
+    const { render, screen, cleanup } = await import("@testing-library/react");
+    const { ProposalPricingBlock } = await import(
+      "@/features/pricing-sidebar/ProposalPricingBlock"
+    );
+    render(
+      createElement(ProposalPricingBlock, {
+        quote,
+        lines: SIDEBAR_LINES,
+        items: SIDEBAR_ITEMS,
+        totalHours: NAIA_HOURS,
+        canEdit: true,
+        onChange: vi.fn(),
+      }),
+    );
+    const text = screen.getByTestId("computed-price").textContent;
+    cleanup();
+    return text;
+  }
+
+  async function customerFee(quote: ReturnType<typeof makeQuote>) {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.generatePdf(quote, "customer");
+    });
+    return (captured.at(-1)!["pricing"] as Record<string, number>)["totalImplementationFee"]!;
+  }
+
+  it.each([
+    ["0.03 (stored)", 0.03, 0.03],
+    ["0 (deliberate zero honoured)", 0, 0],
+    // Fixture has no migration/IdP/compliance drivers → suggestion is the 3% base.
+    ["NULL (suggestion used)", null, 0.03],
+  ])("contingency_pct = %s", async (_label, stored, expected) => {
+    const { formatCurrency: fmt } = await import("@/lib/utils");
+    const quote = makeQuote({
+      ...PROPOSAL_QUOTE,
+      marginPercent: 30,
+      contingencyPct: stored,
+    });
+    const pdfFee = await customerFee(quote);
+    const cost = grandTotalCost(SIDEBAR_LINES, SIDEBAR_ITEMS);
+    expect(pdfFee).toBeCloseTo(totalImplementationFee(30, cost, expected), 2);
+    expect(await sidebarFeeText(quote)).toBe(fmt(pdfFee));
+  });
+
+  it("blocks PDF generation when margin is NULL", async () => {
+    const { toast } = await import("sonner");
+    const { result } = setup();
+    await act(async () => {
+      await result.current.generatePdf(
+        makeQuote({ ...PROPOSAL_QUOTE, marginPercent: null }),
+        "customer",
+      );
+    });
+    expect(captured).toHaveLength(0);
+    expect(toast.error).toHaveBeenCalledWith("Margin not set", {
+      description: "Set a margin in the pricing sidebar before generating a PDF.",
+    });
+  });
+});

@@ -59,7 +59,7 @@ function resolveHostingModel(
 export function calculatePricingBreakdown(
   quote: PricingQuoteInput,
   catalog: PricingCatalogRow[],
-): PricingBreakdown {
+): PricingBreakdown | null {
   const compliance = quote.compliance ?? [];
   const lineItems: LineItem[] = [];
   const useNaspoDiscount = quote.customerType === "state_naspo";
@@ -138,7 +138,10 @@ export function calculatePricingBreakdown(
     quote.repeatableActivation,
   );
   const adjustedBaseline = baselineTCV + repeatableActivationAdjustment;
-  const finalTCV = applyMargin(adjustedBaseline, quote.marginPercent);
+  const marginPercent = quote.marginPercent;
+  // No margin set → no honest TCV. Callers render a "not set" state.
+  if (marginPercent === null || marginPercent === undefined) return null;
+  const finalTCV = applyMargin(adjustedBaseline, marginPercent);
 
   return {
     lineItems,
@@ -149,7 +152,7 @@ export function calculatePricingBreakdown(
     baselineTCV,
     repeatableActivationAdjustment,
     adjustedBaseline,
-    marginPercent: quote.marginPercent,
+    marginPercent,
     finalTCV,
     naspoDiscountApplied: useNaspoDiscount,
   };

@@ -112,7 +112,7 @@ export function EstimatorDashboard() {
     quotes.map((quote) => ({
       ...quote,
       totalEstimatedValue: catalogRows.length
-        ? calculatePricingBreakdown(quote, catalogRows).finalTCV
+        ? (calculatePricingBreakdown(quote, catalogRows)?.finalTCV ?? null)
         : null,
     }));
 

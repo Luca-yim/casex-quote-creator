@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useIntake } from "@/features/intake/IntakeContext";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { calculatePricingBreakdown } from "@/lib/calculation-engine";
@@ -80,7 +81,8 @@ export function PricingSidebar() {
 
   // Margin controls are estimator-only, and never available in read-only mode.
   const canEditMargin = (role === "estimator" || role === "admin") && mode === "edit";
-  const savedMargin = quote.marginPercent ?? 20;
+  // null = margin not set. Never substitute a default: that fabricates a price.
+  const savedMargin = quote.marginPercent;
   // The slider tracks locally while dragging; the write happens on release so
   // a single adjustment is one save, not twenty. Margin is full estimator
   // discretion — any value 0–100 commits immediately, no band, no gate.
@@ -159,6 +161,13 @@ export function PricingSidebar() {
       </div>
 
       {/* B — TCV */}
+      {showPricing && catalog && !breakdown ? (
+        <div className="space-y-1" data-testid="margin-not-set">
+          <p className="text-xs text-muted-foreground">Total Contract Value</p>
+          <p className="text-lg font-semibold">Margin not set</p>
+          <p className="text-xs text-muted-foreground">A price is shown once an estimator sets the margin.</p>
+        </div>
+      ) : null}
       {showPricing && breakdown ? (
         <div className="space-y-1">
           {quote.tier === "ballpark" && ballpark ? (
@@ -269,17 +278,41 @@ export function PricingSidebar() {
               <Label htmlFor="margin-slider" className="text-sm">
                 Margin
               </Label>
-              <span className="font-mono text-sm">{margin}% margin</span>
+              <span className="font-mono text-sm">{margin === null ? "Not set" : `${margin}% margin`}</span>
             </div>
-            <Slider
-              id="margin-slider"
-              min={0}
-              max={100}
-              step={1}
-              value={[margin]}
-              onValueChange={(v) => setDraftMargin(v[0] ?? savedMargin)}
-              onValueCommit={(v) => commitMargin(v[0] ?? savedMargin)}
-            />
+            {margin === null ? (
+              <Input
+                id="margin-slider"
+                type="number"
+                min={0}
+                max={99}
+                step={1}
+                placeholder="Margin not set — enter a percentage"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                onBlur={(e) => {
+                  const raw = e.currentTarget.value.trim();
+                  if (raw === "") return;
+                  const n = Number(raw);
+                  if (Number.isFinite(n) && n >= 0 && n < 100) commitMargin(Math.round(n));
+                }}
+              />
+            ) : (
+              <Slider
+                id="margin-slider"
+                min={0}
+                max={100}
+                step={1}
+                value={[margin]}
+                onValueChange={(v) => {
+                  if (v[0] !== undefined) setDraftMargin(v[0]);
+                }}
+                onValueCommit={(v) => {
+                  if (v[0] !== undefined) commitMargin(v[0]);
+                }}
+              />
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="margin-justification" className="text-xs">
                 Margin justification (optional)

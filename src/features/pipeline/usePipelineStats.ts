@@ -25,6 +25,10 @@ export interface PipelineStats {
   /** Number of quotes with both submitted_at and approved_at. */
   approvalSampleSize: number;
   totalAnalyzed: number;
+  /** Pipeline/won/lost quotes excluded from TCV totals because margin is not set. */
+  unpricedCount: number;
+  /** Pipeline/won/lost quotes considered for TCV totals (priced + unpriced). */
+  valuedCandidateCount: number;
   capReached: boolean;
 }
 
@@ -39,6 +43,8 @@ const EMPTY: PipelineStats = {
   medianApprovalHours: null,
   approvalSampleSize: 0,
   totalAnalyzed: 0,
+  unpricedCount: 0,
+  valuedCandidateCount: 0,
   capReached: false,
 };
 
@@ -106,17 +112,27 @@ export function usePipelineStats({
 
       for (const row of rows) {
         const quote = rowToQuote(row);
-        const tcv = calculatePricingBreakdown(quote, catalog ?? []).finalTCV;
+        // null when margin is not set: counted as unpriced, never valued at a guess.
+        const tcv = calculatePricingBreakdown(quote, catalog ?? [])?.finalTCV ?? null;
+        const valued =
+          quote.state === "approved" ||
+          quote.state === "sent_to_customer" ||
+          quote.state === "accepted" ||
+          quote.state === "declined";
+        if (valued) {
+          stats.valuedCandidateCount += 1;
+          if (tcv === null) stats.unpricedCount += 1;
+        }
 
         if (quote.state === "approved" || quote.state === "sent_to_customer") {
           stats.inPipelineCount += 1;
-          stats.inPipelineTcv += tcv;
+          stats.inPipelineTcv += tcv ?? 0;
         } else if (quote.state === "accepted") {
           stats.wonCount += 1;
-          stats.wonTcv += tcv;
+          stats.wonTcv += tcv ?? 0;
         } else if (quote.state === "declined") {
           stats.lostCount += 1;
-          stats.lostTcv += tcv;
+          stats.lostTcv += tcv ?? 0;
         }
 
         if (quote.submittedAt && quote.approvedAt) {

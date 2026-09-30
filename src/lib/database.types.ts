@@ -766,7 +766,7 @@ export type Database = {
           case_worker_count: number | null
           case_worker_studio_users: number | null
           compliance: string[] | null
-          contingency_pct: number
+          contingency_pct: number | null
           contract_years: number
           converted_from_lead_id: string | null
           converted_from_lead_notes: string | null
@@ -795,7 +795,7 @@ export type Database = {
           last_reviewed_by: string | null
           lead_id: string | null
           margin_justification: string | null
-          margin_percent: number
+          margin_percent: number | null
           migration_cleanup_required: boolean | null
           migration_required: boolean | null
           migration_volume_range: string | null
