@@ -134,6 +134,16 @@ export function WbsEditorPanel() {
 
   const committed = COMMITTED_STATES.includes(String((quote as { state?: string }).state ?? ""));
   const roles = Array.from(new Set(rates.map((r) => r.role))).sort();
+  /** Locations that have a rate-card row for the selected role. */
+  const roleLocations = LOCATIONS.filter((loc) =>
+    rates.some((r) => r.role === line.role && toLocationValue(r.location) === loc),
+  );
+  // While editing, the line's own (possibly off-card) location stays pickable.
+  const ownLocation =
+    editingLine && line.role === editingLine.role ? toLocationValue(editingLine.location) : "";
+  const locationOptions = LOCATIONS.filter(
+    (loc) => roleLocations.includes(loc) || loc === ownLocation,
+  );
   const selectedRate = rates.find(
     (r) => r.role === line.role && toLocationValue(r.location) === line.location && line.location !== "",
   );
@@ -365,7 +375,19 @@ export function WbsEditorPanel() {
             <Label htmlFor="wbs-role">Role</Label>
             <Select
               value={line.role}
-              onValueChange={(v) => setLine((s) => ({ ...s, role: v }))}
+              onValueChange={(v) =>
+                setLine((s) => {
+                  // Drop a location the new role has no rate for.
+                  const valid = rates.some(
+                    (r) => r.role === v && toLocationValue(r.location) === s.location,
+                  );
+                  const keepOwn =
+                    editingLine !== null &&
+                    v === editingLine.role &&
+                    s.location === toLocationValue(editingLine.location);
+                  return { ...s, role: v, location: valid || keepOwn ? s.location : "" };
+                })
+              }
             >
               <SelectTrigger id="wbs-role">
                 <SelectValue placeholder="Select role..." />
@@ -387,18 +409,25 @@ export function WbsEditorPanel() {
             <Select
               value={line.location}
               onValueChange={(v) => setLine((s) => ({ ...s, location: toLocationValue(v) }))}
+              disabled={!line.role}
             >
               <SelectTrigger id="wbs-location">
-                <SelectValue placeholder="Select location..." />
+                <SelectValue placeholder={line.role ? "Select location..." : "Select a role first"} />
               </SelectTrigger>
               <SelectContent>
-                {LOCATIONS.map((loc) => (
+                {locationOptions.map((loc) => (
                   <SelectItem key={loc} value={loc}>
                     {LOCATION_LABEL[loc]}
+                    {!roleLocations.includes(loc) ? " (current)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {line.role && ((line.location !== "" && !roleValid) || locationOptions.length === 0) && (
+              <p className="text-xs text-destructive" role="alert">
+                No rate for this role at this location
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wbs-cost-hours">Cost hours</Label>
