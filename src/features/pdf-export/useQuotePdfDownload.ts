@@ -254,6 +254,8 @@ function buildInternalData(
     };
   }
   const cost = grandTotalCost(lines, items);
+  // Same contingency rule as the sidebar (stored, 0 honoured; NULL → suggestion).
+  const contingencyPct = resolveContingency(quote).pct;
   return {
     ...shared,
     version: "internal",
@@ -261,12 +263,12 @@ function buildInternalData(
     pricing: {
       kind: "proposal",
       grandTotalCost: cost,
-      marginPercent: quote.marginPercent,
-      contingencyPct: quote.contingencyPct,
+      marginPercent,
+      contingencyPct,
       totalImplementationFee: totalImplementationFee(
-        quote.marginPercent,
+        marginPercent,
         cost,
-        quote.contingencyPct,
+        contingencyPct,
       ),
       lines,
       items,
@@ -296,6 +298,14 @@ export function useQuotePdfDownload() {
       }
 
       const breakdown = calculatePricingBreakdown(quote, catalog);
+      const marginPercent = quote.marginPercent;
+      // No margin → no honest price. Block rather than fabricate one.
+      if (marginPercent === null || !breakdown) {
+        toast.error("Margin not set", {
+          description: "Set a margin in the pricing sidebar before generating a PDF.",
+        });
+        return;
+      }
 
       let ballpark: BallparkForQuote | null = null;
       if (quote.tier === "ballpark") {
@@ -355,14 +365,14 @@ export function useQuotePdfDownload() {
 
       const context: PdfData =
         version === "internal"
-          ? buildInternalData(quote, breakdown, lines, items, ballpark, shared)
+          ? buildInternalData(quote, marginPercent, breakdown, lines, items, ballpark, shared)
           : buildCustomerData(
               quote,
               breakdown,
               totalImplementationFee(
-                quote.marginPercent,
+                marginPercent,
                 grandTotalCost(lines, items),
-                quote.contingencyPct,
+                resolveContingency(quote).pct,
               ),
               ballpark,
               shared,

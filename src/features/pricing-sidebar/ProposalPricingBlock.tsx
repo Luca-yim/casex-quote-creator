@@ -6,12 +6,11 @@ import { Slider } from "@/components/ui/slider";
 import {
   grandTotalCost,
   marginScenarios,
-  suggestedContingency,
   totalImplementationFee,
   type CostItem,
   type WbsLine,
 } from "@/lib/pricing-engine/fullQuote";
-import { mapQuoteToDrivers } from "@/lib/pricing-engine/mapQuoteToDrivers";
+import { resolveContingency } from "@/lib/pricing-engine/resolveContingency";
 import type { Quote } from "@/types/quote";
 import { formatCurrency } from "@/lib/utils";
 
@@ -40,29 +39,25 @@ export function ProposalPricingBlock({
   onChange,
 }: ProposalPricingBlockProps) {
   const cost = useMemo(() => grandTotalCost(lines, items), [lines, items]);
+  // Shared rule with both PDFs: stored value (0 honoured) or, when NULL,
+  // the driver-based suggestion. Never written on mount.
+  const resolved = useMemo(() => resolveContingency(quote), [quote]);
   const suggested = useMemo(
-    () => {
-      const d = mapQuoteToDrivers(quote);
-      return suggestedContingency({
-        migrationComplexity: d.migration,
-        complianceComplexity: d.compliance,
-        hasUndocumentedIntegration: d.hasUndocumentedIntegration,
-      });
-    },
+    () => resolveContingency({ ...quote, contingencyPct: null }).pct,
     [quote],
   );
 
-  const stored = quote.contingencyPct;
-  // Same commit-on-release pattern as the margin slider: track locally while
-  // dragging, write on release. The suggestion is only a display default —
-  // it is never written on mount, only once the estimator moves the control.
+  // Same commit-on-release pattern as the margin slider.
   const [draftContingency, setDraftContingency] = useState<number | null>(null);
-  const contingency = draftContingency ?? (stored > 0 ? stored : suggested);
+  const contingency = draftContingency ?? resolved.pct;
+  const isSuggested = draftContingency === null && resolved.isSuggested;
 
   if (quote.tier !== "proposal" || cost <= 0) return null;
 
   const scenarios = marginScenarios(cost, totalHours);
-  const price = totalImplementationFee(quote.marginPercent, cost, contingency);
+  const margin = quote.marginPercent;
+  const price =
+    margin === null ? null : totalImplementationFee(margin, cost, contingency);
   const displayPct = Math.round(contingency * 1000) / 10;
 
   const commitContingency = (pct: number) => {
@@ -79,7 +74,9 @@ export function ProposalPricingBlock({
           <Label htmlFor="contingency-slider" className="text-sm">
             Contingency
           </Label>
-          <span className="font-mono text-sm">{displayPct}%</span>
+          <span className="font-mono text-sm" data-testid="contingency-display">
+            {displayPct}%{isSuggested ? " (suggested)" : ""}
+          </span>
         </div>
         <Slider
           id="contingency-slider"
@@ -130,16 +127,24 @@ export function ProposalPricingBlock({
       </div>
 
       <div className="space-y-1 rounded-lg border bg-muted/40 p-4">
-        <p className="text-xs text-muted-foreground">
-          Total implementation fee ({quote.marginPercent}% margin + {displayPct}%
-          contingency)
-        </p>
-        <p
-          data-testid="computed-price"
-          className="font-mono text-3xl font-semibold tracking-tight"
-        >
-          {formatCurrency(price)}
-        </p>
+        {price === null ? (
+          <p data-testid="computed-price-not-set" className="text-sm font-medium">
+            Implementation fee not available: margin not set
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Total implementation fee ({margin}% margin + {displayPct}%
+              {isSuggested ? " suggested" : ""} contingency)
+            </p>
+            <p
+              data-testid="computed-price"
+              className="font-mono text-3xl font-semibold tracking-tight"
+            >
+              {formatCurrency(price)}
+            </p>
+          </>
+        )}
         <p className="text-xs text-muted-foreground">
           Delivery cost basis {formatCurrency(cost)}
         </p>
