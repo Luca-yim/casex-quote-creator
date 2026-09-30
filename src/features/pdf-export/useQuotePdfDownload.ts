@@ -70,8 +70,7 @@ async function archivePdf(
     .upload(path, blob, { contentType: "application/pdf", upsert: false });
   if (uploadError) throw new Error(uploadError.message);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: insertError } = await (supabase as any).from("quote_pdfs").insert({
+  const { error: insertError } = await supabase.from("quote_pdfs").insert({
     quote_id: quote.id,
     version,
     storage_path: path,
