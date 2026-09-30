@@ -89,7 +89,6 @@ export function useCreateDraftQuote({ userId, role, onSuccess }: CreateDraftOpti
         // Drafts start unnamed; the input shows "Untitled Quote" as a
         // placeholder and persistence auto-names on submit.
         name: "",
-        margin_percent: 20,
         contract_years: 3,
         // Section 1 metadata defaults (Q1.4/Q1.7/Q1.9). Validity starts as the
         // established 60-day window from today.
