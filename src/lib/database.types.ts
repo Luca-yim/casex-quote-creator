@@ -1131,7 +1131,7 @@ export type Database = {
         Returns: Database["public"]["Tables"]["quotes"]["Row"]
       }
       current_user_role: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       estimator_assign_and_convert: {
@@ -1142,7 +1142,7 @@ export type Database = {
         Returns: Database["public"]["Tables"]["quotes"]["Row"]
       }
       quote_versions_scoped: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           id: string | null
           quote_id: string | null
@@ -1154,7 +1154,7 @@ export type Database = {
         }[]
       }
       quotes_scoped: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           id: string | null
           owner_id: string | null
