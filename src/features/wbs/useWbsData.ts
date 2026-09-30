@@ -2,6 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import type { Database } from "@/lib/database.types";
+
+type WbsLineUpdate = Database["public"]["Tables"]["quote_wbs_lines"]["Update"];
+type CostItemUpdate = Database["public"]["Tables"]["quote_cost_items"]["Update"];
 
 /** One WBS row as stored. `person_days` is DB-generated and read-only. */
 export interface WbsLineRow {
@@ -215,7 +219,7 @@ export function useUpdateWbsLine(quoteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: WbsLinePatch }) => {
-      const row: Record<string, string | number> = {};
+      const row: WbsLineUpdate = {};
       if (patch.phase !== undefined) row.phase = patch.phase;
       if (patch.area !== undefined) row.area = patch.area;
       if (patch.role !== undefined) row.role = patch.role;
@@ -278,7 +282,7 @@ export function useUpdateCostItem(quoteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<NewCostItem> }) => {
-      const row: Record<string, string | number | boolean> = {};
+      const row: CostItemUpdate = {};
       if (patch.name !== undefined) row.cost_name = patch.name;
       if (patch.itemType !== undefined) row.cost_type = patch.itemType;
       if (patch.amount !== undefined) row.amount = patch.amount;
