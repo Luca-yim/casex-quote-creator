@@ -27,6 +27,7 @@ import type { PricingBreakdown } from "@/types/pricing";
 import type { PricingCatalogRow } from "@/types/pricing";
 import type { Quote } from "@/types/quote";
 import { QuotePdfDocument } from "./QuotePdfDocument";
+import { resolveContingency } from "@/lib/pricing-engine/resolveContingency";
 import { quotePdfsKey } from "./useQuotePdfHistory";
 import type {
   CustomerVisiblePdfData,
@@ -229,6 +230,7 @@ function buildCustomerData(
 /** Internal data: the superset, including full cost basis. */
 function buildInternalData(
   quote: Quote,
+  marginPercent: number,
   breakdown: PricingBreakdown,
   lines: WbsLineRow[],
   items: CostItemRow[],
