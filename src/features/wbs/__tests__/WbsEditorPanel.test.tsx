@@ -35,6 +35,10 @@ const NAIA_ITEM: CostItemRow = {
 
 const store: { lines: WbsLineRow[]; items: CostItemRow[] } = { lines: [], items: [] };
 const rerender = { fn: () => {} };
+const updateCalls: {
+  lines: { id: string; patch: Record<string, unknown> }[];
+  items: { id: string; patch: Record<string, unknown> }[];
+} = { lines: [], items: [] };
 
 vi.mock("../useWbsData", () => ({
   useWbsLines: () => ({ data: store.lines, isLoading: false }),
@@ -63,6 +67,30 @@ vi.mock("../useWbsData", () => ({
     isPending: false,
   }),
   useAddCostItem: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateWbsLine: () => ({
+    mutate: (
+      { id, patch }: { id: string; patch: Partial<WbsLineRow> },
+      opts?: { onSuccess?: () => void },
+    ) => {
+      updateCalls.lines.push({ id, patch });
+      store.lines = store.lines.map((l) => (l.id === id ? { ...l, ...patch } : l));
+      opts?.onSuccess?.();
+      rerender.fn();
+    },
+    isPending: false,
+  }),
+  useUpdateCostItem: () => ({
+    mutate: (
+      { id, patch }: { id: string; patch: Partial<CostItemRow> },
+      opts?: { onSuccess?: () => void },
+    ) => {
+      updateCalls.items.push({ id, patch });
+      store.items = store.items.map((i) => (i.id === id ? { ...i, ...patch } : i));
+      opts?.onSuccess?.();
+      rerender.fn();
+    },
+    isPending: false,
+  }),
   useDeleteCostItem: () => ({
     mutate: (id: string) => {
       store.items = store.items.filter((i) => i.id !== id);
@@ -121,6 +149,8 @@ describe("WbsEditorPanel", () => {
   beforeEach(() => {
     store.lines = [];
     store.items = [];
+    updateCalls.lines = [];
+    updateCalls.items = [];
   });
 
   it("starts at a zero cost basis with no lines", () => {
@@ -160,5 +190,57 @@ describe("WbsEditorPanel", () => {
 
     await user.click(screen.getByRole("button", { name: /delete line/i }));
     expect(total()).toContain("28,000");
+  });
+
+  it("edits a line's hours without re-snapshotting its rates", async () => {
+    const user = userEvent.setup();
+    store.lines = [NAIA_LINE];
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /edit line/i }));
+    const cost = screen.getByLabelText(/cost hours/i);
+    await user.clear(cost);
+    await user.type(cost, "1000");
+    await user.click(screen.getByRole("button", { name: /save line/i }));
+
+    expect(updateCalls.lines).toHaveLength(1);
+    const { id, patch } = updateCalls.lines[0]!;
+    expect(id).toBe("line-1");
+    expect(patch["costHours"]).toBe(1000);
+    expect(patch).not.toHaveProperty("costRate");
+    expect(patch).not.toHaveProperty("billRate");
+    expect(total()).toContain("35,000");
+    expect(screen.getByRole("button", { name: /add line/i })).toBeInTheDocument();
+  });
+
+  it("blocks saving an edited line with a blank Area", async () => {
+    const user = userEvent.setup();
+    store.lines = [NAIA_LINE];
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /edit line/i }));
+    await user.clear(screen.getByLabelText(/area/i));
+    expect(screen.getByRole("button", { name: /save line/i })).toBeDisabled();
+  });
+
+  it("cancel leaves the line untouched", async () => {
+    const user = userEvent.setup();
+    store.lines = [NAIA_LINE];
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /edit line/i }));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(updateCalls.lines).toHaveLength(0);
+    expect(total()).toContain("800,800");
+  });
+
+  it("edits a cost item amount", async () => {
+    const user = userEvent.setup();
+    store.items = [NAIA_ITEM];
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /edit cost item/i }));
+    const amount = screen.getByLabelText(/amount/i);
+    await user.clear(amount);
+    await user.type(amount, "5000");
+    await user.click(screen.getByRole("button", { name: /^save$/i }));
+    expect(updateCalls.items[0]?.patch["amount"]).toBe(5000);
+    expect(total()).toContain("5,000");
   });
 });
