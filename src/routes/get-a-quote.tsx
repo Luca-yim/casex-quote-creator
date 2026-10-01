@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { isTurnstileEnabled } from "@/lib/turnstile";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { LeadIntakeForm, type LeadIntakeValues } from "@/features/lead-intake/LeadIntakeForm";
+import { toLeadCustomerType } from "@/features/lead-intake/lead-intake-options";
 
 /** Internal staff belong in the authenticated intake, not the public form. */
 const INTERNAL_ROLES = ["sales_rep", "estimator", "admin"] as const;
