@@ -11,6 +11,25 @@ import { describeQuoteWriteError } from "@/lib/supabase-errors";
 export const AUTOSAVE_DEBOUNCE_MS = 500;
 
 /**
+ * Fields whose blank (empty / whitespace-only) value must be stored as NULL.
+ * `solution` is covered by a composite FK to vertical_solutions: NULL passes,
+ * "" does not. Matches the public lead form (get-a-quote.tsx).
+ */
+const BLANK_TO_NULL_FIELDS = new Set<string>(["solution"]);
+
+/** Coerces blank strings to null for fields listed in BLANK_TO_NULL_FIELDS. */
+export function normalizeFieldValue(path: string, value: unknown): unknown {
+  if (
+    BLANK_TO_NULL_FIELDS.has(path) &&
+    typeof value === "string" &&
+    value.trim() === ""
+  ) {
+    return null;
+  }
+  return value;
+}
+
+/**
  * Merges a camelCase field path/value pair into a pending patch keyed by the
  * matching database column. Later writes to the same field win, so several
  * rapid edits collapse into one column value.
@@ -22,7 +41,7 @@ export function mergePendingPatch(
 ): Record<string, unknown> {
   const column = QUOTE_FIELD_COLUMNS[path];
   if (!column) return pending;
-  return { ...pending, [column]: value };
+  return { ...pending, [column]: normalizeFieldValue(path, value) };
 }
 
 export interface DebouncedSave {
@@ -116,7 +135,7 @@ export function useDebouncedSave(quoteId: string): DebouncedSave {
       pendingRef.current = next;
       pendingFieldsRef.current = {
         ...pendingFieldsRef.current,
-        [path]: value,
+        [path]: normalizeFieldValue(path, value),
       } as Partial<Quote>;
       setHasPendingChanges(true);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
