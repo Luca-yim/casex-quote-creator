@@ -93,6 +93,7 @@ function GetAQuotePage() {
       contact_email: values.contact_email,
       contact_phone: values.contact_phone || null,
       region: values.region || null,
+      customer_type: toLeadCustomerType(values.customer_type),
       vertical: values.vertical || null,
       solution: values.solution || null,
       vertical_other_detail: values.vertical_other_detail || null,
