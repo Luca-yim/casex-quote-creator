@@ -63,6 +63,27 @@ function toLocationValue(v: string): LocationValue | "" {
   return (LOCATIONS as readonly string[]).includes(l) ? (l as LocationValue) : "";
 }
 
+/**
+ * Advisory-only FedRAMP prompt. Any FedRAMP compliance value or FedRAMP
+ * hosting triggers it; High wins over Moderate; hosting alone names no level.
+ * Deliberately does not restrict locations or classify roles.
+ */
+export function fedrampAdvisory(
+  compliance: readonly string[] | null | undefined,
+  hostingModel: string | null | undefined,
+): string | null {
+  const c = compliance ?? [];
+  const level = c.includes("fedramp_high")
+    ? "FedRAMP High requirements"
+    : c.includes("fedramp_moderate")
+      ? "FedRAMP Moderate requirements"
+      : hostingModel === "fedramp"
+        ? "FedRAMP requirements"
+        : null;
+  if (!level) return null;
+  return `This quote has ${level}. Delivery location may be restricted for roles with direct access to customer data — confirm location selections meet the programme’s personnel requirements.`;
+}
+
 /** Quote states whose cost basis has been committed to a customer price. */
 const COMMITTED_STATES = ["approved", "sent_to_customer", "accepted", "declined"];
 
@@ -93,6 +114,10 @@ export function WbsEditorPanel() {
   const { quote, quoteId } = useIntake();
   const programType = programTypeForCustomerType(
     (quote as unknown as { customerType?: string | null }).customerType,
+  );
+  const fedrampMessage = fedrampAdvisory(
+    (quote as unknown as { compliance?: string[] | null }).compliance,
+    (quote as unknown as { hostingModel?: string | null }).hostingModel,
   );
 
   const linesQuery = useWbsLines(quoteId);
@@ -426,6 +451,17 @@ export function WbsEditorPanel() {
             {line.role && ((line.location !== "" && !roleValid) || locationOptions.length === 0) && (
               <p className="text-xs text-destructive" role="alert">
                 No rate for this role at this location
+              </p>
+            )}
+            {!programType && (
+              <p className="text-xs text-muted-foreground">Set the customer type to load rates</p>
+            )}
+            {fedrampMessage && (
+              <p
+                className="rounded-md border border-border bg-muted px-2 py-1.5 text-xs text-foreground"
+                data-testid="wbs-fedramp-advisory"
+              >
+                {fedrampMessage}
               </p>
             )}
           </div>
