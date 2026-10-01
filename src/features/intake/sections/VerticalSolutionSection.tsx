@@ -48,9 +48,10 @@ export function VerticalSolutionSection() {
                 onChange={(value) => {
                   field.onChange(value);
                   // Programmatic resets must persist too, otherwise the quote
-                  // keeps values that no longer belong to the vertical.
+                  // keeps values that no longer belong to the vertical. The
+                  // cleared solution is saved as NULL, never "".
                   setValue("solution", "", { shouldDirty: true });
-                  updateField("solution", "");
+                  updateField("solution", null);
                   if (value !== OTHER_VERTICAL) {
                     setValue("verticalOtherDetail", null, { shouldDirty: true });
                     updateField("verticalOtherDetail", null);
