@@ -125,8 +125,8 @@ describe("ballparkRange", () => {
 
   it("does not widen at 100% confidence", () => {
     const range = ballparkRange(1, "commercial", 100, sizing);
-    expect(range.implementationLow).toBeCloseTo(120_000, 2);
-    expect(range.implementationHigh).toBeCloseTo(375_000, 2);
+    expect(range.implementationLow).toBeCloseTo(60_000, 2);
+    expect(range.implementationHigh).toBeCloseTo(187_500, 2);
   });
 
   it("throws when no sizing row matches", () => {

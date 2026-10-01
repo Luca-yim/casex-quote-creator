@@ -102,12 +102,13 @@ vi.mock("../useWbsData", () => ({
   }),
 }));
 
-function renderPanel(state = "under_review") {
+function renderPanel(state = "under_review", overrides: Record<string, unknown> = {}) {
   const quote = {
     ...makeQuote(),
     state,
     tier: "proposal",
     customerType: "state_naspo",
+    ...overrides,
   } as unknown as Quote;
   const value = {
     quoteId: quote.id,
@@ -324,5 +325,37 @@ describe("WbsEditorPanel", () => {
       expect(screen.getByText(/no rate for this role at this location/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /add line/i })).toBeDisabled();
     });
+  });
+
+  describe("FedRAMP advisory", () => {
+    const advisory = () => screen.queryByTestId("wbs-fedramp-advisory");
+    it("shows for fedramp_moderate", () => {
+      renderPanel("under_review", { compliance: ["fedramp_moderate"], hostingModel: "regular" });
+      expect(advisory()).toHaveTextContent("This quote has FedRAMP Moderate requirements.");
+    });
+    it("names High for fedramp_high, and High wins over Moderate", () => {
+      renderPanel("under_review", { compliance: ["fedramp_moderate", "fedramp_high"], hostingModel: null });
+      expect(advisory()).toHaveTextContent("This quote has FedRAMP High requirements.");
+    });
+    it("shows with no level for hosting_model fedramp alone", () => {
+      renderPanel("under_review", { compliance: ["stateramp"], hostingModel: "fedramp" });
+      expect(advisory()).toHaveTextContent("This quote has FedRAMP requirements.");
+    });
+    it("stays visible while editing a line", async () => {
+      const user = userEvent.setup();
+      store.lines = [NAIA_LINE];
+      renderPanel("under_review", { compliance: ["fedramp_high"] });
+      await user.click(screen.getByRole("button", { name: /edit line/i }));
+      expect(advisory()).toHaveTextContent("FedRAMP High");
+    });
+    it("is absent with no FedRAMP signal (stateramp does not count)", () => {
+      renderPanel("under_review", { compliance: ["stateramp", "hipaa"], hostingModel: "soc2" });
+      expect(advisory()).toBeNull();
+    });
+  });
+
+  it("explains missing customer type", () => {
+    renderPanel("under_review", { customerType: null });
+    expect(screen.getByText("Set the customer type to load rates")).toBeInTheDocument();
   });
 });
