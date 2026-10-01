@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { isTurnstileEnabled } from "@/lib/turnstile";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { LeadIntakeForm, type LeadIntakeValues } from "@/features/lead-intake/LeadIntakeForm";
+import { toLeadCustomerType } from "@/features/lead-intake/lead-intake-options";
 
 /** Internal staff belong in the authenticated intake, not the public form. */
 const INTERNAL_ROLES = ["sales_rep", "estimator", "admin"] as const;
@@ -93,6 +94,7 @@ function GetAQuotePage() {
       contact_email: values.contact_email,
       contact_phone: values.contact_phone || null,
       region: values.region || null,
+      customer_type: toLeadCustomerType(values.customer_type),
       vertical: values.vertical || null,
       solution: values.solution || null,
       vertical_other_detail: values.vertical_other_detail || null,

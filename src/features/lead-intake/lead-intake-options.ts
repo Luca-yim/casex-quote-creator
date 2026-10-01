@@ -37,3 +37,28 @@ export const INTEGRATION_DIFFICULTY = [
   { value: "high", label: "Complex — mainframe or custom protocols" },
   { value: "unsure", label: "Not sure" },
 ] as const;
+
+/**
+ * Lead-side customer type. Deliberately coarser than the quote enum: a single
+ * `state` value (no NASPO split) — conversion leaves the quote's customer type
+ * null for state leads so the estimator decides. Never map `state` to a quote
+ * value here.
+ */
+export const CUSTOMER_TYPE_OPTIONS = [
+  { value: "state", label: "State agency" },
+  { value: "federal", label: "Federal agency" },
+  { value: "county", label: "County or city government" },
+  { value: "tribal", label: "Tribal government" },
+  { value: "commercial", label: "Private company" },
+  { value: "unsure", label: "Not sure" },
+] as const;
+
+export type LeadCustomerType = (typeof CUSTOMER_TYPE_OPTIONS)[number]["value"];
+
+/** Blank/whitespace (or unknown) → null; otherwise the exact stored slug. */
+export function toLeadCustomerType(value: string | null | undefined): LeadCustomerType | null {
+  const trimmed = (value ?? "").trim();
+  return CUSTOMER_TYPE_OPTIONS.some((o) => o.value === trimmed)
+    ? (trimmed as LeadCustomerType)
+    : null;
+}

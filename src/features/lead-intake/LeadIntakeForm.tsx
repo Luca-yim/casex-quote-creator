@@ -25,6 +25,7 @@ import { useVerticalLabels, OTHER_VERTICAL } from "@/hooks/useVerticalLabels";
 import "./LeadIntakeForm.css";
 import {
   COMPLIANCE_OPTIONS,
+  CUSTOMER_TYPE_OPTIONS,
   HOSTING_PREFERENCES,
   INTEGRATION_DIFFICULTY,
   REGION_OPTIONS,
@@ -41,6 +42,8 @@ export const leadIntakeSchema = z.object({
   contact_email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(255),
   contact_phone: z.string().trim().max(40),
   region: z.string(),
+  /** Optional; blank is saved as null (see toLeadCustomerType). */
+  customer_type: z.string(),
   vertical: z.string(),
   solution: z.string(),
   vertical_other_detail: z.string().trim().max(500),
@@ -91,7 +94,7 @@ const STEP_FIELDS: Array<Array<keyof LeadIntakeValues>> = [
   ["compliance_requirements"],
   ["integration_required", "integration_count", "integration_difficulty"],
   ["additional_notes"],
-  ["organization_name", "contact_name", "contact_email", "contact_phone", "region"],
+  ["organization_name", "contact_name", "contact_email", "contact_phone", "region", "customer_type"],
 ];
 
 /** First step index that owns a given field name, for error navigation. */
@@ -224,6 +227,7 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
       contact_email: "",
       contact_phone: "",
       region: "",
+      customer_type: "",
       vertical: "",
       solution: "",
       vertical_other_detail: "",
@@ -601,6 +605,20 @@ export function LeadIntakeForm({ onSubmit, disabled = false }: LeadIntakeFormPro
                   onChange={field.onChange}
                   options={REGION_OPTIONS}
                   placeholder="Select a region"
+                />
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="customer_type"
+              render={({ field }) => (
+                <SelectField
+                  id="customer_type"
+                  label="Organization type"
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={CUSTOMER_TYPE_OPTIONS}
+                  placeholder="Select an organization type"
                 />
               )}
             />
