@@ -120,6 +120,7 @@ export type Database = {
           contact_phone: string | null
           converted_quote_id: string | null
           created_at: string
+          customer_type: string | null
           duplicate_of_lead_id: string | null
           external_portal_monthly_logins: number | null
           external_portal_required: boolean | null
@@ -156,6 +157,7 @@ export type Database = {
           contact_phone?: string | null
           converted_quote_id?: string | null
           created_at?: string
+          customer_type?: string | null
           duplicate_of_lead_id?: string | null
           external_portal_monthly_logins?: number | null
           external_portal_required?: boolean | null
