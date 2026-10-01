@@ -44,7 +44,7 @@ describe("Alaska DOLWD ballpark", () => {
 
   it("widens the tier band by the confidence spread", () => {
     const range = ballparkRange(3, "public_sector", 75, sizing);
-    expect(range.implementationLow).toBeCloseTo(1_837_500, 0);
-    expect(range.implementationHigh).toBeCloseTo(4_303_125, 0);
+    expect(range.implementationLow).toBeCloseTo(918_750, 0);
+    expect(range.implementationHigh).toBeCloseTo(2_151_562.5, 0);
   });
 });

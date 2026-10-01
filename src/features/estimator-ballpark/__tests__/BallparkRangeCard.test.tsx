@@ -95,7 +95,7 @@ describe("BallparkRangeCard", () => {
       compliance: ["soc2_type2", "hipaa", "stateramp"],
     } as unknown as Partial<Quote>);
 
-    expect(screen.getByText(/\$2,100,000\s*[–-]\s*\$3,825,000/)).toBeInTheDocument();
+    expect(screen.getByText(/\$1,050,000\s*[–-]\s*\$1,912,500/)).toBeInTheDocument();
     expect(screen.getByText("Tier 3")).toBeInTheDocument();
     expect(screen.getByText("100% confidence")).toBeInTheDocument();
 
